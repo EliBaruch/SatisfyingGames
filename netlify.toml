@@ -20,3 +20,8 @@
   for = "/src/*"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
