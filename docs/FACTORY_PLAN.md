@@ -8,6 +8,8 @@ Decisions already made with the owner: next world in the same game and save file
 
 Nothing is built now. This plan is the brief for the scheduled run.
 
+**Update, evening of 15 November.** The parallel session has finished: the finished game is on `claude/clever-allen-0k86le` (the repository's default branch, commit `cabd414`) and live at https://bloom-rush-game.netlify.app (Netlify project `bloom-rush-game`, deployed by upload, not linked to git). The owner has given permission for the scheduled run to push, merge and deploy once its checks pass. See "Release" below.
+
 ## What the research settled
 
 | Question | Answer | Why |
@@ -80,7 +82,7 @@ All additions are opt-in per world, so the three existing worlds render and play
 
 Each phase ends with a commit pushed to the branch, so a partial night still leaves something playable.
 
-1. **Sync.** Fetch origin; base the work on the newest finalised game (both branches are the same commit today; the parallel session's later pushes get merged in first).
+1. **Sync.** Fetch origin and merge `origin/claude/clever-allen-0k86le` (the finished game) into `claude/cool-bell-lrnnw1` before anything else. Run the three existing playtests once to record the baseline.
 2. **Probe and look test.** Download the factory asset group; dump the Quaternius rig (bones, clips, materials); render the player and a worker next to a Kenney character and a machine in a test scene; pick low-poly vs Smooth from screenshots.
 3. **Rig adapter + tier-2 graphics + camera**, proven on a bare factory floor with the new player walking and carrying.
 4. **Stage 1-2 playable** using only existing station types, with autoplay reaching the workshop gate.
@@ -98,8 +100,26 @@ Each phase ends with a commit pushed to the branch, so a partial night still lea
 - Regression: `tools/playtest.js` for `flower`, `chicken`, `grocery` still reaches the win, and screenshots of those worlds are unchanged.
 - Save round trip: reload mid-stage 3 and mid-stage 5 and confirm belts, lines, workers and stage restore.
 
-## After approval (tonight, before 04:00)
+## Release (owner-approved: push, merge, deploy)
 
-1. Commit this plan to the repo as `docs/FACTORY_PLAN.md` on `claude/cool-bell-lrnnw1` and push, so the scheduled run has it even if this container is recycled.
-2. Create a one-time scheduled task for `2026-11-16T04:00:00[Asia/Jerusalem]` that wakes this session and tells it to execute `docs/FACTORY_PLAN.md` phase by phase on `claude/cool-bell-lrnnw1`, pushing after each phase.
-3. The run pushes only to that branch. It does not open a pull request, touch the parallel session's branch, or deploy to Netlify; it ends with a summary of what was built, screenshots, and what is left.
+The run works on `claude/cool-bell-lrnnw1` and pushes there after every phase. It merges and deploys only when all of these gates pass:
+
+1. `tools/playtest.js --world=factory` reaches the win pad.
+2. `tools/playtest.js` for `flower`, `chicken` and `grocery` still reaches the win, and their screenshots match the baseline taken in phase 1.
+3. No console errors on load of any world; save round trip works; the finale meets the performance budget above.
+4. The factory screenshots have been looked at and the world is presentable at every stage.
+
+When the gates pass:
+
+1. **Merge.** Merge any new commits from `origin/claude/clever-allen-0k86le` into the factory branch, rerun gates 1-3, then fast-forward `claude/clever-allen-0k86le` (the default branch) to the factory branch and push. No pull request.
+2. **Deploy.** Upload that commit to the Netlify project `bloom-rush-game` (site id `854c80d9-26b0-4c2b-8f9f-9f1278f50979`) as production, using the Netlify deploy tool.
+3. **Check live.** Load https://bloom-rush-game.netlify.app in Playwright: the title screen, one old world and `?world=factory&unlock=1` all start without errors.
+4. **Rollback.** The production deploy before this work is `6afa2b95cda6ba208e9da816`. If the live check fails, say so in the report and restore that deploy (republish it in Netlify's deploy list, or redeploy commit `cabd414`).
+
+If the gates do not pass by the end of the run, nothing is merged or deployed. The work stays on `claude/cool-bell-lrnnw1` and the report says which gate failed and why. A world that is playable but not finished is not released half-done.
+
+## After approval of this update (tonight, before 04:00)
+
+1. Update `docs/FACTORY_PLAN.md` on `claude/cool-bell-lrnnw1` with this version and push.
+2. Update the existing one-time scheduled task "Build the factory world" (04:00 Israel time, 16 November) so its instructions include the merge and deploy steps and gates above in place of the old "do not merge or deploy" limits.
+3. The run ends with a report: phases done, gate results, whether it merged and deployed, the live URL, screenshots of each stage, and what is left.
