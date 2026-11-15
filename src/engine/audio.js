@@ -9,9 +9,10 @@ const AUDIBLE_RANGE = 20;
 const COMBO_RESET = 0.5;
 const PENTA = [0, 2, 4, 7, 9];
 const COMBO_MAX_DEGREE = 10; // two octaves, then hold
-const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay']);
-const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12 };
-const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire']);
+const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
+const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
+  egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4 };
+const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 const fin = (x, d) => (Number.isFinite(x) ? x : d);
@@ -158,6 +159,64 @@ const SOUNDS = {
     }
     noise(k, { type: 'lowpass', f0: 180, dur: 0.25, vol: 0.05, atk: 0.02 });
   },
+  egg(k) {
+    tone(k, { type: 'sine', f0: 640, f1: 940, dur: 0.085, vol: 0.2, atk: 0.008 });
+    tone(k, { type: 'triangle', f0: 1280, f1: 1500, dur: 0.04, vol: 0.035, atk: 0.005 });
+  },
+  cluck(k) {
+    tone(k, { type: 'triangle', f0: 520, f1: 860, dur: 0.055, vol: 0.14, atk: 0.008, filter: 2600 });
+    tone(k, { type: 'triangle', f0: 470, f1: 740, t: 0.075, dur: 0.065, vol: 0.12, atk: 0.008, filter: 2600 });
+  },
+  pack(k) {
+    tone(k, { type: 'triangle', f0: 420, f1: 280, dur: 0.04, vol: 0.1, atk: 0.003, filter: 1500 });
+    noise(k, { type: 'lowpass', f0: 900, dur: 0.05, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 170, f1: 70, t: 0.1, dur: 0.14, vol: 0.28, atk: 0.004 });
+    noise(k, { type: 'lowpass', f0: 600, t: 0.1, dur: 0.06, vol: 0.09, atk: 0.003 });
+  },
+  machine(k) {
+    for (let i = 0; i < 2; i++) {
+      tone(k, { type: 'triangle', f0: 95, f1: 70, t: i * 0.09, dur: 0.07, vol: 0.1, atk: 0.01, filter: 260, q: 1 });
+    }
+    noise(k, { type: 'lowpass', f0: 260, dur: 0.18, vol: 0.03, atk: 0.02 });
+  },
+  crate(k) {
+    tone(k, { type: 'sine', f0: 170, f1: 80, dur: 0.11, vol: 0.3, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 330, f1: 200, dur: 0.05, vol: 0.09, atk: 0.003, filter: 900 });
+    noise(k, { type: 'bandpass', f0: 700, dur: 0.04, vol: 0.08, q: 1.2, atk: 0.003 });
+  },
+  shelf(k) {
+    tone(k, { type: 'triangle', f0: 1000, f1: 760, dur: 0.045, vol: 0.13, atk: 0.003 });
+    noise(k, { type: 'bandpass', f0: 2800, dur: 0.015, vol: 0.05, q: 3, atk: 0.002 });
+  },
+  scan(k) {
+    const v = 1 + (Math.random() - 0.5) * 0.09;
+    tone(k, { type: 'sine', f0: 1568 * v, dur: 0.09, vol: 0.14, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 3136 * v, dur: 0.05, vol: 0.02, atk: 0.004 });
+  },
+  truck(k) {
+    for (let i = 0; i < 4; i++) {
+      tone(k, { type: 'sawtooth', f0: 62 - i * 2, f1: 44, t: i * 0.12, dur: 0.1, vol: 0.15, atk: 0.012, filter: 210, q: 1.1 });
+    }
+    noise(k, { type: 'lowpass', f0: 160, dur: 0.5, vol: 0.06, atk: 0.05 });
+  },
+  feed(k) {
+    noise(k, { type: 'bandpass', f0: 3200, f1: 1600, dur: 0.22, vol: 0.14, q: 0.6, atk: 0.05 });
+    noise(k, { type: 'lowpass', f0: 1200, dur: 0.16, vol: 0.07, atk: 0.04 });
+  },
+  travel(k) {
+    noise(k, { type: 'bandpass', f0: 400, f1: 3200, dur: 0.6, vol: 0.07, q: 1, atk: 0.18 });
+    [72, 76, 79, 84].forEach((n, i) => {
+      tone(k, { type: 'triangle', f0: midi(n), t: 0.12 + i * 0.09, dur: 0.4, vol: 0.1 });
+      tone(k, { type: 'sine', f0: midi(n + 12), t: 0.12 + i * 0.09, dur: 0.22, vol: 0.03 });
+    });
+  },
+  perk(k) {
+    [79, 83, 86, 91, 95].forEach((n, i) => {
+      tone(k, { type: 'triangle', f0: midi(n), t: i * 0.06, dur: 0.26, vol: 0.1 });
+      tone(k, { type: 'sine', f0: midi(n + 12), t: i * 0.06 + 0.02, dur: 0.14, vol: 0.025 });
+    });
+    tone(k, { type: 'sine', f0: midi(98), t: 0.32, dur: 0.3, vol: 0.03 });
+  },
   step(k) {
     noise(k, { type: 'lowpass', f0: 600, dur: 0.035, vol: 0.05, atk: 0.003 });
   },
@@ -185,10 +244,74 @@ const MELODY = [72, 74, 76, 79, 81, 84]; // C pentatonic, octave 5-6
 export const MUSIC_BEAT = 0.75;
 export const MUSIC_BAR = MUSIC_BEAT * 4;
 
-/** Schedule one bar of the generative loop starting at time t. `rnd` returns [0,1). */
-export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random) {
-  const c = CHORDS[chordIdx % CHORDS.length];
+// Variations. flower is the original loop; chicken is bouncy G major (G C G D); grocery is a bossa lounge (Cmaj7 Am7 Dm7 G7).
+const CHICKEN_CHORDS = [
+  { root: 43, notes: [55, 59, 62] },
+  { root: 48, notes: [55, 60, 64] },
+  { root: 43, notes: [55, 59, 62] },
+  { root: 50, notes: [54, 57, 62] },
+];
+const CHICKEN_MELODY = [67, 69, 71, 74, 76, 79];
+const GROCERY_CHORDS = [
+  { root: 36, notes: [55, 59, 64, 67] },
+  { root: 45, notes: [55, 60, 64, 67] },
+  { root: 38, notes: [57, 60, 65, 69] },
+  { root: 43, notes: [53, 59, 62, 65] },
+];
+const GROCERY_MELODY = [72, 74, 76, 79, 81];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4 };
+
+function chickenBar(k, t, chordIdx, rnd) {
+  const B = 0.6;
+  const c = CHICKEN_CHORDS[chordIdx % 4];
+  for (const n of c.notes) tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.3, vol: 0.014, atk: 0.5 });
+  for (let b = 0; b < 4; b++) {
+    const root = b % 2 === 0 ? c.root : c.root + 7; // oom (root) / pah (fifth), bouncy
+    tone(k, { type: 'triangle', f0: midi(root), t: b * B, dur: 0.22, vol: 0.03, atk: 0.008, filter: 700 });
+    if (b % 2 === 1) for (const n of c.notes) tone(k, { type: 'triangle', f0: midi(n + 12), t: b * B + 0.01, dur: 0.16, vol: 0.006, atk: 0.005, filter: 1800 });
+  }
+  let last = -1;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > (step % 2 === 0 ? 0.62 : 0.4)) continue;
+    let idx = (rnd() * CHICKEN_MELODY.length) | 0;
+    if (idx === last) idx = (idx + 2) % CHICKEN_MELODY.length;
+    last = idx;
+    const tt = step * B * 0.5;
+    tone(k, { type: 'triangle', f0: midi(CHICKEN_MELODY[idx]), t: tt, dur: 0.2, vol: 0.02, atk: 0.004, filter: 2400 });
+    tone(k, { type: 'sine', f0: midi(CHICKEN_MELODY[idx] + 12), t: tt, dur: 0.1, vol: 0.004, atk: 0.004 });
+  }
+}
+
+function groceryBar(k, t, chordIdx, rnd) {
+  const B = 0.8;
+  const c = GROCERY_CHORDS[chordIdx % 4];
+  for (const n of c.notes) {
+    tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.6, vol: 0.012, atk: 1.0 });
+    tone(k, { type: 'triangle', f0: midi(n + 12) * 1.002, dur: B * 4 + 0.4, vol: 0.004, atk: 1.1, filter: 1000 });
+  }
+  tone(k, { type: 'sine', f0: midi(c.root), dur: B * 1.5, vol: 0.03, atk: 0.02 });
+  tone(k, { type: 'sine', f0: midi(c.root + 7), t: B * 2, dur: B * 1.2, vol: 0.026, atk: 0.02 });
+  const S = B / 4; // sixteenth; bossa stab pattern
+  for (const st of [3, 6, 10, 13]) {
+    for (const n of c.notes) tone(k, { type: 'triangle', f0: midi(n + 12), t: st * S, dur: 0.28, vol: 0.006, atk: 0.006, filter: 1600 });
+  }
+  let last = -1;
+  for (const st of [0, 4, 8, 12]) {
+    if (rnd() > 0.4) continue;
+    let idx = (rnd() * GROCERY_MELODY.length) | 0;
+    if (idx === last) idx = (idx + 2) % GROCERY_MELODY.length;
+    last = idx;
+    tone(k, { type: 'sine', f0: midi(GROCERY_MELODY[idx]), t: (st + 2) * S, dur: 0.5, vol: 0.017, atk: 0.01 });
+  }
+}
+
+/** Schedule one bar of the generative loop starting at time t. `rnd` returns [0,1). `world` picks the variation. */
+export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world = 'flower') {
   const k = { ctx, out, t, pitch: 1, volume: 1, end: t };
+  if (world === 'chicken') { chickenBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
+  const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {
     tone(k, { type: 'sine', f0: midi(n), dur: MUSIC_BAR + 0.7, vol: 0.022, atk: 0.9 });
     tone(k, { type: 'triangle', f0: midi(n + 12) * 1.002, dur: MUSIC_BAR + 0.5, vol: 0.006, atk: 1.1, filter: 1200 });
@@ -251,15 +374,15 @@ export function createAudio(G) {
   }
 
   // ---- music scheduler
-  let musicTimer = 0, nextBar = 0, barIdx = 0;
+  let musicTimer = 0, nextBar = 0, barIdx = 0, world = 'flower';
   function musicTick() {
     if (!ctx || ctx.state !== 'running' || muted || document.hidden || (G.timeScale || 1) > 3) return;
     const now = ctx.currentTime;
     if (nextBar < now + 0.05) nextBar = now + 0.1;
     while (nextBar < now + 0.5) {
-      try { scheduleMusicBar(ctx, musicBus, nextBar, barIdx); } catch (e) { /* ignore */ }
+      try { scheduleMusicBar(ctx, musicBus, nextBar, barIdx, Math.random, world); } catch (e) { /* ignore */ }
       barIdx++;
-      nextBar += MUSIC_BAR;
+      nextBar += MUSIC_BARS[world] || MUSIC_BAR;
     }
   }
   function startMusic() {
@@ -341,6 +464,9 @@ export function createAudio(G) {
 
   const audio = {
     play, haptic, setMuted,
+    /** Select the music variation: 'flower' (default), 'chicken' or 'grocery'. Safe before/after the context exists. */
+    setWorld(id) { if (WORLD_IDS.includes(id)) world = id; },
+    get world() { return world; },
     get muted() { return muted; },
     /** Debug/testing. */
     get context() { return ctx; },
