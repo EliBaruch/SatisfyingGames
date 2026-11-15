@@ -27,10 +27,11 @@ Known unknowns the build must check first (I have only seen thumbnails and metad
 
 ## Visual reference from the owner
 
-The owner sent two YouTube Shorts as the look to aim for (both show Township's walk-and-carry mini-games):
-https://www.youtube.com/shorts/lJUrHtyG028 and https://www.youtube.com/shorts/vXVBPdqyzjg
+The owner sent three videos as the look and feel to aim for:
+- https://www.youtube.com/shorts/lJUrHtyG028 and https://www.youtube.com/shorts/vXVBPdqyzjg — Township's walk-and-carry mini-games (ids `lJUrHtyG028`, `vXVBPdqyzjg`).
+- https://www.youtube.com/watch?v=4C-xDg2_LOs — a "Tiles Survive!" ad game about skimming spilled oil off the sea and selling it as fuel cans (id `4C-xDg2_LOs`).
 
-Still frames can be re-fetched for reference from `https://i.ytimg.com/vi/<id>/oar1.jpg` (also `oar2`, `oar3`, `maxresdefault`); `www.youtube.com` and `i.ytimg.com` are allowed in the environment. Look at them before the look test. They are another studio's art: use them as a style target only, do not commit them to the repo and do not copy its characters, logo or specific models.
+Still frames can be re-fetched for reference from `https://i.ytimg.com/vi/<id>/<name>.jpg`: `oar1`, `oar2`, `oar3`, `maxresdefault` for the two Shorts; `maxres1`, `maxres2`, `maxres3`, `maxresdefault` for the third. `www.youtube.com` and `i.ytimg.com` are allowed in the environment. Look at them before the look test. They are another studio's art: use them as a style target only, do not commit them to the repo and do not copy its characters, logo or specific models.
 
 What the frames show, and what to carry over to the factory:
 
@@ -44,6 +45,16 @@ What the frames show, and what to carry over to the factory:
 | Very tall carried stacks that sway; a crowd of customers queuing; a "SELL" pad at a counter | Keep tall swaying stacks; trucks queue on the road as demand grows |
 | Warm, saturated colour with soft shadows | Warm key light, tone mapping tuned for saturation, soft shadow radius |
 
+From the third video (oil clean-up), which is a flatter, simpler low-poly style and the closest to what the free model packs can reach:
+
+| In the reference | In the factory world |
+|---|---|
+| The raw material is gathered by sweeping over it: the boat wipes black oil off the sea and the clean blue water is revealed behind it | Stage 1 starts with a sweep-to-collect raw material outside the garage (a scrap and ore yard) using the existing `source` station, so the first minute is tactile. A sweeper vehicle on the existing `harvester` role automates it later. The cleared ground should look visibly different from the uncleared ground |
+| "MAX" pops over the player when the load is full, "+1" pops per unit collected | Same pops through `fx.popText` |
+| Two counters in the HUD: cash and the product | Cash plus the current product count (packs, later cars) |
+| Upgrade pad drawn on the floor with its price on it and a yellow arrow bobbing above | Matches the existing pads; make the arrow larger and brighter |
+| Cash lies loose on the concrete where it was earned; fuel cans are stacked in neat blocks; rusty trucks on the road each show an order bubble | Loose cash scatter at the sales point, neat product blocks at shipping, order bubbles on trucks |
+
 Expect a clear step up from the current worlds, not a match for a studio's hand-made art: the models are free low-poly packs, so the gain comes from proportions, camera, lighting, textured surfaces and gloss.
 
 ## Game design
@@ -54,7 +65,7 @@ Loop is unchanged: goal line always shows the next pad, pads cost seconds-to-a-m
 
 | Stage | What the player sees | New mechanics |
 |---|---|---|
-| 1. Garage | One bench in a small garage. Carry cell crates from the dock to the bench, carry finished battery packs to the van, grab cash | Existing `pile`, `converter`, `vendor`, `cashpile`. Pads: bigger stack, faster bench, first worker, second worker, second bench |
+| 1. Garage | Sweep up scrap and ore in the yard, carry it to the one bench in a small garage, carry finished battery packs to the van, grab cash | Existing `source`, `converter`, `vendor`, `cashpile`. Pads: bigger stack, faster bench, first worker, second worker, second bench |
 | 2. Workshop | Walls move out. A cell machine makes cells from raw material; two pack benches; delivery truck replaces the van | Chained converters; operators (workers who stand at a machine and speed it up) |
 | 3. First line | First conveyor belt carries packs to shipping, so a hauler is freed. Robot arm loads the truck | New `belt` station; robot-arm prop driven by station events |
 | 4. Car line | A second hall opens. Steel becomes body panels in a press, bodies get painted, and a moving line assembles body + battery pack + wheels into a car that drives off to the lot. Car carrier pays big | New `line` station (staged assembly on a moving skid), `lot` + carrier; cars are never hand-carried |
