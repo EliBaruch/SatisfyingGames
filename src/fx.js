@@ -120,7 +120,7 @@ export function createFx(G) {
       spawnParticle(
         pos.x, pos.y + 0.4, pos.z,
         Math.cos(a) * hs, Math.sqrt(2 * g * h), Math.sin(a) * hs,
-        2.7 + rand() * 0.8, 0.26 + rand() * 0.16, 0.45 + rand() * 0.2,
+        2.7 + rand() * 0.8, 0.34 + rand() * 0.2, 0.55 + rand() * 0.2,
         0.5 + rand() * 0.4, 2.6 + rand() * 1.2, g, 1.5 + rand() * 2.5,
         CONFETTI_COLORS[(rand() * CONFETTI_COLORS.length) | 0],
       );
@@ -264,9 +264,14 @@ export function createFx(G) {
     return e;
   }
 
+  // placeholder map so swapping maps later never needs a shader recompile
+  const blankCv = document.createElement('canvas');
+  blankCv.width = blankCv.height = 2;
+  const blankTex = new THREE.CanvasTexture(blankCv);
+  blankTex.colorSpace = THREE.SRGBColorSpace;
   const sprites = [];
   for (let i = 0; i < TEXT_POOL; i++) {
-    const mat = new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
+    const mat = new THREE.SpriteMaterial({ map: blankTex, transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
     const s = new THREE.Sprite(mat);
     s.visible = false;
     s.renderOrder = 1000;
@@ -443,7 +448,7 @@ export function createFx(G) {
     baseScale(obj);
     obj.scale.set(0, 0, 0);
     startTween(obj, 2, dur, delay, 0);
-    obj.visible = false;
+    obj.visible = !(delay > 0);
   }
 
   function updateTweens(dt) {
