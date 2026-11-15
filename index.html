@@ -35,6 +35,12 @@
     <div id="toast" class="toast" role="status"></div>
 
     <div id="hud-buttons" class="hud-buttons">
+      <button id="btn-worlds" class="icon-btn" type="button" aria-label="World select">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 6.5l6-2.5 6 2.5 6-2.5v13l-6 2.5-6-2.5-6 2.5z"/>
+          <path d="M9 4v13M15 6.5v13"/>
+        </svg>
+      </button>
       <button id="btn-mute" class="icon-btn" type="button" aria-label="Mute" aria-pressed="false">
         <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 9h3.5L12 5.5v13L7.5 15H4z"/>
@@ -54,22 +60,30 @@
     </div>
   </div>
 
-  <div id="start" class="overlay start show">
+  <!-- Title screen. mode "start" (first screen: any tap outside a card plays) or "picker"
+       (opened from the game: RESUME closes it). The world cards are built by hud.js. -->
+  <div id="start" class="overlay start show" data-mode="start">
     <div class="start-inner">
       <h1 class="title">Bloom Rush</h1>
       <p class="tagline">Drag to run. Cut flowers. Sell. Grow!</p>
-      <p class="tap">TAP TO PLAY</p>
+      <div id="worlds" class="worlds" role="group" aria-label="Worlds"></div>
+      <p id="perks" class="perks" hidden></p>
+      <button class="tap" type="button">TAP TO PLAY</button>
     </div>
   </div>
 
   <div id="win" class="overlay win" aria-hidden="true">
-    <div class="card">
-      <h2>GRAND GREENHOUSE BUILT!</h2>
+    <div class="card win-card" role="dialog" aria-labelledby="win-title">
+      <p id="win-world" class="win-kicker">Flower Farm</p>
+      <h2 id="win-title">WORLD COMPLETE!</h2>
       <dl class="stats">
         <div><dt>Time played</dt><dd id="win-time">0:00</dd></div>
         <div><dt>Total earned</dt><dd id="win-earned">0</dd></div>
+        <div id="win-perk-row"><dt>Perk gained</dt><dd id="win-perk">+8% speed, +10 stack</dd></div>
       </dl>
-      <button id="win-keep" class="big-btn" type="button">KEEP PLAYING</button>
+      <button id="win-next" class="big-btn" type="button" hidden>NEXT: <span id="win-next-name"></span></button>
+      <button id="win-picker" class="big-btn" type="button" hidden>WORLD SELECT</button>
+      <button id="win-keep" class="ghost-btn" type="button">KEEP PLAYING</button>
     </div>
   </div>
 

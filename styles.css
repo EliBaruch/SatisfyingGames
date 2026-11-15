@@ -1,3 +1,20 @@
+/* Fonts: Fredoka (SIL OFL 1.1, see vendor/fonts/FREDOKA-OFL-LICENSE.txt), latin subset, weights 600 and 700 only. */
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./vendor/fonts/fredoka-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./vendor/fonts/fredoka-latin-700-normal.woff2") format("woff2");
+}
+
 :root {
   --green: #7ccf5a;
   --ink: #1d2b1f;
@@ -6,8 +23,13 @@
   --yellow: #ffd166;
   --mint: #2fb14a;
   --mint-dark: #1d7a31;
-  --font: "Baloo 2", "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --cream: #fff8e7;
+  --cream-edge: #d9c28c;
+  --night: #1d4d25;
+  --font: "Fredoka", ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+
+[hidden] { display: none !important; }
 
 html,
 body {
@@ -22,6 +44,15 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
 }
 
 canvas#game {
@@ -49,7 +80,7 @@ canvas#game {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 0 16px;
 }
 
@@ -57,10 +88,11 @@ canvas#game {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 20px 6px 8px;
+  padding: 6px 22px 6px 8px;
   border-radius: 999px;
-  background: rgba(18, 38, 24, 0.72);
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25), inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  background: linear-gradient(#2f8a44, #1f6a2f);
+  border: 3px solid #15421d;
+  box-shadow: 0 5px 0 #0c2612, 0 8px 14px rgba(0, 0, 0, 0.2);
   color: #fff;
 }
 
@@ -83,23 +115,23 @@ canvas#game {
 
 .num {
   font-size: clamp(24px, 6vw, 34px);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.5px;
   font-variant-numeric: tabular-nums;
   min-width: 2ch;
-  text-shadow: 0 2px 0 #0d1f12, 0 0 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 0 #0d1f12;
 }
 
 .goal {
-  padding: 4px 14px;
+  padding: 5px 16px 6px;
   border-radius: 999px;
-  background: rgba(18, 38, 24, 0.35);
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
   font-size: clamp(15px, 4vw, 19px);
-  font-weight: 800;
+  font-weight: 600;
   text-align: center;
-  text-shadow: 0 2px 0 #1d4d22, 0 0 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 0 rgba(20, 60, 25, 0.35);
   transition: opacity 0.18s ease;
 }
 
@@ -116,17 +148,21 @@ canvas#game {
   left: 50%;
   top: 34%;
   transform: translate(-50%, -50%);
-  padding: 14px 26px;
-  border-radius: 24px;
+  padding: 14px 28px 16px;
+  border: 3px solid #fff;
+  border-radius: 26px;
   background: var(--pink);
   color: #fff;
   font-size: clamp(22px, 6vw, 32px);
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  text-shadow: 0 3px 0 var(--pink-dark), 0 0 3px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 3px 0 var(--pink-dark);
   box-shadow: 0 6px 0 var(--pink-dark), 0 10px 24px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -152,23 +188,23 @@ canvas#game {
 
 .icon-btn {
   pointer-events: auto;
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   padding: 0;
-  border: 0;
+  border: 3px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(18, 38, 24, 0.7);
+  background: linear-gradient(#2f8a44, #1f6a2f);
   color: #fff;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 0 #0c2612;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .icon-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #0c2612;
 }
 
 .icon-btn svg {
@@ -179,10 +215,6 @@ canvas#game {
   stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.icon-btn [hidden] {
-  display: none;
 }
 
 /* ------------------------------------------------------------- joystick --- */
@@ -227,6 +259,7 @@ canvas#game {
   z-index: 10;
   display: grid;
   place-items: center;
+  overflow-y: auto;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -240,19 +273,26 @@ canvas#game {
   transition: opacity 0.3s ease, visibility 0s;
 }
 
+/* Title screen */
+
 .start {
   background: radial-gradient(circle at 50% 35%, #b5ec8c 0%, #5cb845 75%);
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  box-sizing: border-box;
 }
 
 .start-inner {
+  margin: auto;
+  width: 100%;
+  max-width: 420px;
   text-align: center;
-  padding: 24px;
+  padding: 12px 0;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(48px, 15vw, 104px);
-  font-weight: 900;
+  font-size: clamp(46px, 14vw, 96px);
+  font-weight: 700;
   line-height: 0.95;
   letter-spacing: 1px;
   color: var(--yellow);
@@ -271,39 +311,187 @@ canvas#game {
 .tagline {
   margin: 18px 0 0;
   color: #fff;
-  font-size: clamp(16px, 4.6vw, 22px);
-  font-weight: 800;
+  font-size: clamp(16px, 4.6vw, 21px);
+  font-weight: 600;
   text-shadow: 0 2px 0 var(--mint-dark), 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+.worlds {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(86vw, 340px);
+  margin: 22px auto 0;
+}
+
+.world-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 9px 16px 9px 9px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--cream);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 0 6px 0 var(--cream-edge), 0 10px 18px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.world-card:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--cream-edge), 0 6px 10px rgba(0, 0, 0, 0.18);
+}
+
+.wc-icon {
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: #ffd166;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}
+
+.wc-icon svg {
+  width: 46px;
+  height: 46px;
+}
+
+.world-card[data-world="flower"] .wc-icon { background: #ff8fb1; }
+.world-card[data-world="chicken"] .wc-icon { background: #ffd166; }
+.world-card[data-world="grocery"] .wc-icon { background: #9be7a8; }
+
+.wc-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.wc-name {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.wc-state {
+  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #7a6a4a;
+}
+
+.wc-mark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+}
+
+.wc-mark svg {
+  width: 30px;
+  height: 30px;
+}
+
+.world-card.is-current {
+  box-shadow: 0 0 0 4px #fff, 0 0 0 8px var(--mint), 0 6px 0 var(--cream-edge);
+}
+
+.world-card.is-current .wc-state {
+  color: var(--mint-dark);
+}
+
+.world-card.is-finished .wc-state {
+  color: var(--mint-dark);
+}
+
+.world-card.is-locked {
+  cursor: default;
+  background: #e9e4d3;
+  box-shadow: 0 4px 0 #bdb49a;
+  opacity: 0.85;
+}
+
+.world-card.is-locked:active {
+  transform: none;
+  box-shadow: 0 4px 0 #bdb49a;
+}
+
+.world-card.is-locked .wc-icon {
+  background: #cfc9b3;
+  filter: grayscale(0.9);
+}
+
+.world-card.is-locked .wc-name {
+  color: #6f6a55;
+}
+
+.world-card.is-locked .wc-mark {
+  color: #6f6a55;
+}
+
+.perks {
+  margin: 16px 0 0;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  text-shadow: 0 2px 0 var(--mint-dark), 0 0 6px rgba(0, 0, 0, 0.2);
 }
 
 .tap {
   display: inline-block;
-  margin: 30px 0 0;
-  padding: 12px 28px;
+  min-width: 230px;
+  margin: 20px 0 0;
+  padding: 14px 34px 16px;
+  border: 0;
   border-radius: 999px;
   background: #fff;
   color: var(--mint-dark);
   font-size: 24px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 1px;
   box-shadow: 0 6px 0 var(--mint-dark);
+  cursor: pointer;
+  touch-action: manipulation;
   animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.tap.loading {
+  background: #e4f5d4;
+  color: #5b7a4f;
+  box-shadow: 0 3px 0 #9ab88d;
+  cursor: progress;
+  animation: none;
 }
 
 @keyframes pulse {
   from { transform: scale(1); }
-  to { transform: scale(1.08); }
+  to { transform: scale(1.06); }
 }
+
+/* Win card */
 
 .win {
   background: rgba(20, 60, 30, 0.55);
 }
 
 .card {
-  width: min(88vw, 360px);
-  padding: 26px 24px 24px;
+  width: min(88vw, 370px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px 22px 22px;
   border-radius: 28px;
-  background: #fff8e7;
+  background: var(--cream);
   text-align: center;
   box-shadow: 0 10px 0 var(--mint-dark), 0 18px 40px rgba(0, 0, 0, 0.3);
   transform: scale(0.9);
@@ -314,10 +502,19 @@ canvas#game {
   transform: scale(1);
 }
 
+.win-kicker {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #7a6a4a;
+}
+
 .card h2 {
   margin: 0 0 16px;
-  font-size: clamp(24px, 7vw, 32px);
-  font-weight: 900;
+  font-size: clamp(26px, 7.5vw, 32px);
+  font-weight: 700;
   line-height: 1.05;
   color: var(--pink);
   text-shadow: 0 3px 0 var(--pink-dark);
@@ -326,11 +523,11 @@ canvas#game {
 .stats {
   display: grid;
   gap: 10px;
-  margin: 0 0 22px;
+  margin: 0 0 20px;
 }
 
 .stats div {
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 -3px 0 #f0e2c0;
@@ -338,7 +535,7 @@ canvas#game {
 
 .stats dt {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: #7a6a4a;
@@ -347,29 +544,150 @@ canvas#game {
 .stats dd {
   margin: 2px 0 0;
   font-size: 28px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
+#win-perk {
+  font-size: 19px;
+  line-height: 1.25;
+}
+
 .big-btn {
+  display: block;
   width: 100%;
-  padding: 16px 20px;
+  margin: 0;
+  padding: 16px 20px 18px;
   border: 0;
   border-radius: 999px;
   background: var(--mint);
   color: #fff;
-  font: inherit;
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 23px;
+  font-weight: 700;
   letter-spacing: 0.5px;
   text-shadow: 0 2px 0 var(--mint-dark);
   box-shadow: 0 7px 0 var(--mint-dark);
   cursor: pointer;
   touch-action: manipulation;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.big-btn + .big-btn,
+.big-btn + .ghost-btn,
+.ghost-btn + .big-btn {
+  margin-top: 12px;
 }
 
 .big-btn:active {
   transform: translateY(4px);
   box-shadow: 0 3px 0 var(--mint-dark);
+}
+
+.ghost-btn {
+  display: block;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border: 3px solid var(--mint);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mint-dark);
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ghost-btn:active {
+  transform: translateY(2px);
+}
+
+/* Landscape phones: world cards in one row, tighter title */
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .start-inner {
+    max-width: 880px;
+  }
+
+  .title {
+    font-size: clamp(40px, 13vh, 72px);
+  }
+
+  .tagline {
+    margin-top: 8px;
+    font-size: 18px;
+  }
+
+  .worlds {
+    flex-direction: row;
+    width: min(92vw, 820px);
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .world-card {
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 10px 10px;
+    text-align: center;
+  }
+
+  .wc-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .wc-icon svg {
+    width: 38px;
+    height: 38px;
+  }
+
+  .wc-name {
+    font-size: 18px;
+  }
+
+  .wc-state {
+    font-size: 13px;
+    margin-top: 0;
+  }
+
+  .wc-mark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+  }
+
+  .wc-mark svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .perks {
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  .tap {
+    margin-top: 12px;
+    padding: 10px 30px 12px;
+    font-size: 20px;
+  }
+
+  .card {
+    width: min(88vw, 560px);
+  }
+
+  .card h2 {
+    margin-bottom: 10px;
+  }
+
+  .stats {
+    margin-bottom: 14px;
+  }
 }

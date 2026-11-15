@@ -5,6 +5,9 @@
 import * as THREE from 'three';
 import { Parts, meshOf } from '../../engine/art/parts.js';
 import { makeCounter as artCounter } from '../../engine/art/props.js';
+import { getModel } from '../../engine/art/assets.js';
+import { addBlob } from '../../engine/chars.js';
+import { litMaterial } from '../../engine/art/material.js';
 
 export const COLORS = {
   egg: 0xfff1dc, eggShade: 0xf3dcbc, gold: 0xffc42e, goldDark: 0xe49a12, goldLight: 0xffe58a,
@@ -95,15 +98,183 @@ export function makeStandCounter(accent = 0x58b45a) {
   return g;
 }
 
-/** Striped awning + posts over the stand (long axis Z like the counter, customer side +X). */
-export function makeAwning(len = 3.8, c1 = 0xe5483c, c2 = 0xfff4e0) {
+
+// ------------------------------------------------------------ the machine ---
+/**
+ * The egg packing machine, a chunky toy. Local +X = output side (belt), -X = input intake (faces the camera).
+ * Returns a Group with userData: { belt (Mesh, texture scrolls), gear (Mesh, spins), bar (Mesh, scale.x = progress),
+ * lamp (Mesh), puffs [Mesh], mouth [x,y,z], spout [x,y,z] } (local coordinates).
+ */
+export function makePackerMachine({ gold = false } = {}) {
+  const body = gold ? 0xf2b83a : 0x4cc9ae, bodyDark = gold ? 0xd9962a : 0x32a98f, trim = gold ? 0xfff0c4 : 0xfff4dc;
+  const accent = gold ? 0xe5483c : 0xff7a59;
+  const g = new THREE.Group();
   const b = new Parts();
-  const n = 7, seg = len / n, y0 = 2.45, depth = 2.4;
-  for (let i = 0; i < n; i++) {
-    b.rbox(i % 2 ? c2 : c1, depth, 0.1, seg + 0.01, 0.04, [0.0, y0, -len / 2 + (i + 0.5) * seg], [0, 0, -0.17], null, 1);
-    b.sph(i % 2 ? c2 : c1, 0.16, [depth / 2 + 0.05, y0 - 0.38, -len / 2 + (i + 0.5) * seg], [0.5, 0.9, 1.4], null, 6, 4);
+  b.rbox(body, 2.7, 1.0, 2.1, 0.24, [0.0, 0.55, 0]);
+  b.rbox(bodyDark, 2.78, 0.22, 2.18, 0.1, [0.0, 0.14, 0]);
+  b.rbox(trim, 2.0, 1.05, 1.7, 0.26, [0.25, 1.55, 0]);
+  b.rbox(accent, 2.1, 0.18, 1.8, 0.08, [0.25, 2.14, 0]);
+  // intake funnel facing the camera side (-X)
+  b.cyl(trim, 0.78, 0.4, 0.55, [-1.62, 1.18, 0], [0, 0, Math.PI / 2], 14, null, true);
+  b.torus(accent, 0.78, 0.07, [-1.9, 1.18, 0], [0, Math.PI / 2, 0], null, Math.PI * 2, 6, 16);
+  b.rbox(0x3a3340, 0.2, 0.6, 0.62, 0.1, [-1.25, 1.18, 0], null, null, 1);
+  // egg shapes peeking out of the funnel
+  for (let i = 0; i < 3; i++) b.sph(gold ? COLORS.gold : COLORS.egg, 0.15, [-1.78 + i * 0.05, 1.05 + (i % 2) * 0.22, (i - 1) * 0.28], [1, 1.3, 1], null, 6, 5);
+  // output spout and belt rails
+  b.rbox(bodyDark, 0.5, 0.5, 0.95, 0.12, [1.5, 0.78, 0], null, null, 1);
+  b.rbox(0x5a6678, 2.5, 0.16, 1.08, 0.06, [2.65, 0.42, 0], null, null, 1);
+  for (const z of [-0.54, 0.54]) b.rbox(0x7c8798, 2.5, 0.2, 0.1, 0.04, [2.65, 0.56, z], null, null, 1);
+  for (const x of [1.7, 3.5]) for (const z of [-0.4, 0.4]) b.rbox(0x5a6678, 0.14, 0.4, 0.14, 0.05, [x, 0.2, z], null, null, 1);
+  // smokestack and lamp post
+  b.cyl(0xb9c2cf, 0.2, 0.24, 0.8, [0.75, 2.6, 0.5], null, 10);
+  b.torus(accent, 0.22, 0.05, [0.75, 3.0, 0.5], [Math.PI / 2, 0, 0], null, Math.PI * 2, 5, 12);
+  b.cyl(0x7c8798, 0.04, 0.04, 0.5, [-0.4, 2.45, -0.5], null, 6);
+  // control panel + window frame on the -Z face
+  b.rbox(trim, 1.5, 0.78, 0.1, 0.1, [0.25, 1.5, -0.88], null, null, 1);
+  b.rbox(0x3a3340, 0.62, 0.62, 0.06, 0.08, [-0.1, 1.52, -0.95], null, null, 1);
+  b.rbox(0x3a3340, 0.9, 0.16, 0.06, 0.06, [0.55, 1.28, -0.95], null, null, 1);
+  g.add(meshOf(b.merged({ ao: true })));
+
+  // spinning gear in the window
+  const gp = new Parts();
+  gp.rcyl(0xffd23f, 0.22, 0.1, 0.03, [0, 0, 0], [Math.PI / 2, 0, 0], 12);
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; gp.rbox(0xffd23f, 0.12, 0.1, 0.14, 0.03, [Math.cos(a) * 0.27, Math.sin(a) * 0.27, 0], [0, 0, a], null, 1); }
+  gp.cyl(0xe49a12, 0.07, 0.07, 0.12, [0, 0, 0], [Math.PI / 2, 0, 0], 8);
+  const gear = meshOf(gp.merged(), { cast: false });
+  gear.position.set(-0.1, 1.52, -1.0);
+  g.add(gear);
+  // progress bar
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.09, 0.04), new THREE.MeshBasicMaterial({ color: 0x66f08a }));
+  bar.position.set(0.15, 1.28, -1.0);
+  bar.geometry.translate(0.4, 0, 0);
+  bar.position.x = 0.15 - 0.4;
+  bar.scale.x = 0.001;
+  g.add(bar);
+  // lamp
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 8), new THREE.MeshBasicMaterial({ color: 0x777777 }));
+  lamp.position.set(-0.4, 2.65, -0.5);
+  g.add(lamp);
+  // belt with scrolling stripes
+  const tex = new THREE.CanvasTexture((() => {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 32;
+    const x = c.getContext('2d');
+    x.fillStyle = '#4a5466'; x.fillRect(0, 0, 128, 32);
+    x.fillStyle = '#6a768a'; for (let i = 0; i < 4; i++) x.fillRect(i * 32, 0, 14, 32);
+    return c;
+  })());
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(5, 1);
+  const belt = new THREE.Mesh(new THREE.PlaneGeometry(2.45, 0.9), litMaterial({ map: tex }));
+  belt.rotation.x = -Math.PI / 2;
+  belt.position.set(2.65, 0.51, 0);
+  belt.receiveShadow = true;
+  g.add(belt);
+  // steam puffs
+  const puffs = [];
+  const pm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false });
+  for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), pm.clone()); p.visible = false; g.add(p); puffs.push(p); }
+  // roof sign board facing the camera
+  g.userData = { belt, gear, bar, lamp, puffs, mouth: [-1.9, 1.2, 0], spout: [1.6, 0.95, 0], chimney: [0.75, 3.05, 0.5] };
+  return g;
+}
+
+// ------------------------------------------------------------------ trough ---
+/** Wooden feed trough along X; returns Group with userData.fill (Mesh: grain, scale.y = level) */
+export function makeTroughModel(len = 3.2, depth = 1.0) {
+  const g = new THREE.Group();
+  const b = new Parts();
+  b.rbox(COLORS.woodDark, len, 0.5, depth, 0.1, [0, 0.4, 0], null, null, 1);
+  b.rbox(0x5a3a1c, len - 0.3, 0.12, depth - 0.3, 0.05, [0, 0.62, 0], null, null, 1);
+  for (const x of [-len / 2 + 0.3, len / 2 - 0.3]) for (const z of [-depth / 2 + 0.12, depth / 2 - 0.12]) b.rbox(0x7a4a22, 0.22, 0.34, 0.22, 0.06, [x, 0.17, z], null, null, 1);
+  b.rbox(COLORS.wood, len + 0.12, 0.12, 0.14, 0.05, [0, 0.67, depth / 2], null, null, 1);
+  b.rbox(COLORS.wood, len + 0.12, 0.12, 0.14, 0.05, [0, 0.67, -depth / 2], null, null, 1);
+  g.add(meshOf(b.merged({ ao: true })));
+  const grain = new Parts();
+  grain.sph(0xf3c44a, 0.5, [0, 0, 0], [(len - 0.5) / 1.0, 0.45, (depth - 0.3) / 1.0], null, 12, 6);
+  const fill = meshOf(grain.merged(), { cast: false });
+  fill.position.set(0, 0.55, 0);
+  g.add(fill);
+  g.userData.fill = fill;
+  return g;
+}
+
+// ---------------------------------------------------------------- hen house ---
+export function makeHenHouse({ gold = false } = {}) {
+  const wall = gold ? 0xffe9a8 : 0xe5584a, wallDark = gold ? 0xe8c25a : 0xb8413a, roof = gold ? 0xe49a12 : 0x8a95a5;
+  const b = new Parts();
+  b.rbox(wall, 3.4, 1.9, 3.0, 0.22, [0, 0.95, 0]);
+  b.rbox(wallDark, 3.5, 0.2, 3.1, 0.08, [0, 0.1, 0], null, null, 1);
+  // gable roof along X
+  for (const s of [-1, 1]) b.rbox(roof, 3.9, 0.2, 1.95, 0.08, [0, 2.45, s * 0.85], [s * 0.62, 0, 0], null, 1);
+  b.rbox(0xffffff, 3.2, 0.5, 0.06, 0.04, [0, 2.0, 1.52], null, null, 1);
+  b.cone(wall, 1.5, 1.1, [0, 2.1, 1.52], [0, 0, 0], 3, [1.13, 0.9, 0.04]);
+  // door with ramp
+  b.rbox(0x4a2f1a, 0.8, 1.05, 0.12, 0.2, [-0.7, 0.62, 1.52], null, null, 1);
+  b.rbox(COLORS.woodDark, 0.7, 0.1, 1.5, 0.04, [-0.7, 0.3, 2.2], [0.38, 0, 0], null, 1);
+  for (let i = 0; i < 4; i++) b.rbox(0x6e4220, 0.7, 0.06, 0.07, 0.02, [-0.7, 0.2 + i * 0.13, 1.8 + i * 0.28], null, null, 1);
+  // round window and flower box
+  b.torus(0xffffff, 0.34, 0.07, [0.85, 1.2, 1.53], null, null, Math.PI * 2, 6, 16);
+  b.cyl(0xbfe9ff, 0.34, 0.34, 0.06, [0.85, 1.2, 1.51], [Math.PI / 2, 0, 0], 16);
+  b.rbox(COLORS.woodDark, 1.0, 0.22, 0.3, 0.05, [0.85, 0.6, 1.7], null, null, 1);
+  for (let i = 0; i < 5; i++) b.sph([0xff6fa5, 0xffd23f, 0xffffff, 0xff6fa5, 0xffd23f][i], 0.12, [0.5 + i * 0.18, 0.78, 1.72], null, null, 6, 4);
+  // chimney-ish ventilator + weather vane egg
+  b.sph(gold ? COLORS.gold : COLORS.egg, 0.22, [0, 3.2, 0], [1, 1.3, 1], null, 8, 6);
+  b.cyl(0x7a4a22, 0.03, 0.03, 0.6, [0, 2.95, 0], null, 5);
+  return b.merged({ ao: true });
+}
+
+// -------------------------------------------------------------- vehicles ---
+/** Delivery pickup truck (faces +Z); userData.bedAnchor is where the carton load sits. */
+export function makeDeliveryTruck() {
+  const g = new THREE.Group();
+  const m = getModel('car-kit/truck', { receive: true });
+  g.add(m);
+  const bed = new THREE.Object3D();
+  bed.position.set(0, 0.78, -0.95);
+  g.add(bed);
+  g.userData.bedAnchor = bed;
+  g.userData.wheels = [];
+  addBlob(g, { rx: 1.0, rz: 2.0, yaw: true });
+  return g;
+}
+
+// ---------------------------------------------------------------- monument ---
+/** The Giant Golden Egg: stepped stone plinth, a big shiny egg, flowers and a ring of small eggs. */
+export function makeMonument() {
+  const b = new Parts();
+  b.rcyl(0xd8d0c0, 5.0, 0.5, 0.18, [0, 0.25, 0], null, 36);
+  b.rcyl(0xece4d2, 4.0, 0.5, 0.18, [0, 0.72, 0], null, 36);
+  b.rcyl(0xf6efdf, 3.1, 0.5, 0.16, [0, 1.18, 0], null, 36);
+  b.rcyl(0xe49a12, 2.4, 0.22, 0.08, [0, 1.52, 0], null, 28);
+  const prof = [];
+  for (let i = 0; i <= 18; i++) { const t = i / 18, a = t * Math.PI; const r = Math.sin(a) * (1 - 0.18 * Math.cos(a)) * 2.5; prof.push([Math.max(r, 0.001), 1.6 + (1 - Math.cos(a)) * 0.5 * 5.2]); }
+  b.lathe(COLORS.gold, prof, [0, 0, 0], null, 36);
+  b.sph(COLORS.goldLight, 0.9, [-1.2, 8.1, -1.0], [1, 1.5, 0.45], [0.2, -0.75, 0.25], 10, 8);
+  b.sph(0xffffff, 0.24, [-1.5, 9.5, -1.3], [1, 1.2, 0.4], [0.2, -0.75, 0], 8, 6);
+  b.torus(0xe49a12, 2.38, 0.16, [0, 5.0, 0], [Math.PI / 2, 0, 0], [1, 1, 1], Math.PI * 2, 8, 36);
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6;
+    b.sph(i % 2 ? 0xfff1dc : COLORS.gold, 0.34, [Math.cos(a) * 4.2, 1.2, Math.sin(a) * 4.2], [1, 1.3, 1], null, 8, 6);
   }
-  for (const z of [-len / 2 + 0.1, len / 2 - 0.1]) b.rbox(COLORS.woodDark, 0.14, y0 + 0.1, 0.14, 0.05, [-depth / 2 + 0.2, (y0 + 0.1) / 2, z], null, null, 1);
-  b.rbox(COLORS.wood, 0.1, 0.12, len, 0.04, [-depth / 2 + 0.25, y0 + 0.28, 0], null, null, 1);
-  return b.merged({ ao: AO_SMALL });
+  for (let i = 0; i < 10; i++) {
+    const a = i * 0.63 + 0.3, r = 5.5 + (i % 2) * 0.5;
+    b.sph([0xff6fa5, 0xffd23f, 0xffffff][i % 3], 0.3, [Math.cos(a) * r, 0.35, Math.sin(a) * r], [1, 0.8, 1], null, 7, 5);
+    b.sph(0x45b84e, 0.4, [Math.cos(a) * r, 0.2, Math.sin(a) * r], [1, 0.5, 1], null, 7, 5);
+  }
+  return b.merged({ ao: { ground: 0.18, groundH: 0.6, down: 0.05, noBoxes: true } });
+}
+
+export function makeGateArch(width = 8) {
+  const b = new Parts();
+  const GW = width;
+  for (const sx of [-1, 1]) {
+    b.rbox(COLORS.barn, 0.9, 3.8, 0.9, 0.2, [sx * GW / 2, 1.9, 0]);
+    b.rbox(0xfff4dc, 1.2, 0.28, 1.2, 0.1, [sx * GW / 2, 0.14, 0]);
+    b.sph(COLORS.gold, 0.36, [sx * GW / 2, 4.25, 0], [1, 1.3, 1], null, 12, 8);
+    b.rcyl(0xe07a4a, 0.5, 0.45, 0.08, [sx * (GW / 2 + 1.15), 0.23, 0], null, 18);
+    b.sph(0x45b84e, 0.5, [sx * (GW / 2 + 1.15), 0.62, 0], [1, 0.7, 1], null, 10, 7);
+    for (let k = 0; k < 5; k++) b.sph([0xffd23f, 0xff6fa5, 0xffffff, 0xffd23f, 0xff6fa5][k], 0.16, [sx * (GW / 2 + 1.15) + Math.cos(k * 1.26) * 0.3, 0.86 + (k % 2) * 0.06, Math.sin(k * 1.26) * 0.3], null, null, 8, 6);
+  }
+  b.rbox(COLORS.barn, GW + 1.0, 0.7, 0.7, 0.24, [0, 3.65, 0]);
+  b.rbox(0xfff4dc, GW + 0.5, 0.14, 0.78, 0.06, [0, 3.25, 0]);
+  return b.merged({ ao: { ground: 0.2, groundH: 0.5, down: 0.05, noBoxes: true } });
 }
