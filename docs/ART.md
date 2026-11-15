@@ -174,11 +174,11 @@ Measured (headless Chromium, software GL, 390x844 @2x, 40 animated characters in
 | | |
 |---|---|
 | draw calls (incl. shadow pass, ground) | **108** |
-| triangles (incl. shadow pass) | **~72 k** (about 900 per character per pass) |
-| `animateCharacter` CPU, 40 characters, mixer on every call (worst case) | 0.8-1.4 ms / frame |
-| same, normal play (1 step per frame, throttled) | ~0.6 ms / frame |
-| same, `timeScale` 4 (4 steps per frame) | ~0.65 ms / frame |
-| same, all flagged `lod` | 0.03 ms / frame |
+| triangles (incl. shadow pass) | **~70 k** (about 870 per character per pass) |
+| `animateCharacter` CPU, 40 characters, mixer evaluated on every call | 0.77 ms / frame (1 step per frame) |
+| same with the throttle, 1 step per frame | 0.61 ms / frame (headless frames take > 10 ms so the throttle barely skips; on a 60 fps phone it evaluates once per frame too) |
+| same with the throttle, `timeScale` 4 (4 steps per frame) | 0.62 ms / frame (4 steps cost the same as 1; without it ~3 ms) |
+| same, all flagged `lod` | 0.015 ms / frame |
 
 Budget: **<= 25 animated characters in view** (50 draw calls, ~45 k tris with shadows) leaves room for the world; 40 is possible but uses most of the draw-call budget; flag far ones `lod`.
 
@@ -234,7 +234,7 @@ Keep `ao` on for big static pieces (counters, machines, monuments) and off for t
 | `makeCounter({ len = 3.4, depth = 1.2, h = 1.0, accent, wood, top, register })` | rounded shop counter Group, long axis Z, customer side +X, optional cash register at the +Z end |
 | `makeZone({ w, d, label, sub, color, fill, subColor })` | ground decal Mesh: rounded rectangle, glowing cyan-white dashed outline, bold outlined label. **Reads upright from the game camera** (text "up" -> world +x,+z). Unlit, y = 0.04, `userData.setLabel(label, sub)`, `userData.setActive(on)`. `px` = canvas pixels per unit (170) |
 | `groundTexture(kind, { color, size, seed })` / `makeGround(kind, w, d, { color, tile })` | tileable canvas textures `'grass' 'wood' 'tile' 'paving' 'soil'`; `makeGround` returns a lit plane centred on the origin that receives shadows (default colours in `LIGHTING.ground`; **colours are pre-grade**) |
-| `tree({ kind, height })` | `round oak fat small pine forest tall`, default height 4.2 |
+| `tree({ kind, height })` | `round oak fat small pine` (Nature Kit, recoloured leaf green) and `forest tall` (Mini Forest, pastel sage); default height 4.2 |
 | `bush({ kind, width })` | `plain large detailed`, width 1.4 |
 | `rock({ kind, width })` | `large big small pebble tall`, width 1.6 |
 | `fence(len, { style, h })` | along +X from x = 0 to `len`, ground level, one merged mesh; `simple` or `planks`, height 1.0 |
@@ -255,7 +255,7 @@ Scenery helpers return a ready `Mesh` (one draw call, shared geometry and materi
 4. Commit the new `assets/<kit>/<name>.glb` files and the updated manifest + `LICENSES.md`.
 
 Web-tier files use meshopt compression, WebP textures and `KHR_mesh_quantization`; `GLTFLoader` + `MeshoptDecoder` from the `addons` import map entry handle them.
-Budget: under ~3 MB of assets per world. Current: 144 models, 2.31 MB total; common 1.38 MB (21 characters = 1.3 MB of that), flower +0.12, chicken +0.54, grocery +0.34 MB.
+Budget: under ~3 MB of assets per world. Current: 143 models, 2.26 MiB (2.37 MB) total; `common` 1.41 MB (21 characters = 1.3 MB of that), `flower` +0.12, `chicken` +0.50, `grocery` +0.35 MB, so every world loads under 2 MB.
 
 ---
 
@@ -263,29 +263,32 @@ Budget: under ~3 MB of assets per world. Current: 144 models, 2.31 MB total; com
 
 World units: 1 unit = 1 m, Y up, character about 1.65.
 
-| category | recommended size | how |
+| category | recommended size (x, y, z) | how |
 |---|---|---|
-| character | 1.55-1.7 body (hair/hats up to 1.95) | `makeCharacter` (kit scale 2.3 on the 0.67-0.72 models) |
-| shelf (`mini-shop/shelf-*`) | 2.05 high x 1.85 wide x 1.6 deep | default (x2.4) |
-| shop displays / freezers / register | counter-height 1.2-1.5 | default (x2.4) |
-| shopping cart / basket / hand truck | 1.25 / 0.6 / 1.3 | default |
-| counter (code-built) | 1.0 high, 3.4 long, 1.2 deep | `makeCounter()` |
-| food as scenery / shelf stock | egg 0.4 high, carton 1.4 high | default (x2.4) |
-| food as stack item | egg ~0.3-0.36 high, carton ~0.4-0.5 high, bread ~0.5 wide, bundle of cash 0.62 x 0.16 x 0.38 | `getGeometry(id, { height })` (bread: `width`) |
-| vehicles (`car-kit`) | tractor 2.9 long x 2.1 high; delivery/van truck 4.2 long x 2.1 high | default (x1.3) |
-| tractor wheels | `wheel-tractor-back/front` | default |
-| factory parts (conveyor tile, machine, hopper) | tile 1.5 x 1.5, machine 1.8 x 2.0 x 2.3 | default (x1.5) |
-| farm buildings (Quaternius) | barn 4.2 wide x 3.3 high, silo 2.0 x 5.0, coop 1.3 x 1.0, windmill 3.6 x 6.2 | default (x0.55); the coop is small: use `scale: 1.5` |
-| animals (`cube-pets`) | chick 0.7, cow/pig ~0.7 high | default (x0.42) |
+| character | 1.55-1.7 body (hair and hats up to 1.95) | `makeCharacter` (kit scale 2.3 on the 0.67-0.72 models) |
+| shelf (`mini-shop/shelf-bags/boxes`) | 1.9 x **2.1** x 1.7 | default (x2.4) |
+| shelf end cap | 1.9 x 2.5 x 1.0 | default |
+| freezer (low) / standing freezers | 1.9 x 0.8 x 1.4 / 2.4 x 2.2 x 1.15 | default |
+| cash register unit | 2.2 x 1.4 x 2.0 | default |
+| display tables (fruit, bread, cans) | 1.4 x 1.2 x 1.4 | default |
+| shopping cart / basket / hand truck | 0.84 x 0.93 x 1.28 / 0.84 x 0.6 x 0.84 / 0.9 x 1.3 x 0.88 | default |
+| counter (code-built) | 1.2 deep x **1.0 high** x 3.4 long | `makeCounter()` |
+| food as scenery / shelf stock | egg 0.4 high, carton 1.4 high, loaf 1.4 long | default (x2.4) |
+| food as stack item | egg 0.3-0.36 high, carton 0.4-0.5 high, bread 0.5 wide, cash bundle 0.62 x 0.16 x 0.38 | `getGeometry(id, { height })` (bread: `width`) |
+| tractor | 1.7 wide x 2.1 high x **2.9 long** | default (x1.3) |
+| delivery truck / van / pickup | 1.95 x 2.1 x **4.2** / 1.95 x 1.75 x 3.6 / 1.95 x 1.7 x 3.8 | default (x1.3) |
+| factory parts (conveyor tile, machine, hopper) | tile 1.5 x 0.6 x 1.5, machine 1.8 x 1.95 x 2.25, hopper 1.7 x 1.5 x 1.7 | default (x1.5) |
+| farm buildings (Quaternius) | barn 4.25 x 3.3 x 4.5, silo 2.0 x **5.0** x 1.9, open barn 3.2 x 2.6 x 3.4, windmill 3.6 x 6.2 | default (x0.55); the coop (1.3 x 1.0 x 1.2) is small: use `scale: 1.5` |
+| animals (`cube-pets`) | chick 0.9 wide x 0.67 high, cow / pig ~0.65 | default (x0.42) |
 | trees | 3.5-5 high | `tree({ height })` |
 | bushes / rocks / pots | 0.7-1.4 wide | `bush()` / `rock()` / `flowerPot()` |
 | fences | 1.0 high | `fence(len)` |
 
 `KIT_SCALE` (exported from `assets.js`): `mini-characters 2.3`, `mini-shop 2.4`, `mini-forest 2.4`, `food-kit 2.4`, `nature-kit 2.4`, `cube-pets 0.42`, `car-kit 1.3`, `factory-kit 1.5`,
-`farmbuildings 0.55`, `cutemonsters 0.5`, `ultimatecrops 2.4`, `simplenature 0.55`. The "default size" column below already includes it.
+`farmbuildings 0.55`, `ultimatecrops 2.4`, `simplenature 0.55`. The "default size" column below already includes it.
 
 Kenney models face +Z with their origin at the base centre; Quaternius buildings face +Z too. The camera looks from (-14, 18, -14): a model with `rotY = -3 * Math.PI / 4` turns its +Z face to the camera;
-a long object runs along the screen-right axis with `rotY = Math.PI / 4` (X axis -> world (+1, 0, -1)).
+a long object (fence, conveyor) runs along the screen-right axis with `rotY = -3 * Math.PI / 4` (its +X axis -> world (-1, 0, +1)/sqrt 2) and along screen-up with `rotY = -Math.PI / 4`.
 
 ---
 
@@ -305,7 +308,7 @@ a long object runs along the screen-right axis with `rotY = Math.PI / 4` (X axis
 ## 10. Known limits
 
 - Pack characters cannot be recoloured; 21 distinct models only. A few are not shopper-like (zombie, robot, alien, knight, raider, soldier, pirate `male-g`, police `male-c`): excluded from `randomCustomerLook`.
-- `getGeometry` samples colour per vertex: the palette kits are fine, painted textures (Quaternius `cutemonsters`, `farmanimal`) lose their detail and look muddy even with `getModel`; avoid them (we did not ship `farmanimal`; `cutemonsters/Chicken` is not in the manifest).
+- `getGeometry` samples colour per vertex: the palette kits are fine, painted textures (Quaternius `cutemonsters`, `farmanimal`) lose their detail and look muddy even with `getModel`; avoid them (`farmanimal` and `cutemonsters` are not in the manifest).
 - Transparent materials: `getGeometry` skips panes below 35 % opacity; `getModel` keeps `transparent` but sorting is the usual Three sorting. Use `litMaterial({ transparent: true, opacity })` for custom glass.
 - Single-sided: pack materials are converted to front-faces only. Card-like plants (`grass*`, `flower_*`, flags...) are kept double-sided by name pattern (`DOUBLE_SIDED` in `assets.js`); for anything else that shows holes use `getModel(id, { material: toLit(src, { double: true }) })`... or tell the art-kit owner.
 - Skinned characters have no LOD mesh and no instancing: they are the draw-call budget (1 per character per pass).
@@ -499,12 +502,6 @@ Natural size is as authored (x, y, z). "default size" is after the kit scale (wh
 | `Fence` | 188 | 5.89 x 1.097 x 0.165 | 3.24 x 0.6 x 0.09 | chi |  |
 | `Fence2` | 324 | 5.89 x 1.173 x 0.165 | 3.24 x 0.65 x 0.09 | chi |  |
 | `Windmill` | 1440 | 6.508 x 11.196 x 1.897 | 3.58 x 6.16 x 1.04 | chi |  |
-
-#### Cute Monsters (Quaternius) - `cutemonsters` - default scale x0.5
-
-| id | tris | natural size (x,y,z) | default size | worlds | notes |
-|---|---|---|---|---|---|
-| `Chicken` | 1040 | 2.269 x 1.613 x 1.555 | 1.13 x 0.81 x 0.78 | chi | skinned, 10 clips |
 
 #### Ultimate Crops (Quaternius) - `ultimatecrops` - default scale x2.4
 

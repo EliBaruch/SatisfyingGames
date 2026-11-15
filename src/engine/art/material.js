@@ -238,4 +238,4 @@ export function createLights(parent, opts = {}) {
 }
 
 /** Ground contact shadow (blob) defaults used by shadows.js. */
-export const BLOB = { opacity: 0.34, y: 0.03 };
+export const BLOB = { opacity: 0.45, y: 0.03 };
