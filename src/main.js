@@ -142,12 +142,16 @@ const LOADERS = {
   hud: () => import('./engine/hud.js').then((m) => m.createHud),
 };
 G.failed = [];
-for (const name of Object.keys(LOADERS)) {
+async function loadModule(name) {
   let mod = null;
   try { mod = (await LOADERS[name]())(G); } catch (err) { console.error(`[boot] module '${name}' failed:`, err); }
   if (!mod) { G.failed.push(name); mod = FALLBACK[name](); }
   G[name] = mod;
 }
+// fx builds its flying-item pools from item geometry, which may come from pack models, so it is
+// created after the assets are loaded (below). Until then G.fx is the no-op fallback.
+G.fx = FALLBACK.fx();
+for (const name of Object.keys(LOADERS)) if (name !== 'fx') await loadModule(name);
 if (G.audio && G.audio.setWorld) G.audio.setWorld(def.id);
 
 // ------------------------------------------------------------------ assets
@@ -177,6 +181,7 @@ async function loadAssets() {
   G.loading = 1;
 }
 await loadAssets();
+await loadModule('fx');
 
 view.bind(G);
 G.blobs = createBlobShadows(G.scene, { max: 128 });

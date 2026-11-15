@@ -2,7 +2,7 @@
 // (perk, finished flag, celebration, win card) and showing a pending win card on boot.
 import { getPadEffect } from './registry.js';
 import { PERK } from './config.js';
-import { nextWorld } from './worlds.js';
+import { nextWorld, worldInfo } from './worlds.js';
 
 export function createLevel(G) {
   const def = G.world;
@@ -37,8 +37,8 @@ export function createLevel(G) {
   function nextInfo() {
     const id = finale.next || (nextWorld(G.worldId) || {}).id || null;
     if (!id) return null;
-    const w = nextWorld(G.worldId);
-    return { id, name: (w && w.id === id && w.name) || id };
+    const w = worldInfo(id);
+    return { id, name: (w && w.name) || id };
   }
 
   G.events.on('win', () => {
