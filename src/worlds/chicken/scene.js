@@ -267,7 +267,7 @@ export function createScene(G) {
     g.add(straw, meshOf(bp.merged({ ao: { ground: 0.2, groundH: 0.3, down: 0.1, noBoxes: true } }), { cast: false, receive: true }));
     g.position.set((b.minX + b.maxX) / 2, 0, (b.minZ + b.maxZ) / 2);
     root.add(g);
-    const eggs = makeZone({ w: w - 0.6, d: d - 0.6, label: 'EGGS', color: '#fff6c8', fill: 'rgba(255,230,140,0.16)' });
+    const eggs = makeZone({ w: w - 0.6, d: d - 0.6, label: '', color: '#fff6c8', fill: 'rgba(255,230,140,0.10)' });
     eggs.position.set((b.minX + b.maxX) / 2, 0.04, (b.minZ + b.maxZ) / 2);
     root.add(eggs);
   }
@@ -291,7 +291,7 @@ export function createScene(G) {
     const w = b.maxX - b.minX + 2.2, d = b.maxZ - b.minZ + 2.2;
     const g = new THREE.Group();
     g.add(makeGround('soil', w, d, { color: 0xffd98a, tile: 2.5, seed: 6, y: 0.022 }));
-    const ez = makeZone({ w: w - 0.6, d: d - 0.6, label: 'GOLD EGGS', color: '#fff0a0', fill: 'rgba(255,205,70,0.2)' });
+    const ez = makeZone({ w: w - 0.6, d: d - 0.6, label: '', color: '#fff0a0', fill: 'rgba(255,205,70,0.14)' });
     ez.position.y = 0.04; g.add(ez);
     g.position.set((b.minX + b.maxX) / 2, 0, (b.minZ + b.maxZ) / 2); g.visible = false; furnB.push(g); root.add(g);
     // lock dressing
@@ -456,7 +456,7 @@ export function createScene(G) {
     // pallet / ground plates under the bays
     const pp = new Parts();
     pp.rbox(0xb9824a, 3.0, 0.1, 2.0, 0.05, [st.def.dropZone.x + 1.9, 0.06, st.pos.z]);
-    const plate = meshOf(pp.merged(), { cast: false, receive: true }); plate.visible = false; root.add(plate);
+    const plate = new THREE.Group();
     // site marker before it is built
     const site = new THREE.Group();
     const dw = 12.5, dd = 4.6;

@@ -617,7 +617,7 @@ canvas#game {
   }
 
   .tagline {
-    margin-top: 8px;
+    margin-top: 14px;
     font-size: 18px;
   }
 
@@ -625,7 +625,7 @@ canvas#game {
     flex-direction: row;
     width: min(92vw, 820px);
     gap: 14px;
-    margin-top: 14px;
+    margin-top: 18px;
   }
 
   .world-card {
@@ -669,7 +669,7 @@ canvas#game {
   }
 
   .perks {
-    margin-top: 10px;
+    margin-top: 14px;
     font-size: 15px;
   }
 
