@@ -18,7 +18,7 @@ const dock = (key, id, name, open, start, extra = {}) => ({
   id, type: 'pile', name, open, x: DOCK_X, z: DOCK_Z[key], capacity: 30, start,
   item: key,
   supply: { item: key, every: 3, amount: 6, first: 2, stagger: 0.12 },
-  layout: { x: DOCK_X, z: DOCK_Z[key], yaw: Math.PI / 2, cols: 2, rows: 3, dx: 0.7, dz: 0.5 },
+  layout: { x: DOCK_X, z: DOCK_Z[key], y: 0.17, yaw: Math.PI / 2, cols: 2, rows: 3, dx: 0.8, dz: 0.56 },
   zone: { x: DOCK_X - 2.3, z: DOCK_Z[key], r: 1.5 },
   pallet: false, placeholder: false, markers: false, label: 'CRATES',
   hint: 'Grab the crates!',
@@ -27,9 +27,9 @@ const dock = (key, id, name, open, start, extra = {}) => ({
 
 const shelf = (key, id, name, item, open, start) => ({
   id, type: 'shelf', name, open, item, start,
-  shelf: { x: SHELF_X[key], z: SHELF_Z, yaw: Math.PI / 2, len: 3.4, depth: 1.1, h: 1.5, levels: 3 },
+  shelf: { x: SHELF_X[key], z: SHELF_Z, yaw: Math.PI / 2, len: 3.6, depth: 1.3, h: 1.5, levels: 3 },
   approach: [{ x: SHELF_X[key], z: AISLE_Z }],
-  browse: { x: SHELF_X[key], z: SHELF_Z - 1.3, spread: 2.2 },
+  browse: { x: SHELF_X[key], z: SHELF_Z - 1.45, spread: 2.4 },
   placeholder: false, markers: false, label: 'STOCK',
   hint: 'Stock the shelves!',
 });
@@ -140,8 +140,8 @@ export default {
     pad('stocker5', 'STOCKER', 1800, [14.5, 2.0], ['shoppers3'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread', 'dock-milk', 'dock-drinks'], to: ALL_SHELVES }),
     pad('price3', 'PREMIUM BRANDS +40%', 2400, [11.5, 2.0], ['stocker5'], { type: 'stat', stat: 'priceMult', mul: 1.4 }),
 
-    pad('megamart', 'MEGA MART GRAND OPENING', 5000, [4.5, -8.5], ['price3'], { type: 'win' }, { big: true, toast: 'GRAND OPENING!' }),
-    pad('travel', 'NEXT WORLD', 0, [-1.5, -8.5], ['megamart'], { type: 'travel', world: 'flower' }, { priceText: 'GO' }),
+    pad('megamart', 'MEGA MART', 5000, [3.5, -6.0], ['price3'], { type: 'win' }, { big: true, toast: 'GRAND OPENING!' }),
+    pad('travel', 'NEXT WORLD', 0, [-3.5, -6.0], ['megamart'], { type: 'travel', world: 'flower' }, { priceText: 'GO' }),
   ],
 
   hints: {

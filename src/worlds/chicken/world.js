@@ -171,7 +171,7 @@ export default {
     { id: 'cap3', label: 'MEGA STACK', cost: 4200, at: [4.5, -3.2], requires: ['col4'], effect: { type: 'stat', stat: 'capacity', max: 90 } },
 
     // ---- finale and the way on
-    { id: 'monument', label: 'GIANT GOLDEN EGG', cost: 8000, at: [40, 35.2], requires: ['cap3'], big: true,
+    { id: 'monument', label: 'GIANT GOLDEN EGG', cost: 7000, at: [40, 35.2], requires: ['cap3'], big: true,
       effect: { type: 'win' }, toast: 'GIANT GOLDEN EGG!' },
     { id: 'travel', label: 'NEXT WORLD', cost: 0, at: [29, 66.5], requires: ['monument'], effect: { type: 'travel', world: 'grocery' }, priceText: 'GO' },
   ],

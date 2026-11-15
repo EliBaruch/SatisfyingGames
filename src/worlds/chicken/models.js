@@ -189,7 +189,7 @@ export function makeTroughModel(len = 3.2, depth = 1.0) {
   b.rbox(COLORS.wood, len + 0.12, 0.12, 0.14, 0.05, [0, 0.67, -depth / 2], null, null, 1);
   g.add(meshOf(b.merged({ ao: true })));
   const grain = new Parts();
-  grain.sph(0xf3c44a, 0.5, [0, 0, 0], [(len - 0.5) / 1.0, 0.45, (depth - 0.3) / 1.0], null, 12, 6);
+  grain.rbox(0xf3c44a, len - 0.4, 0.3, depth - 0.25, 0.13, [0, 0, 0], null, null, 2);
   const fill = meshOf(grain.merged(), { cast: false });
   fill.position.set(0, 0.55, 0);
   g.add(fill);
@@ -199,7 +199,7 @@ export function makeTroughModel(len = 3.2, depth = 1.0) {
 
 // ---------------------------------------------------------------- hen house ---
 export function makeHenHouse({ gold = false } = {}) {
-  const wall = gold ? 0xffe9a8 : 0xe5584a, wallDark = gold ? 0xe8c25a : 0xb8413a, roof = gold ? 0xe49a12 : 0x8a95a5;
+  const wall = gold ? 0xffe9a8 : 0xe5584a, wallDark = gold ? 0xe8c25a : 0xb8413a, roof = gold ? 0xd9801a : 0x9a5b3a;
   const b = new Parts();
   b.rbox(wall, 3.4, 1.9, 3.0, 0.22, [0, 0.95, 0]);
   b.rbox(wallDark, 3.5, 0.2, 3.1, 0.08, [0, 0.1, 0], null, null, 1);
@@ -244,13 +244,11 @@ export function makeMonument() {
   b.rcyl(0xd8d0c0, 5.0, 0.5, 0.18, [0, 0.25, 0], null, 36);
   b.rcyl(0xece4d2, 4.0, 0.5, 0.18, [0, 0.72, 0], null, 36);
   b.rcyl(0xf6efdf, 3.1, 0.5, 0.16, [0, 1.18, 0], null, 36);
-  b.rcyl(0xe49a12, 2.4, 0.22, 0.08, [0, 1.52, 0], null, 28);
   const prof = [];
-  for (let i = 0; i <= 18; i++) { const t = i / 18, a = t * Math.PI; const r = Math.sin(a) * (1 - 0.18 * Math.cos(a)) * 2.5; prof.push([Math.max(r, 0.001), 1.6 + (1 - Math.cos(a)) * 0.5 * 5.2]); }
+  for (let i = 0; i <= 18; i++) { const t = i / 18, a = t * Math.PI; const r = Math.sin(a) * (1 - 0.18 * Math.cos(a)) * 2.5; prof.push([Math.max(r, 0.001), 1.6 + (1 - Math.cos(a)) * 0.5 * 6.2]); }
   b.lathe(COLORS.gold, prof, [0, 0, 0], null, 36);
-  b.sph(COLORS.goldLight, 0.9, [-1.2, 8.1, -1.0], [1, 1.5, 0.45], [0.2, -0.75, 0.25], 10, 8);
-  b.sph(0xffffff, 0.24, [-1.5, 9.5, -1.3], [1, 1.2, 0.4], [0.2, -0.75, 0], 8, 6);
-  b.torus(0xe49a12, 2.38, 0.16, [0, 5.0, 0], [Math.PI / 2, 0, 0], [1, 1, 1], Math.PI * 2, 8, 36);
+  b.sph(COLORS.goldLight, 0.9, [-1.3, 9.0, -1.1], [0.8, 1.4, 0.4], [0.2, -0.75, 0.25], 10, 8);
+  b.sph(0xffffff, 0.24, [-1.6, 10.6, -1.4], [1, 1.2, 0.4], [0.2, -0.75, 0], 8, 6);
   for (let i = 0; i < 12; i++) {
     const a = i * Math.PI / 6;
     b.sph(i % 2 ? 0xfff1dc : COLORS.gold, 0.34, [Math.cos(a) * 4.2, 1.2, Math.sin(a) * 4.2], [1, 1.3, 1], null, 8, 6);

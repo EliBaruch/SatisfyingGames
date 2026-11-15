@@ -5,7 +5,8 @@ import { Parts, meshOf } from '../../engine/art/parts.js';
 import { preload } from '../../engine/art/assets.js';
 
 // Shared sizes: items lie along X, origin bottom-centre.
-export const CRATE = { w: 0.62, d: 0.42, h: 0.26, step: 0.3 };
+const K = 1.2;   // crates are built at 0.62 x 0.42 x 0.26 and scaled up so they read from the camera
+export const CRATE = { w: 0.62 * K, d: 0.42 * K, h: 0.26 * K, step: 0.3 * K };
 
 const PRODUCTS = {
   produce: { crate: 0x7fd34f, rim: 0xa7e86f, model: 'food-kit/paprika', color: 0xffffff, ids: ['food-kit/paprika', 'food-kit/pear', 'food-kit/paprika'] },
@@ -18,7 +19,7 @@ export const PRODUCT_COLOR = { produce: 0x7fd34f, bread: 0xe3a45a, milk: 0x5db6f
 /** One crate of a product: rounded open tray with the goods peeking out. */
 export function makeCrateGeometry(kind) {
   const P = PRODUCTS[kind];
-  const { w, d, h } = CRATE;
+  const w = 0.62, d = 0.42, h = 0.26;
   const b = new Parts();
   b.rbox(P.crate, w, h, d, 0.06, [0, h / 2, 0], null, null, 1);
   b.rbox(P.rim, w + 0.02, 0.05, d + 0.02, 0.025, [0, h - 0.02, 0], null, null, 1);
@@ -36,7 +37,9 @@ export function makeCrateGeometry(kind) {
   } else {
     for (let i = 0; i < 4; i++) b.model('food-kit/soda-can', { pos: [-0.2 + (i % 2) * 0.2 + 0.0, top, i < 2 ? 0.08 : -0.08], height: 0.3 });
   }
-  return b.merged({ ao: { ground: 0.12, groundH: 0.12, down: 0.08, noBoxes: true } });
+  const g = b.merged({ ao: { ground: 0.12, groundH: 0.12, down: 0.08, noBoxes: true } });
+  g.scale(K, K, K);
+  return g;
 }
 
 export const ASSETS = [

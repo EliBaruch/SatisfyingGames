@@ -296,9 +296,9 @@ export function createScene(G) {
       const view = { st, group: new THREE.Group(), shutter: null, closedGroup: null };
       // wooden pallet under the crates
       const pp = new Parts();
-      pp.rbox(0xb98552, 1.7, 0.08, 1.7, 0.03, [0, 0.14, 0]);
-      for (const dz of [-0.7, 0, 0.7]) pp.rbox(0xa4733f, 1.7, 0.12, 0.26, 0.03, [0, 0.07, dz]);
-      for (const dx of [-0.7, 0, 0.7]) pp.rbox(0xa4733f, 0.26, 0.04, 1.7, 0.02, [dx, 0.02, 0]);
+      pp.rbox(0xb98552, 1.9, 0.08, 1.9, 0.03, [0, 0.14, 0]);
+      for (const dz of [-0.8, 0, 0.8]) pp.rbox(0xa4733f, 1.9, 0.12, 0.26, 0.03, [0, 0.07, dz]);
+      for (const dx of [-0.8, 0, 0.8]) pp.rbox(0xa4733f, 0.26, 0.04, 1.9, 0.02, [dx, 0.02, 0]);
       const pal = meshOf(pp.merged({ ao: AO_SOFT }), { cast: false, receive: true });
       pal.position.set(x - 0.0, 0, z);
       view.group.add(pal);
@@ -355,7 +355,7 @@ export function createScene(G) {
     const key = color + '/' + accent + '/' + kind;
     let g = shelfGeo.get(key);
     if (g) return g;
-    const D_ = 1.1, L = 3.4, H = 1.5, gap = H / 3;
+    const D_ = 1.3, L = 3.6, H = 1.5, gap = H / 3;
     const b = new Parts();
     b.rbox(0x6a7380, D_, 0.12, L, 0.04, [0, 0.06, 0]);                              // plinth
     b.rbox(color, 0.1, H, L - 0.06, 0.04, [-D_ / 2 + 0.06, H / 2 + 0.06, 0]);        // back

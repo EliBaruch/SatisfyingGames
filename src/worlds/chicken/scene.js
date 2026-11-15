@@ -531,7 +531,7 @@ export function createScene(G) {
     const sgn = new THREE.Group(); sgn.add(meshOf(post.merged({ ao: true })));
     const board = signBoard([{ text: 'COMING SOON', size: 66, color: '#ffe27a', stroke: '#6b3a1a' }, { text: 'GIANT', size: 70, color: '#ffffff', stroke: '#b3741a' }, { text: 'GOLDEN EGG', size: 62, color: '#ffffff', stroke: '#b3741a' }], '#f0a92a', 4.2, 2.5);
     board.position.set(0, 2.0, 0.07); sgn.add(board);
-    place(sgn, -4.2, -MON.d / 2 - 1.9, FACE_CAMERA);
+    place(sgn, 4.8, -MON.d / 2 - 1.9, FACE_CAMERA);
     site.add(sgn);
   }
   site.position.set(MON.x, 0, MON.z);
@@ -617,8 +617,8 @@ export function createScene(G) {
       for (const tv of troughViews) {
         const lv = tv.st.level || 0;
         tv.fill.visible = lv > 0.02;
-        tv.fill.scale.set(1, Math.max(0.001, lv) * 1.2, 1);
-        tv.fill.position.y = 0.58 + Math.max(0, lv) * 0.1;
+        tv.fill.scale.set(1, Math.max(0.001, lv), 1);
+        tv.fill.position.y = 0.5 + Math.max(0, lv) * 0.13;
       }
       for (const mm of machines) {
         if (!mm.m.visible) continue;
