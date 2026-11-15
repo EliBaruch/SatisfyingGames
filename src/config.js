@@ -77,7 +77,7 @@ export const CAMERA = {
   // Orthographic isometric camera. With this offset:
   //   screen-right = world (-x, +z) / √2      screen-up = world (+x, +z) / √2
   offset: { x: -14, y: 18, z: -14 },
-  viewPortrait: 26,      // vertical world units visible when aspect < 1
+  viewPortrait: 23.5,      // vertical world units visible when aspect < 1
   viewLandscape: 17,     // vertical world units visible when aspect >= 1
   lerp: 6,
 };

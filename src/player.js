@@ -30,7 +30,8 @@ export function createPlayer(G) {
 
   const stack = createStack(G, {
     parent: group,
-    offset: { x: 0, y: 0.95, z: -0.42 },
+    offset: { x: 0, y: 0.55, z: -0.42 },
+    billboard: true,
     capacity: G.stats.capacity,
     perColumn: PLAYER.perColumn,
   });

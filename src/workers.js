@@ -89,7 +89,7 @@ export function createWorkers(G) {
     const k = list.length;
     const group = makeCharacter(LOOKS.cutter);
     const stack = createStack(G, {
-      parent: group, offset: { x: 0, y: 0.95, z: -0.42 },
+      parent: group, offset: { x: 0, y: 0.55, z: -0.42 }, billboard: true,
       capacity: CUT.capacity, perColumn: 40,
     });
     stack.toWorldFn = (o) => stack.topWorld(o);

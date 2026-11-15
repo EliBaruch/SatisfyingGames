@@ -37,6 +37,12 @@ export function createStack(G, opts = {}) {
   const off = opts.offset || { x: 0, y: 0, z: 0 };
   const perColumn = Math.max(1, opts.perColumn || 40);
   const swayOn = opts.sway !== false;
+  // billboard: the tower keeps a fixed orientation toward the camera (bouquets seen
+  // side-on, blooms to screen-right) and sits on the far side of its carrier, so the
+  // carrier is never hidden behind its own load whichever way it runs.
+  const billboard = !!opts.billboard;
+  const BILL_YAW = -Math.PI * 0.75;
+  const BILL_OFF = opts.billboardOffset ?? 0.5;
 
   const root = new THREE.Object3D();
   root.position.set(off.x || 0, off.y || 0, off.z || 0);
@@ -103,6 +109,8 @@ export function createStack(G, opts = {}) {
     }
     dirty = true;
   }
+
+  let popLo = 0; // lowest index that may still be popping in
 
   function push(type) {
     type = type | 0;
@@ -182,8 +190,21 @@ export function createStack(G, opts = {}) {
     // pop ages
     const n = items.length;
     let anyPop = false;
-    for (let i = Math.max(0, n - 12); i < n; i++) {
+    // age every item that is still popping in (not just the top few: a restored
+    // save or a burst of arrivals can add many at once)
+    if (popLo > n) popLo = n;
+    for (let i = popLo; i < n; i++) {
       if (popAge[i] < POP_TIME) { popAge[i] += dt; anyPop = true; }
+    }
+    while (popLo < n && popAge[popLo] >= POP_TIME) popLo++;
+
+    if (billboard) {
+      const yaw = parent.rotation.y;
+      const c = Math.cos(yaw), sn = Math.sin(yaw);
+      const o = BILL_OFF * Math.SQRT1_2;       // world offset (+x, +z): away from the camera
+      root.position.x = o * c - o * sn;
+      root.position.z = o * sn + o * c;
+      root.rotation.y = BILL_YAW - yaw;
     }
 
     if (swayOn) {

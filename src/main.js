@@ -154,6 +154,15 @@ const arrow = new THREE.Group();
   arrow.visible = false;
   scene.add(arrow);
 }
+// pulsing ground ring that marks exactly where the arrow points
+const arrowRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.72, 1.0, 28),
+  new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.8, depthWrite: false }),
+);
+arrowRing.rotation.x = -Math.PI / 2;
+arrowRing.visible = false;
+arrowRing.renderOrder = 3;
+scene.add(arrowRing);
 const pointer = new THREE.Group();
 {
   const shape = new THREE.Shape();
@@ -251,17 +260,25 @@ function computeHint() {
 function updateHintVisuals(realDt) {
   hint.t += realDt;
   const pl = G.player;
-  if (!hint.has || !pl) { arrow.visible = false; pointer.visible = false; return; }
+  if (!hint.has || !pl) { arrow.visible = false; arrowRing.visible = false; pointer.visible = false; return; }
   const dx = hint.x - pl.pos.x, dz = hint.z - pl.pos.z;
   const d = Math.hypot(dx, dz);
   const near = d < hint.nearR;
   arrow.visible = !near;
   if (arrow.visible) {
     const bob = Math.abs(Math.sin(hint.t * 4.2));
-    arrow.position.set(hint.x, 2.2 + bob * 0.7, hint.z);
+    arrow.position.set(hint.x, 1.25 + bob * 0.7, hint.z);
     arrow.rotation.y = hint.t * 1.6;
     const sq = 1 + (1 - bob) * 0.12;
     arrow.scale.set(sq, 2 - sq, sq);
+  }
+  arrowRing.visible = arrow.visible;
+  if (arrowRing.visible) {
+    const k = (hint.t * 1.4) % 1;
+    const rs = 0.75 + k * 0.9;
+    arrowRing.position.set(hint.x, 0.06, hint.z);
+    arrowRing.scale.set(rs, rs, 1);
+    arrowRing.material.opacity = 0.85 * (1 - k);
   }
   pointer.visible = !near && d > 7;
   if (pointer.visible) {

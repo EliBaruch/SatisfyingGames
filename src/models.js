@@ -177,22 +177,28 @@ export function makeBouquetGeometry(typeIdx) {
   const b = new Parts();
   const { len, h, d } = SIZES.bouquet;
   const x0 = -len / 2;
-  const R = 0.17;
-  const cl = 0.55;
   const cy = h / 2;
-  // wrap cone: wide end at +X, tip at -X
-  b.cyl(F.wrap, 0.025, R, cl, [x0 + cl / 2, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.004) / R, 1]);
+  const fy = (h / 2 - 0.004);          // half height available
+  // Fat paper wrap: truncated cone, narrow end at -X, wide mouth toward +X.
+  const R0 = 0.105, R1 = d / 2 - 0.005, cl = 0.58;
+  // (cylinder axis Y maps to world +X; local X maps to world Y, so flatten local X)
+  const flat = [fy / R1, 1, 1];
+  b.cyl(F.wrap, R1, R0, cl, [x0 + cl / 2, cy, 0], [0, 0, -Math.PI / 2], 8, flat);
+  // flared paper lip at the mouth
+  b.cyl(F.wrap, R1 + 0.004, R1, 0.05, [x0 + cl + 0.02, cy, 0], [0, 0, -Math.PI / 2], 8, flat);
   // ribbon band
-  const rx = x0 + cl * 0.7;
-  const rr = 0.025 + (R - 0.025) * 0.7 + 0.012;
-  b.cyl(F.ribbon, rr, rr, 0.08, [rx, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.002) / rr, 1]);
-  // blooms poking out at +X
-  const bx = x0 + cl;
-  b.ico(F.petal, 0.13, [bx + 0.12, cy, -0.12]);
-  b.ico(F.petalDark, 0.13, [bx + 0.16, cy, 0.12]);
-  b.ico(F.petal, 0.13, [bx + 0.3, cy, 0.0]);
-  b.ico(F.center, 0.055, [bx + 0.41, cy + 0.03, 0.0]);
-  b.oct(LEAF, 0.1, [bx + 0.04, cy + 0.09, 0], [1, 0.25, 1.5]);
+  const rt = 0.3;
+  const rr = R0 + (R1 - R0) * rt + 0.012;
+  b.cyl(F.ribbon, rr + 0.012, rr, 0.09, [x0 + cl * rt, cy, 0], [0, 0, -Math.PI / 2], 8, flat);
+  // big blooms bursting out of the mouth
+  const bx = x0 + cl + 0.02;
+  const br = 0.155, sy = fy / br;
+  b.ico(F.petal, br, [bx + 0.09, cy, -0.115], [1, sy, 1]);
+  b.ico(F.petalDark, br, [bx + 0.09, cy, 0.115], [1, sy, 1]);
+  b.ico(F.petal, br, [bx + 0.21, cy, 0.0], [1, sy, 1]);
+  b.ico(F.center, 0.06, [bx + 0.335, cy, 0.0]);
+  b.oct(LEAF, 0.11, [bx + 0.0, cy + 0.05, 0.17], [1, 0.3, 0.8]);
+  b.oct(LEAF, 0.11, [bx + 0.0, cy + 0.05, -0.17], [1, 0.3, 0.8]);
   return b.merged();
 }
 

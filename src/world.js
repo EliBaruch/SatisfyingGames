@@ -177,9 +177,9 @@ export function createWorld(G) {
   const animated = [];
 
   // ---------------------------------------------------------------- lights --
-  const hemi = new THREE.HemisphereLight(0xe4f4ff, 0x9fcf72, 1.55);
+  const hemi = new THREE.HemisphereLight(0xe8f6ff, 0x8fc46a, 1.3);
   root.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff0d4, 2.3);
+  const sun = new THREE.DirectionalLight(0xfff1d6, 1.95);
   const SUN_DIR = new THREE.Vector3(9, 22, -8).normalize();
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -190,16 +190,16 @@ export function createWorld(G) {
   sun.shadow.radius = 3;
   root.add(sun);
   root.add(sun.target);
-  const fill = new THREE.DirectionalLight(0xffe6f0, 0.85); // soft camera-side fill, no shadows
+  const fill = new THREE.DirectionalLight(0xffe6f0, 0.55); // soft camera-side fill, no shadows
   fill.position.set(-14, 12, -10);
   root.add(fill);
-  scene.background = new THREE.Color(0x86d664);
+  scene.background = new THREE.Color(0x6fbf4b);
 
   // ---------------------------------------------------------------- ground --
   {
     const gt = canvasTex(128, 128, (ctx, w, h) => {
-      ctx.fillStyle = '#7fd35f'; ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#76c957'; ctx.fillRect(0, 0, w / 2, h / 2); ctx.fillRect(w / 2, h / 2, w / 2, h / 2);
+      ctx.fillStyle = '#74c44e'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#6bba47'; ctx.fillRect(0, 0, w / 2, h / 2); ctx.fillRect(w / 2, h / 2, w / 2, h / 2);
     }, { repeat: true });
     const gb = WORLD.ground;
     const gw = gb.maxX - gb.minX, gd = gb.maxZ - gb.minZ;
@@ -539,7 +539,7 @@ export function createWorld(G) {
   }
 
   // ---------------------------------------------------------------- plots ---
-  const lawnTex = stripeTexture('#8be468', '#80d85e');
+  const lawnTex = stripeTexture('#86d65a', '#7aca50');
   lawnTex.repeat.set(1, 1);
   const dashTex = dashedPlotTexture();
   const soilTex = soilTexture();
