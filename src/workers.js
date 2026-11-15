@@ -446,7 +446,7 @@ export function createWorkers(G) {
           }
         }
       }
-      if (t.state !== 'toDrop' && stack.room <= 0) { t.passDone = t.state === 'drive' && t.pi >= t.pc; startDrop(t); }
+      if ((t.state === 'drive' || t.state === 'rejoin') && stack.room <= 0) { t.passDone = t.state === 'drive' && t.pi >= t.pc; startDrop(t); }
     }
 
     // visuals
