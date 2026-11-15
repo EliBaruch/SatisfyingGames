@@ -130,8 +130,9 @@ async function writeLicenses(manifest, items) {
   lines.push('All 3D models in this folder are released under **CC0 1.0 Universal (public domain dedication)**:');
   lines.push('https://creativecommons.org/publicdomain/zero/1.0/', '');
   lines.push('Credit is not required, but we gladly give it:', '');
-  lines.push('- **Kenney** (https://kenney.nl) - Mini Characters, Mini Shop, Mini Forest, Food Kit, Cube Pets, Car Kit, Factory Kit, Nature Kit.');
-  lines.push('- **Quaternius** (https://quaternius.com) - Farm Buildings Pack, Cute Animated Monsters Pack, Ultimate Crops Pack, Simple Nature Pack.', '');
+  const byAuthor = (a) => [...byKit.keys()].filter((k) => (KITS[k] || [])[1] === a).sort().map((k) => KITS[k][0]).join(', ');
+  lines.push(`- **Kenney** (https://kenney.nl) - ${byAuthor('Kenney')}.`);
+  lines.push(`- **Quaternius** (https://quaternius.com) - ${byAuthor('Quaternius')}.`, '');
   lines.push('The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-glb` and `codepawl/quaternius-glb`',
     '(web tier: meshopt-compressed geometry, WebP textures). Geometry and textures are unmodified.', '');
   lines.push('## Kits in use', '');

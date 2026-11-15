@@ -5,8 +5,8 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 Credit is not required, but we gladly give it:
 
-- **Kenney** (https://kenney.nl) - Mini Characters, Mini Shop, Mini Forest, Food Kit, Cube Pets, Car Kit, Factory Kit, Nature Kit.
-- **Quaternius** (https://quaternius.com) - Farm Buildings Pack, Cute Animated Monsters Pack, Ultimate Crops Pack, Simple Nature Pack.
+- **Kenney** (https://kenney.nl) - Car Kit, Cube Pets, Factory Kit, Food Kit, Mini Characters, Mini Forest, Mini Shop, Nature Kit.
+- **Quaternius** (https://quaternius.com) - Farm Buildings Pack, Simple Nature Pack, Ultimate Crops Pack.
 
 The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-glb` and `codepawl/quaternius-glb`
 (web tier: meshopt-compressed geometry, WebP textures). Geometry and textures are unmodified.
@@ -17,7 +17,6 @@ The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-g
 |---|---|---|---|
 | Car Kit (`car-kit`) | Kenney | 7 | https://kenney.nl/assets/car-kit |
 | Cube Pets (`cube-pets`) | Kenney | 3 | https://kenney.nl/assets/cube-pets |
-| Cute Animated Monsters Pack (`cutemonsters`) | Quaternius | 1 | https://quaternius.com/packs/cutemonsters.html |
 | Factory Kit (`factory-kit`) | Kenney | 20 | https://kenney.nl/assets/factory-kit |
 | Farm Buildings Pack (`farmbuildings`) | Quaternius | 7 | https://quaternius.com/packs/farmbuildings.html |
 | Food Kit (`food-kit`) | Kenney | 21 | https://kenney.nl/assets/food-kit |
@@ -37,10 +36,6 @@ The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-g
 ### Cube Pets - Kenney - CC0 1.0
 
 `animal-chick`, `animal-cow`, `animal-pig`
-
-### Cute Animated Monsters Pack - Quaternius - CC0 1.0
-
-`Chicken`
 
 ### Factory Kit - Kenney - CC0 1.0
 

@@ -46,7 +46,7 @@ const _hsl = { h: 0, s: 0, l: 0 };
 export function recolor(kind, c) {
   c.getHSL(_hsl, THREE.SRGBColorSpace);
   const { h, s, l } = _hsl;
-  if (h > 0.38 && h < 0.56) c.setHSL(h - 0.165, s * 0.62, l * 0.68, THREE.SRGBColorSpace);          // teal -> leaf green
+  if (h > 0.38 && h < 0.56) c.setHSL(h - 0.17, s * 0.8, l * 0.5, THREE.SRGBColorSpace);          // teal -> leaf green
   else if (h < 0.13 && s > 0.2) {
     if (kind === 'rock') c.setHSL(0.09, s * 0.22, l * 0.92, THREE.SRGBColorSpace);                    // peach stone -> warm grey
     else c.setHSL(0.07, Math.min(0.5, s * 0.6), l * 0.78, THREE.SRGBColorSpace);                          // peach wood -> tan
