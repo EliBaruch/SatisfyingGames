@@ -51,21 +51,32 @@ function splitLabel(label) {
   return best;
 }
 
-function drawPad(ctx, pad, remaining) {
+// Static part shared by every pad: translucent dark body + dashed white border.
+let bgTex = null;
+function getBgTexture() {
+  if (bgTex) return bgTex;
   const W = TEX;
-  ctx.clearRect(0, 0, W, W);
-  // translucent dark body
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = W;
+  const ctx = cv.getContext('2d');
   roundRect(ctx, 10, 10, W - 20, W - 20, 30);
-  ctx.fillStyle = 'rgba(28, 36, 52, 0.42)';
+  ctx.fillStyle = 'rgba(24, 30, 46, 0.55)';
   ctx.fill();
-  // dashed white border
-  ctx.save();
   ctx.setLineDash([22, 13]);
   ctx.lineWidth = 9;
   ctx.strokeStyle = '#ffffff';
   roundRect(ctx, 12, 12, W - 24, W - 24, 28);
   ctx.stroke();
-  ctx.restore();
+  bgTex = new THREE.CanvasTexture(cv);
+  bgTex.colorSpace = THREE.SRGBColorSpace;
+  bgTex.anisotropy = 4;
+  return bgTex;
+}
+
+// Per-pad part (drawn above the fill): label, banknote icon, remaining price.
+function drawPad(ctx, pad, remaining) {
+  const W = TEX;
+  ctx.clearRect(0, 0, W, W);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -137,6 +148,7 @@ export function createPads(G) {
     fillGeo.rotateX(-Math.PI / 2);
   }
   for (const p of PADS) byId.set(p.id, p);
+  const bgMat = new THREE.MeshBasicMaterial({ map: getBgTexture(), transparent: true, depthWrite: false });
 
   const isVisible = (p) => !S.done[p.id] && p.requires.every((r) => S.done[r]);
 
@@ -146,11 +158,16 @@ export function createPads(G) {
     // texture "up" (-z after rotateX) must point to world (+x,+z): yaw -3π/4
     group.rotation.y = -Math.PI * 3 / 4;
 
-    const fillMat = new THREE.MeshBasicMaterial({ color: 0x4fe36b, transparent: true, opacity: 0.85, depthWrite: false });
+    const bg = new THREE.Mesh(planeGeo, bgMat);
+    bg.position.y = 0.035;
+    bg.renderOrder = 2;
+    group.add(bg);
+
+    const fillMat = new THREE.MeshBasicMaterial({ color: 0x49e86a, transparent: true, opacity: 0.92, depthWrite: false });
     const fill = new THREE.Mesh(fillGeo, fillMat);
-    fill.position.set(0, 0.035, PAD.size / 2 - PAD.size * FILL_INSET);
+    fill.position.set(0, 0.04, PAD.size / 2 - PAD.size * FILL_INSET);
     fill.scale.z = 0.0001;
-    fill.renderOrder = 2;
+    fill.renderOrder = 3;
     group.add(fill);
 
     const canvas = document.createElement('canvas');
@@ -162,7 +179,7 @@ export function createPads(G) {
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
     const decal = new THREE.Mesh(planeGeo, mat);
     decal.position.y = 0.045;
-    decal.renderOrder = 3;
+    decal.renderOrder = 4;
     group.add(decal);
 
     G.scene.add(group);

@@ -69,11 +69,10 @@ export function createPlayer(G) {
   const cashTextOpts = { color: '#7dff8a', size: 1.15, life: 1.0 };
 
   let lastCut = -10;
-  let fullCooldown = 0;
-  let unloadT = 0, unloadBatch = 1, wasSelling = false;
-  let dustT = 0;
+  const T = { fullCooldown: 0.5, unloadT: 0.5, dustT: 0.5, grabBillT: 0.5 };
+  let unloadBatch = 1, wasSelling = false;
   // cash grab
-  let grabFarm = -1, grabTotal = 0, grabSum = 0, grabBills = 0, grabBillT = 0, grabBillEvery = 0.05;
+  let grabFarm = -1, grabTotal = 0, grabSum = 0, grabBills = 0, grabBillEvery = 0.05;
 
   G.events.on('unlock', () => { stack.setCapacity(G.stats.capacity); });
 
@@ -145,15 +144,16 @@ export function createPlayer(G) {
         flyOpts.delay = i * 0.02;
         flyOpts.onDone = onLand[field.type];
         if (fx && fx.fly) fx.fly(flyOpts); else onLand[field.type]();
+        if (G.audio && G.audio.play) G.audio.play('cut');
       }
       if (G.audio) {
-        G.audio.play && G.audio.play('cut');
-        G.audio.haptic && G.audio.haptic(8);
+        // vibrate is blocked (and logged as an error) before the first user gesture
+        if (G.audio.haptic && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) G.audio.haptic(8);
       }
     }
-    fullCooldown -= dt;
-    if (inGrown && fullCooldown <= 0) {
-      fullCooldown = 1.2;
+    T.fullCooldown -= dt;
+    if (inGrown && T.fullCooldown <= 0) {
+      T.fullCooldown = 1.2;
       stack.topWorld(textPos);
       textPos.y += 0.3;
       if (G.fx && G.fx.popText) G.fx.popText(textPos, 'MAX', fullTextOpts);
@@ -173,17 +173,17 @@ export function createPlayer(G) {
       if (dx * dx + dz * dz <= z.r * z.r) { farmIn = f; break; }
     }
     player.sellFarm = farmIn;
-    if (farmIn < 0 || stack.count === 0) { wasSelling = false; unloadT = PLAYER.unloadInterval; return; }
+    if (farmIn < 0 || stack.count === 0) { wasSelling = false; T.unloadT = PLAYER.unloadInterval; return; }
     const shop = shops.get(farmIn);
     if (!shop || !shop.active) return;
     if (!wasSelling) {
       wasSelling = true;
       unloadBatch = Math.max(1, Math.ceil(stack.count * PLAYER.unloadInterval / 1.3));
     }
-    unloadT += dt;
+    T.unloadT += dt;
     const fx = G.fx;
-    while (unloadT >= PLAYER.unloadInterval && stack.count > 0) {
-      unloadT -= PLAYER.unloadInterval;
+    while (T.unloadT >= PLAYER.unloadInterval && stack.count > 0) {
+      T.unloadT -= PLAYER.unloadInterval;
       for (let k = 0; k < unloadBatch && stack.count > 0; k++) {
         const t = stack.pop();
         stack.topWorld(tmpA);
@@ -233,15 +233,15 @@ export function createPlayer(G) {
       const bv = shop.bundleValue ? shop.bundleValue() : 10;
       grabBills = Math.min(MAX_BILLS_PER_GRAB, Math.max(3, Math.ceil(grabTotal / bv)));
       grabBillEvery = SHOP.collectTime / grabBills;
-      grabBillT = grabBillEvery;
+      T.grabBillT = grabBillEvery;
     }
     if (shop.cash > 0) {
       const want = Math.max(1, Math.ceil(grabTotal * dt / SHOP.collectTime));
       const got = shop.takeCash(want);
       if (got > 0) { G.addMoney(got); grabSum += got; }
-      grabBillT += dt;
-      while (grabBillT >= grabBillEvery && grabBills > 0) {
-        grabBillT -= grabBillEvery;
+      T.grabBillT += dt;
+      while (T.grabBillT >= grabBillEvery && grabBills > 0) {
+        T.grabBillT -= grabBillEvery;
         grabBills--;
         if (shop.pileTop) shop.pileTop(tmpA); else tmpA.set(FARMS[near].cashPile.x, 0.3, FARMS[near].cashPile.z);
         billOpts.from = tmpA;
@@ -262,9 +262,9 @@ export function createPlayer(G) {
     stack.update(dt, player.speed01);
     // feet dust
     if (player.speed01 > 0.55) {
-      dustT -= dt;
-      if (dustT <= 0) {
-        dustT = 0.1 + Math.random() * 0.06;
+      T.dustT -= dt;
+      if (T.dustT <= 0) {
+        T.dustT = 0.1 + Math.random() * 0.06;
         if (G.fx && G.fx.burst) {
           tmpB.set(pos.x - vel.x * 0.04, 0.02, pos.z - vel.z * 0.04);
           G.fx.burst(tmpB, dustOpts);

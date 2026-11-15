@@ -128,9 +128,9 @@ function makeShop(G, farm, f) {
   const maxLine = SHOP.queueSlots + EXTRA_LINE;
   const laneX = farm.customerIn[farm.customerIn.length - 1].x;
   const laneZ = farm.customerIn[farm.customerIn.length - 1].z;
-  let spawnT = 0;
-  let serveT = 1;
-  let lodT = 0, lodShow = true, lodShadow = true;
+  // per-step timers live on an object (closure doubles would allocate a heap number per write)
+  const T = { spawnT: 0.5, serveT: 1.5, lodT: 0.5 };
+  let lodShow = true, lodShadow = true;
 
   function slotPos(i, out) {
     if (i < farm.queue.length) { out.x = farm.queue[i].x; out.z = farm.queue[i].z; return out; }
@@ -324,20 +324,20 @@ function makeShop(G, farm, f) {
       playerIn = dx * dx + dz * dz <= farm.sellZone.r * farm.sellZone.r;
     }
     const can = S.stock[f] > 0 && (playerIn || cashier);
-    if (!can) { if (serveT > cfg.interval) serveT = cfg.interval; return; }
-    serveT += dt;
+    if (!can) { if (T.serveT > cfg.interval) T.serveT = cfg.interval; return; }
+    T.serveT += dt;
     let guard = 8;
-    while (serveT >= cfg.interval && S.stock[f] > 0 && guard-- > 0) {
+    while (T.serveT >= cfg.interval && S.stock[f] > 0 && guard-- > 0) {
       const front = line.length ? line[0] : null;
-      let ok = serveT >= cfg.interval * 2;
+      let ok = T.serveT >= cfg.interval * 2;
       if (front) {
         slotPos(0, tmpSlot);
         const d = Math.hypot(front.x - tmpSlot.x, front.z - tmpSlot.z);
         if (d < 1.3 && front.t >= SPAWN_TIME * 0.5) ok = true;
       }
       if (!ok) break;
-      serveT -= cfg.interval;
-      if (serveT > cfg.interval) serveT = cfg.interval; // never bank more than one late sale
+      T.serveT -= cfg.interval;
+      if (T.serveT > cfg.interval) T.serveT = cfg.interval; // never bank more than one late sale
       if (front) {
         line.shift();
         front.state = 2; front.wp = 0; front.life = 0;
@@ -350,16 +350,16 @@ function makeShop(G, farm, f) {
   function updateCustomers(dt) {
     // keep the line full
     if (line.length < maxLine) {
-      spawnT -= dt;
-      if (spawnT <= 0) {
+      T.spawnT -= dt;
+      if (T.spawnT <= 0) {
         const c = spawn(laneX, laneZ - 0.8 - Math.random() * 0.6, 0, false);
-        spawnT = c ? 0.04 + Math.random() * 0.1 : 0.1;
+        T.spawnT = c ? 0.04 + Math.random() * 0.1 : 0.1;
       }
-    } else spawnT = Math.min(spawnT, 0.05);
+    } else T.spawnT = Math.min(T.spawnT, 0.05);
 
-    lodT -= dt;
-    if (lodT <= 0 && G.player) {
-      lodT = 0.3;
+    T.lodT -= dt;
+    if (T.lodT <= 0 && G.player) {
+      T.lodT = 0.3;
       slotPos(4, tmpSlot);
       const d = Math.hypot(G.player.pos.x - tmpSlot.x, G.player.pos.z - tmpSlot.z);
       lodShow = d < LOD_SHOW;
