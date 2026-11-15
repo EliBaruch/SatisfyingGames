@@ -314,6 +314,7 @@ export function createScene(G) {
       const tm = getModel(trucks.length % 2 ? 'car-kit/van' : 'car-kit/delivery-flat');
       tm.position.set(x + 4.0, 0, z); tm.rotation.y = -Math.PI / 2;
       addBlob(tm, { rx: 1.2, rz: 2.2, yaw: true });
+      tm.traverse((o) => { if (o.isMesh) o.castShadow = false; });
       view.truck = tm; view.truckBase = tm.position.x;
       trucks.push(tm);
       view.group.add(tm);

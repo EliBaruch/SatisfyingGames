@@ -21,21 +21,19 @@ export function makeCrateGeometry(kind) {
   const P = PRODUCTS[kind];
   const w = 0.62, d = 0.42, h = 0.26;
   const b = new Parts();
-  b.rbox(P.crate, w, h, d, 0.06, [0, h / 2, 0], null, null, 1);
-  b.rbox(P.rim, w + 0.02, 0.05, d + 0.02, 0.025, [0, h - 0.02, 0], null, null, 1);
+  if (kind === 'drinks') b.box(P.crate, w, h, d, [0, h / 2, 0]); else b.rbox(P.crate, w, h, d, 0.06, [0, h / 2, 0], null, null, 1);
+  b.box(P.rim, w + 0.02, 0.05, d + 0.02, [0, h - 0.02, 0]);
   const top = h - 0.02;
   if (kind === 'produce') {
-    b.model('food-kit/paprika', { pos: [-0.17, top, 0.0], height: 0.28, tint: 0xffffff });
-    b.model('food-kit/pear', { pos: [0.02, top, 0.07], height: 0.3 });
-    b.model('food-kit/paprika', { pos: [0.19, top, -0.05], height: 0.26, rot: [0, 1.2, 0] });
+    b.model('food-kit/paprika', { pos: [-0.14, top, 0.0], height: 0.28 });
+    b.model('food-kit/pear', { pos: [0.14, top, 0.02], height: 0.32 });
   } else if (kind === 'bread') {
     b.model('food-kit/loaf-baguette', { pos: [0.0, top, 0.08], width: 0.5, rot: [0, 0.15, 0] });
-    b.model('food-kit/croissant', { pos: [-0.1, top, -0.07], width: 0.3 });
-    b.model('food-kit/croissant', { pos: [0.16, top, -0.08], width: 0.3, rot: [0, 0.6, 0] });
+    b.model('food-kit/loaf', { pos: [0.0, top, -0.09], width: 0.36 });
   } else if (kind === 'milk') {
     for (let i = 0; i < 3; i++) b.model('food-kit/carton-small', { pos: [-0.19 + i * 0.19, top, 0.0], height: 0.36 });
   } else {
-    for (let i = 0; i < 4; i++) b.model('food-kit/soda-can', { pos: [-0.2 + (i % 2) * 0.2 + 0.0, top, i < 2 ? 0.08 : -0.08], height: 0.3 });
+    for (let i = 0; i < 2; i++) b.model('food-kit/soda-can', { pos: [-0.14 + i * 0.28, top, 0.0], height: 0.32 });
   }
   const g = b.merged({ ao: { ground: 0.12, groundH: 0.12, down: 0.08, noBoxes: true } });
   g.scale(K, K, K);
@@ -43,7 +41,7 @@ export function makeCrateGeometry(kind) {
 }
 
 export const ASSETS = [
-  'food-kit/paprika', 'food-kit/pear', 'food-kit/loaf-baguette', 'food-kit/croissant', 'food-kit/carton-small', 'food-kit/soda-can',
+  'food-kit/paprika', 'food-kit/pear', 'food-kit/loaf-baguette', 'food-kit/croissant', 'food-kit/carton-small', 'food-kit/soda-can', 'food-kit/loaf',
 ];
 
 // The engine builds item geometry (fx pools) before it preloads world.assets, so the food models the crates

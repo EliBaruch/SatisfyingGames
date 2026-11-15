@@ -18,7 +18,7 @@ const dock = (key, id, name, open, start, extra = {}) => ({
   id, type: 'pile', name, open, x: DOCK_X, z: DOCK_Z[key], capacity: 30, start,
   item: key,
   supply: { item: key, every: 3, amount: 6, first: 2, stagger: 0.12 },
-  layout: { x: DOCK_X, z: DOCK_Z[key], y: 0.17, yaw: Math.PI / 2, cols: 2, rows: 3, dx: 0.8, dz: 0.56 },
+  layout: { x: DOCK_X, z: DOCK_Z[key], y: 0.17, yaw: Math.PI / 2, cols: 2, rows: 3, dx: 0.8, dz: 0.56, maxDrawn: 18 },
   zone: { x: DOCK_X - 2.3, z: DOCK_Z[key], r: 1.5 },
   pallet: false, placeholder: false, markers: false, label: 'CRATES',
   hint: 'Grab the crates!',
@@ -26,7 +26,7 @@ const dock = (key, id, name, open, start, extra = {}) => ({
 });
 
 const shelf = (key, id, name, item, open, start) => ({
-  id, type: 'shelf', name, open, item, start,
+  id, type: 'shelf', name, open, item, start, capacity: 18,
   shelf: { x: SHELF_X[key], z: SHELF_Z, yaw: Math.PI / 2, len: 3.6, depth: 1.3, h: 1.5, levels: 3 },
   approach: [{ x: SHELF_X[key], z: AISLE_Z }],
   browse: { x: SHELF_X[key], z: SHELF_Z - 1.45, spread: 2.4 },
@@ -119,7 +119,7 @@ export default {
     pad('run1', 'RUN FASTER', 150, [1.5, 7.0], ['stocker1'], { type: 'stat', stat: 'speed', mul: 1.2 }),
 
     pad('shoppers1', 'MORE SHOPPERS', 200, [-1.5, 7.0], ['run1'], { type: 'stat', stat: 'shoppers', add: 4 }),
-    pad('bakery', 'BAKERY', 450, [-4.5, 7.0], ['shoppers1'], { type: 'open', stations: ['dock-bread', 'shelf-bread'] }, { big: true, toast: 'BAKERY OPEN!' }),
+    pad('bakery', 'BAKERY', 400, [-4.5, 7.0], ['shoppers1'], { type: 'open', stations: ['dock-bread', 'shelf-bread'] }, { big: true, toast: 'BAKERY OPEN!' }),
     pad('stocker2', 'STOCKER', 250, [-6.5, 3.5], ['bakery'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread'], to: ['shelf-produce', 'shelf-produce2', 'shelf-bread'] }),
     pad('produce2', 'FRUIT STAND', 250, [-6.5, 0.5], ['stocker2'], { type: 'open', stations: ['shelf-produce2'] }),
     pad('price1', 'SALE SIGNS +25%', 300, [-6.5, -2.5], ['produce2'], { type: 'stat', stat: 'priceMult', mul: 1.25 }),
@@ -127,20 +127,20 @@ export default {
     pad('co2', 'CHECKOUT 2', 450, [-3.5, -5.5], ['stack2'], { type: 'open', stations: ['co2'] }, { big: true }),
     pad('cashier2', 'CASHIER', 350, [-0.5, -5.5], ['co2'], { type: 'hire', role: 'cashier', to: 'co2' }),
 
-    pad('dairy', 'DAIRY', 800, [2.5, -5.5], ['cashier2'], { type: 'open', stations: ['dock-milk', 'shelf-milk'] }, { big: true, toast: 'DAIRY OPEN!' }),
+    pad('dairy', 'DAIRY', 700, [2.5, -5.5], ['cashier2'], { type: 'open', stations: ['dock-milk', 'shelf-milk'] }, { big: true, toast: 'DAIRY OPEN!' }),
     pad('stocker3', 'STOCKER', 600, [5.5, -5.5], ['dairy'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread', 'dock-milk'], to: ALL_SHELVES }),
     pad('shoppers2', 'MORE SHOPPERS', 800, [8.5, -5.5], ['stocker3'], { type: 'stat', stat: 'shoppers', add: 5 }),
     pad('speed2', 'TURBO SHOES', 800, [8.5, -3.0], ['shoppers2'], { type: 'stat', stat: 'speed', mul: 1.2 }),
     pad('price2', 'LOYALTY CARDS +30%', 1100, [8.5, -0.5], ['speed2'], { type: 'stat', stat: 'priceMult', mul: 1.3 }),
     pad('stack3', 'GIANT STACK', 900, [11.5, -0.5], ['price2'], { type: 'stat', stat: 'capacity', max: 50 }),
 
-    pad('drinks', 'DRINKS', 2000, [11.5, -3.0], ['stack3'], { type: 'open', stations: ['dock-drinks', 'shelf-drinks'] }, { big: true, toast: 'DRINKS OPEN!' }),
+    pad('drinks', 'DRINKS', 1700, [11.5, -3.0], ['stack3'], { type: 'open', stations: ['dock-drinks', 'shelf-drinks'] }, { big: true, toast: 'DRINKS OPEN!' }),
     pad('stocker4', 'STOCKER', 1400, [14.5, -3.0], ['drinks'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread', 'dock-milk', 'dock-drinks'], to: ALL_SHELVES }),
-    pad('shoppers3', 'MORE SHOPPERS', 1600, [14.5, -0.5], ['stocker4'], { type: 'stat', stat: 'shoppers', add: 6 }),
-    pad('stocker5', 'STOCKER', 1800, [14.5, 2.0], ['shoppers3'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread', 'dock-milk', 'dock-drinks'], to: ALL_SHELVES }),
+    pad('shoppers3', 'MORE SHOPPERS', 1400, [14.5, -0.5], ['stocker4'], { type: 'stat', stat: 'shoppers', add: 6 }),
+    pad('stocker5', 'STOCKER', 1500, [14.5, 2.0], ['shoppers3'], { type: 'hire', role: 'hauler', from: ['dock-produce', 'dock-bread', 'dock-milk', 'dock-drinks'], to: ALL_SHELVES }),
     pad('price3', 'PREMIUM BRANDS +40%', 2400, [11.5, 2.0], ['stocker5'], { type: 'stat', stat: 'priceMult', mul: 1.4 }),
 
-    pad('megamart', 'MEGA MART', 5000, [3.5, -6.0], ['price3'], { type: 'win' }, { big: true, toast: 'GRAND OPENING!' }),
+    pad('megamart', 'MEGA MART', 4400, [3.5, -6.0], ['price3'], { type: 'win' }, { big: true, toast: 'GRAND OPENING!' }),
     pad('travel', 'NEXT WORLD', 0, [-3.5, -6.0], ['megamart'], { type: 'travel', world: 'flower' }, { priceText: 'GO' }),
   ],
 
