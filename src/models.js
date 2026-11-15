@@ -56,7 +56,7 @@ function geo(key, make) {
 }
 
 /** Collects coloured primitive parts. All position args are [x, y, z], rotations are Euler radians. */
-class Parts {
+export class Parts {
   constructor() { this.parts = []; }
   add(geometry, color, pos, rot, scl) {
     pos = pos || [0, 0, 0]; rot = rot || [0, 0, 0]; scl = scl || [1, 1, 1];
@@ -177,22 +177,22 @@ export function makeBouquetGeometry(typeIdx) {
   const b = new Parts();
   const { len, h, d } = SIZES.bouquet;
   const x0 = -len / 2;
-  const R = d / 2 - 0.02;
-  const cl = 0.66;
+  const R = 0.17;
+  const cl = 0.55;
   const cy = h / 2;
-  // wrap cone: wide end at +X, tip at -X (cylinder axis Y rotated to X: +Y -> -X with rot z = +90deg)
-  b.cyl(F.wrap, 0.02, R, cl, [x0 + cl / 2, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.005) / R, 1]);
+  // wrap cone: wide end at +X, tip at -X
+  b.cyl(F.wrap, 0.025, R, cl, [x0 + cl / 2, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.004) / R, 1]);
   // ribbon band
-  const rx = x0 + cl * 0.62;
-  const rr = 0.02 + (R - 0.02) * 0.62 + 0.012;
-  b.cyl(F.ribbon, rr, rr, 0.09, [rx, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.005) / R * (R / rr) * 1.0, 1]);
+  const rx = x0 + cl * 0.7;
+  const rr = 0.025 + (R - 0.025) * 0.7 + 0.012;
+  b.cyl(F.ribbon, rr, rr, 0.08, [rx, cy, 0], [0, 0, -Math.PI / 2], 7, [1, (h / 2 - 0.002) / rr, 1]);
   // blooms poking out at +X
-  const bx = x0 + cl - 0.02;
-  b.ico(F.petal, 0.115, [bx + 0.2, cy + 0.0, -0.1]);
-  b.ico(F.petalDark, 0.115, [bx + 0.24, cy + 0.0, 0.1]);
-  b.ico(F.petal, 0.12, [bx + 0.3, cy + 0.01, 0.0]);
-  // little green leaf
-  b.oct(LEAF, 0.1, [bx + 0.08, cy + 0.07, 0], [1, 0.25, 1.4]);
+  const bx = x0 + cl;
+  b.ico(F.petal, 0.13, [bx + 0.12, cy, -0.12]);
+  b.ico(F.petalDark, 0.13, [bx + 0.16, cy, 0.12]);
+  b.ico(F.petal, 0.13, [bx + 0.3, cy, 0.0]);
+  b.ico(F.center, 0.055, [bx + 0.41, cy + 0.03, 0.0]);
+  b.oct(LEAF, 0.1, [bx + 0.04, cy + 0.09, 0], [1, 0.25, 1.5]);
   return b.merged();
 }
 
@@ -434,8 +434,11 @@ export function makeCounter(accent = 0xff6fa5) {
   // customer-side panels
   for (let i = 0; i < 3; i++) {
     const z = -1.08 + i * 1.08;
-    b.box(0xe3a766, 0.03, 0.5, 0.9, [D / 2 + 0.005, 0.5, z]);
-    b.box(0xfff0d0, 0.03, 0.36, 0.76, [D / 2 + 0.02, 0.5, z]);
+    for (const sx of [-1, 1]) {
+      b.box(0xe3a766, 0.03, 0.5, 0.9, [sx * (D / 2 + 0.005), 0.5, z]);
+      b.box(accent, 0.03, 0.4, 0.8, [sx * (D / 2 + 0.02), 0.5, z]);
+      b.box(0xfff0d0, 0.03, 0.3, 0.7, [sx * (D / 2 + 0.03), 0.5, z]);
+    }
   }
   // corner posts
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0xa56a33, 0.12, 0.74, 0.12, [sx * (D / 2), 0.51, sz * (L / 2)]);
@@ -472,7 +475,7 @@ export function makeTractor(color = 0xe8452c) {
   const dark = new THREE.Color(color).multiplyScalar(0.75).getHex();
   const b = new Parts();
   // chassis
-  b.box(0x3a3f4d, 1.2, 0.22, 3.1, [0, 0.46, -0.15]);
+  b.box(0x3a3f4d, 1.2, 0.22, 2.0, [0, 0.46, 0.4]);
   // engine hood
   b.box(color, 1.0, 0.72, 0.95, [0, 0.98, 0.9]);
   b.box(dark, 1.04, 0.1, 0.99, [0, 0.64, 0.9]);
@@ -494,11 +497,11 @@ export function makeTractor(color = 0xe8452c) {
   b.box(0xffffff, 1.3, 0.1, 1.3, [0, 2.12, -0.05]);
   b.box(color, 1.38, 0.06, 1.38, [0, 2.2, -0.05]);
   // bed (open cargo, low walls)
-  b.box(0x9a6a3a, 1.6, 0.1, 1.2, [0, 0.52, -1.18]);
-  b.box(0xb98048, 0.1, 0.34, 1.2, [-0.8, 0.74, -1.18]);
-  b.box(0xb98048, 0.1, 0.34, 1.2, [0.8, 0.74, -1.18]);
-  b.box(0xb98048, 1.7, 0.34, 0.1, [0, 0.74, -1.78]);
-  b.box(0xb98048, 1.7, 0.34, 0.1, [0, 0.74, -0.6]);
+  b.box(0x9a6a3a, 1.6, 0.1, 1.1, [0, 0.52, -1.3]);
+  b.box(0xb98048, 0.1, 0.34, 1.2, [-0.8, 0.74, -1.3]);
+  b.box(0xb98048, 0.1, 0.34, 1.2, [0.8, 0.74, -1.3]);
+  b.box(0xb98048, 1.7, 0.34, 0.1, [0, 0.74, -1.88]);
+  b.box(0xb98048, 1.7, 0.34, 0.1, [0, 0.74, -0.72]);
   // blade arms
   for (const sx of [-1, 1]) b.box(0x3a3f4d, 0.12, 0.12, 0.8, [sx * 0.62, 0.46, 1.4]);
   g.add(meshOf(b.merged(), { receive: false }));
@@ -517,19 +520,22 @@ export function makeTractor(color = 0xe8452c) {
 
   // cutter reel
   const blade = new THREE.Group();
-  blade.position.set(0, 0.5, 1.8);
+  blade.position.set(0, 0.6, 1.8);
   const rp = new Parts();
-  rp.cyl(0x9aa3b2, 0.07, 0.07, 3.4, [0, 0, 0], [0, 0, Math.PI / 2], 8);
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    rp.box(i % 2 ? 0xff5a3c : 0xe8302a, 3.1, 0.05, 0.5, [0, Math.sin(a) * 0.25, Math.cos(a) * 0.25], [-a + Math.PI / 2, 0, 0].map((v, j) => (j === 0 ? -(a - Math.PI / 2) : v)));
+  rp.cyl(0x9aa3b2, 0.08, 0.08, 3.4, [0, 0, 0], [0, 0, Math.PI / 2], 8);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rad = 0.4;
+    rp.box(i % 2 ? 0xffb21a : 0xff3d2e, 3.1, 0.07, 0.34, [0, Math.sin(a) * rad, Math.cos(a) * rad], [-a + Math.PI / 2, 0, 0]);
   }
-  for (const sx of [-1, 1]) rp.cyl(0xb02a24, 0.52, 0.52, 0.07, [sx * 1.65, 0, 0], [0, 0, Math.PI / 2], 12);
+  for (const sx of [-1, 1]) rp.cyl(0xb02a24, 0.7, 0.7, 0.08, [sx * 1.68, 0, 0], [0, 0, Math.PI / 2], 12);
+  for (const sx of [-1, 1]) rp.cyl(0xffd23f, 0.16, 0.16, 0.14, [sx * 1.7, 0, 0], [0, 0, Math.PI / 2], 8);
   blade.add(meshOf(rp.merged()));
   g.add(blade);
+  { const cb = new Parts(); cb.box(0xc9d2de, 3.4, 0.1, 0.35, [0, 0.12, 2.15]); cb.box(0x4a5060, 3.5, 0.18, 0.1, [0, 0.3, 2.3]); g.add(meshOf(cb.merged())); }
 
   const bedAnchor = new THREE.Object3D();
-  bedAnchor.position.set(0, 0.57, -1.18);
+  bedAnchor.position.set(0, 0.57, -1.3);
   g.add(bedAnchor);
   g.userData.wheels = wheels;
   g.userData.blade = blade;
@@ -567,7 +573,7 @@ export function makeGreenhouse() {
   const rl = Math.hypot(rise, hz);
   for (const x of xs) {
     for (const sz of [-1, 1]) {
-      fr.box(WHITE, 0.12, 0.12, rl, [x, WH + 0.3 + rise / 2, sz * hz / 2], [sz * slope, 0, 0].map((v, i) => (i === 0 ? -sz * slope : v)));
+      fr.box(WHITE, 0.12, 0.12, rl, [x, WH + 0.3 + rise / 2, sz * hz / 2], [sz * slope, 0, 0]);
     }
   }
   fr.box(WHITE, W + 0.3, 0.16, 0.16, [0, RH, 0]); // ridge
@@ -605,7 +611,7 @@ export function makeGreenhouse() {
   gp.box(GL, W, WH - 0.2, 0.05, [0, 0.3 + WH / 2 + 0.05, hz]);
   gp.box(GL, 0.05, WH - 0.2, D, [-hx, 0.3 + WH / 2 + 0.05, 0]);
   gp.box(GL, 0.05, WH - 0.2, D, [hx, 0.3 + WH / 2 + 0.05, 0]);
-  for (const sz of [-1, 1]) gp.box(GL, W, 0.05, rl, [0, WH + 0.3 + rise / 2 + 0.03, sz * hz / 2], [-sz * slope, 0, 0]);
+  for (const sz of [-1, 1]) gp.box(GL, W, 0.05, rl, [0, WH + 0.3 + rise / 2 + 0.03, sz * hz / 2], [sz * slope, 0, 0]);
   // gable triangles
   const tri = geo('gable', () => {
     const s = new THREE.Shape();
@@ -613,7 +619,7 @@ export function makeGreenhouse() {
     return new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: false });
   });
   for (const sx of [-1, 1]) gp.add(tri, GL, [sx * hx, WH + 0.3, 0], [0, Math.PI / 2, 0]);
-  const glassMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.26, depthWrite: false });
+  const glassMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false });
   const glass = new THREE.Mesh(gp.merged(), glassMat);
   glass.renderOrder = 5;
   glass.castShadow = false;
@@ -629,7 +635,7 @@ export function makeGreenhouse() {
     ip.box(0x5a3a22, 8.4, 0.08, 1.0, [0, y + 0.02, z]);
     ip.box(0xffffff, 8.7, 0.07, 1.28, [0, y - 0.15, z]);
     const type = [3, 2, 1, 0][r];
-    const fp = flowerParts(type, 0.95);
+    const fp = flowerParts(type, 1.05);
     for (let i = 0; i < 12; i++) {
       const x = -4 + i * (8 / 11);
       for (const dz of [-0.28, 0.28]) {

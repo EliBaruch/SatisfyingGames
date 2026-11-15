@@ -89,9 +89,14 @@ function makeField(G, farmIdx) {
 
   const flowers = new THREE.InstancedMesh(makeFlowerGeometry(type), getSwayMaterial(), N);
   flowers.castShadow = true;
-  flowers.frustumCulled = false;
   const stubs = new THREE.InstancedMesh(makeStubGeometry(), getSharedMaterial(), N);
-  stubs.frustumCulled = false;
+  // fixed bounds covering the whole bed so off-screen beds are culled (instances never leave the bed)
+  const bedSphere = new THREE.Sphere(
+    new THREE.Vector3((bed.minX + bed.maxX) / 2, SIZES.flowerHeight / 2, (bed.minZ + bed.maxZ) / 2),
+    Math.hypot(bed.maxX - bed.minX, bed.maxZ - bed.minZ) / 2 + 1.5,
+  );
+  flowers.boundingSphere = bedSphere;
+  stubs.boundingSphere = bedSphere.clone();
   G.scene.add(flowers);
   G.scene.add(stubs);
 

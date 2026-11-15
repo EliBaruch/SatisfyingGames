@@ -4,7 +4,8 @@ import { SIZES, FLOWERS } from './config.js';
 import { makeBouquetGeometry, getSharedMaterial } from './models.js';
 
 const geoCache = [];
-function bouquetGeo(type) {
+/** Cached merged bouquet geometry per flower type (shared module-wide). */
+export function bouquetGeo(type) {
   if (!geoCache[type]) geoCache[type] = makeBouquetGeometry(type);
   return geoCache[type];
 }
@@ -21,7 +22,7 @@ const POP_TIME = 0.22;
 const SPRING_K = 70;
 const SPRING_C = 5.5;
 const ACC_GAIN = 0.0016;
-const RUN_LEAN = 0.010;    // curvature (1/units) when running at full speed
+const RUN_LEAN = 0.016;    // curvature (1/units) when running at full speed
 const MAX_CURV = 0.03;
 
 const _m = new THREE.Matrix4();
