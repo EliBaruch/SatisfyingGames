@@ -5,7 +5,7 @@
 // hire effect: { type: 'hire', role: 'cashier', to: 'shop-roses', spot?: {x, z, yaw} }
 // Default spot: the shop's `staffSpot` (from its def.cashierSpot).
 import { registerWorkerRole } from '../registry.js';
-import { makeCharacter, animateCharacter, LOOKS } from '../chars.js';
+import { makeCharacter, animateCharacter, lodCharacter, LOOKS } from '../chars.js';
 import { roleConfig, pt } from './common.js';
 
 function createCashier(G, hire, team, live) {
@@ -27,6 +27,7 @@ function createCashier(G, hire, team, live) {
       if (c.wave > 0) c.wave -= dt;
       if (c.cool > 0) c.cool -= dt;
       c.anim.action = c.wave > 0 ? 'wave' : null;
+      lodCharacter(G, group);
       animateCharacter(group, dt, c.anim);
     },
   };

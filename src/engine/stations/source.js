@@ -44,8 +44,12 @@ function getSwayMaterial(height) {
   const key = height.toFixed(3);
   let mat = swayMats.get(key);
   if (mat) return mat;
-  mat = getSharedMaterial().clone();
-  mat.onBeforeCompile = (shader) => {
+  const base = getSharedMaterial();
+  mat = base.clone();
+  mat.shadowSide = base.shadowSide;
+  const look = base.onBeforeCompile;                 // the art kit's look (wrap diffuse, grade, rim)
+  mat.onBeforeCompile = (shader, renderer) => {
+    if (look) look(shader, renderer);
     shader.uniforms.uSwayTime = swayTime;
     shader.vertexShader = 'uniform float uSwayTime;\n' + shader.vertexShader.replace(
       '#include <begin_vertex>',
@@ -61,7 +65,7 @@ function getSwayMaterial(height) {
 #endif`,
     );
   };
-  mat.customProgramCacheKey = () => 'engine-sway-' + key;
+  mat.customProgramCacheKey = () => 'engine-sway-look-' + key;
   swayMats.set(key, mat);
   return mat;
 }

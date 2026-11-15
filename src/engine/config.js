@@ -40,7 +40,7 @@ export const SHOP = {
   },
   maxVisibleStock: 160,
   stockPerColumn: 20,
-  maxVisibleBills: 72,
+  maxVisibleBills: 36,
   collectTime: 0.6,      // a cash pile empties into the player in about this long
 };
 

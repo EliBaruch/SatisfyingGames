@@ -7,6 +7,13 @@
 import { getStationType, stationTypeNames } from '../registry.js';
 import './source.js';
 import './shop.js';
+// stations added by the stations agent (docs/STATIONS.md); also usable from a world's `modules`
+import './pile.js';
+import './converter.js';
+import './trough.js';
+import './shelf.js';
+import './checkout.js';
+import './cashpile.js';
 
 export function createStations(G) {
   const def = G.world;

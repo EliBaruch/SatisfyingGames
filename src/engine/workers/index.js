@@ -5,6 +5,7 @@ import { getWorkerRole } from '../registry.js';
 import './hauler.js';
 import './harvester.js';
 import './cashier.js';
+import './vendor.js';
 
 export function createWorkers(G) {
   const list = [];

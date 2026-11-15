@@ -8,15 +8,18 @@
 // spread out instead of chasing the same plants.
 import * as THREE from 'three';
 import { registerWorkerRole } from '../registry.js';
-import { makeCharacter, animateCharacter, LOOKS } from '../chars.js';
+import { makeCharacter, animateCharacter, lodCharacter, LOOKS } from '../chars.js';
 import { createStack } from '../stack.js';
 import { flyToStack, flyToDrop } from '../transfer.js';
 import { turnToward, roleConfig, playAt, soundOpts, pt } from './common.js';
+import { createMultiHauler } from './hauler-multi.js';
 
 const TURN_RATE = 12;            // rad/s
 const ARRIVE = 0.15;
 
 function createHauler(G, hire, team, live) {
+  // list bindings (from and/or to are arrays): multi-source / multi-target behaviour
+  if (Array.isArray(hire.from) || Array.isArray(hire.to)) return createMultiHauler(G, hire, team, live);
   const cfg = roleConfig(G, 'hauler', hire);
   const A = G.stations.get(hire.from);
   const B = G.stations.get(hire.to);
@@ -219,8 +222,9 @@ function createHauler(G, hire, team, live) {
     a.speed = 1;
     a.carrying = w.state === 'deliver' || w.state === 'unload';
     a.action = action;
-    animateCharacter(group, dt, a);
     group.position.set(w.x, 0, w.z);
+    lodCharacter(G, group);
+    animateCharacter(group, dt, a);
     group.rotation.y = w.face;
     stack.update(dt, Math.min(1, w.spd / cfg.speed));
   }

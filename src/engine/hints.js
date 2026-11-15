@@ -2,8 +2,10 @@
 // pointer at the player's feet. The goal is derived from station capabilities only:
 //   1. carrying enough of something a drop zone accepts  -> that drop zone
 //   2. a pad is affordable                                -> that pad
-//   3. enough cash waiting on a pile                      -> that pile
-//   4. otherwise                                          -> the newest harvest / pickup station
+//   3. shoppers waiting at an unstaffed checkout (serve) -> its serve zone
+//   4. enough cash waiting on a pile                      -> that pile
+//   5. a drop zone with a high `need` (empty trough/shelf) -> it, or a pickup that supplies it
+//   6. otherwise                                          -> the newest harvest / non-empty pickup station
 // After the win, a visible free pad (the travel gate) is the goal.
 // Texts: station def `hint` wins; else world.hints[drop|buy|cash|harvest|pickup|travel]
 // with {name} (station name) and {label} (pad label) substituted; else engine defaults.
@@ -13,7 +15,7 @@ import { getItem } from './registry.js';
 
 export function createHints(G) {
   const scene = G.scene;
-  const texts = { ...HINTS, travel: 'Next world!', ...(G.world.hints || {}) };
+  const texts = { ...HINTS, travel: 'Next world!', serve: 'Serve the shoppers!', ...(G.world.hints || {}) };
   const stations = G.stations.list;
 
   // ---------------------------------------------------------------- visuals
@@ -68,7 +70,8 @@ export function createHints(G) {
   function clear() { hint.has = false; hint.text = ''; hint.kind = ''; hint.target = null; }
 
   function fmt(key, st, pad) {
-    let t = (st && st.def.hint && key !== 'cash') ? st.def.hint : texts[key] || '';
+    const per = st && st.def.hints;   // per-capability station texts: { drop, pickup, serve, harvest }
+    let t = per && per[key] ? per[key] : (st && st.def.hint && key !== 'cash') ? st.def.hint : texts[key] || '';
     if (st) {
       const it = st.harvest ? getItem(st.harvest.kind) : null;
       t = t.replace('{name}', it && key === 'harvest' ? it.name.toLowerCase() : st.name);
@@ -112,7 +115,7 @@ export function createHints(G) {
       let bd = Infinity;
       for (let i = 0; i < stations.length; i++) {
         const s = stations[i];
-        if (!s.active || !s.drop || !st.has(s.drop.accepts)) continue;
+        if (!s.active || !s.drop || !st.has(s.drop.accepts) || s.drop.room() <= 0) continue;
         const d = Math.hypot(s.drop.zone.x - pl.pos.x, s.drop.zone.z - pl.pos.z) - (top && s.drop.accepts(top) ? 1000 : 0);
         if (d < bd) { bd = d; target = s; }
       }
@@ -124,6 +127,14 @@ export function createHints(G) {
     }
     if (nextPad && money >= pads.remaining(nextPad)) {
       setHint('buy', fmt('buy', null, nextPad), nextPad.pos.x, nextPad.pos.z, PAD.radius, nextPad);
+      return;
+    }
+    // shoppers waiting at a checkout nobody serves
+    for (let i = 0; i < stations.length; i++) {
+      const s = stations[i];
+      const sv = s.serve;
+      if (!s.active || !sv || sv.staffed || sv.waiting < (sv.hintAt || 2)) continue;
+      setHint('serve', fmt('serve', s), sv.zone.x, sv.zone.z, sv.zone.r, s);
       return;
     }
     let best = null, bestCash = 0;
@@ -138,11 +149,34 @@ export function createHints(G) {
       setHint('cash', fmt('cash', best), p.x, p.z, p.r + 0.6, best);
       return;
     }
+    // a drop zone that badly needs items (an empty trough or shelf): bring them, or fetch them
+    let needy = null, bestNeed = 0;
+    for (let i = 0; i < stations.length; i++) {
+      const s = stations[i];
+      if (!s.active || !s.drop || s.drop.need === undefined) continue;
+      const n = s.drop.need;
+      if (n >= (s.drop.urgent || 0.75) && n > bestNeed && s.drop.room() > 0) { bestNeed = n; needy = s; }
+    }
+    if (needy) {
+      if (st.has(needy.drop.accepts)) {
+        const z = needy.drop.zone;
+        setHint('drop', fmt('drop', needy), z.x, z.z, z.r, needy);
+        return;
+      }
+      for (let i = 0; i < stations.length; i++) {
+        const s = stations[i];
+        const pk = s.pickup;
+        if (!s.active || !pk || !(pk.available > 0) || (pk.has && !pk.has(needy.drop.accepts))) continue;
+        setHint('pickup', fmt('pickup', s), pk.zone.x, pk.zone.z, pk.zone.r, s);
+        return;
+      }
+    }
     // newest harvest / pickup station
     const order = G.stations.activationOrder;
     for (let i = order.length - 1; i >= 0; i--) {
       const s = G.stations.get(order[i]);
       if (!s || (!s.harvest && !s.pickup)) continue;
+      if (!s.harvest && (s.pickup.idleHint === false || !(s.pickup.available > 0))) continue;
       if (s.harvest) {
         const b = s.harvest.bounds;
         setHint('harvest', fmt('harvest', s), (b.minX + b.maxX) / 2, (b.minZ + b.maxZ) / 2, Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 1, s);

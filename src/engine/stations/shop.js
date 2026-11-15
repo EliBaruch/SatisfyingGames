@@ -21,14 +21,15 @@
 import * as THREE from 'three';
 import { registerStationType, getItem } from '../registry.js';
 import { SHOP } from '../config.js';
-import { BILL } from '../geom.js';
+import { CASH } from '../art/props.js';
 import { itemGeometry, itemMaterial, itemValue } from '../items.js';
-import { makeCharacter, animateCharacter, randomCustomerLook } from '../chars.js';
+import { makeCharacter, animateCharacter, randomCustomerLook, onScreen } from '../chars.js';
 
 const PILE_COLS = 3, PILE_ROWS = 4;
 const LEAVE_TIME = 0.65;            // walk away this long, then shrink
 const LOD_SHOW = 27;                // customers further than this from the player are not drawn
 const LOD_SHADOW = 19;              // ... and further than this cast no shadow
+const LOD_ANIM = 21;                // ... and further than this are not animated (frozen pose)
 const SHRINK_TIME = 0.22;
 const SPAWN_TIME = 0.25;
 const POP_TIME = 0.25;
@@ -121,7 +122,7 @@ function createShop(G, def) {
     const c = j % PILE_COLS, r = (j / PILE_COLS) | 0;
     pileX[i] = pile.x + (c - (PILE_COLS - 1) / 2) * 0.72 + hash(i, 4) * 0.03;
     pileZ[i] = pile.z + (r - (PILE_ROWS - 1) / 2) * 0.42 + hash(i, 5) * 0.03;
-    pileY[i] = layer * BILL.step;
+    pileY[i] = layer * CASH.h;
     pileYaw[i] = hash(i, 6) * 0.09;
   }
   let pileMesh = null;
@@ -147,8 +148,8 @@ function createShop(G, def) {
   const lane = def.customerIn[def.customerIn.length - 1];
   const laneX = lane.x, laneZ = lane.z;
   // per-step timers live on an object (closure doubles would allocate a heap number per write)
-  const T = { spawnT: 0.5, serveT: 1.5, lodT: 0.5 };
-  let lodShow = true, lodShadow = true;
+  const T = { spawnT: 0.5, serveT: 1.5, lodT: 0.5, visT: 0 };
+  let lodShow = true, lodShadow = true, lodAnim = false;
 
   function slotPos(i, out) {
     if (i < queue.length) { out.x = queue[i].x; out.z = queue[i].z; return out; }
@@ -164,14 +165,15 @@ function createShop(G, def) {
     const base = char.scale.x || 1;
     const bq = new THREE.Mesh(itemGeometry(displayIt), itemMaterial(displayIt));
     bq.castShadow = true;
-    bq.position.set(0, 0.95, 0.38);
+    // held in both arms: parented to the character's chest anchor (follows the torso bone)
+    bq.position.set(0, -0.02, 0.1);
     bq.quaternion.copy(HELD_Q);
     bq.visible = false;
-    char.add(bq);
+    (char.userData.front || char).add(bq);
     char.visible = false;
     G.scene.add(char);
     const c = {
-      char, bq, base,
+      char, bq, base, vis: true,
       state: 0,          // 0 off, 1 in line, 2 leaving
       phase: 0,          // line: 0 walking to the lane point, 1 to the slot
       x: 0, z: 0, yaw: 0, spd: 0,
@@ -243,7 +245,7 @@ function createShop(G, def) {
   function bundleValue() { return Math.max(1, displayIt.value * G.stats.priceMult * 1.5); }
   function pileTop(out) {
     const i = Math.max(0, pileShown - 1);
-    return out.set(pileX[i], pileY[i] + BILL.step, pileZ[i]);
+    return out.set(pileX[i], pileY[i] + CASH.h, pileZ[i]);
   }
   const cashCap = {
     pile,
@@ -302,7 +304,7 @@ function createShop(G, def) {
   function activate(live) {
     stockMesh = new THREE.InstancedMesh(itemGeometry(displayIt), itemMaterial(displayIt), maxStock);
     stockMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    stockMesh.castShadow = true;
+    stockMesh.castShadow = false;   // up to 160 bouquets: a real shadow would double the cost; the stack is shaded by baked AO
     stockMesh.count = 0;
     stockMesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, topY + 5, cz), 7);
     for (let i = 0; i < maxStock; i++) writeStockSlot(i, 1);
@@ -310,7 +312,7 @@ function createShop(G, def) {
 
     pileMesh = new THREE.InstancedMesh(itemGeometry('cash'), itemMaterial('cash'), maxBills);
     pileMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    pileMesh.castShadow = true;
+    pileMesh.castShadow = false;   // 40 chunky bundles: the baked AO grounds them, a real shadow would double the cost
     pileMesh.count = 0;
     pileMesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(pile.x, 0.5, pile.z), 2.2);
     for (let i = 0; i < maxBills; i++) writePileSlot(i, 1);
@@ -432,12 +434,19 @@ function createShop(G, def) {
       slotPos(Math.min(4, maxLine - 1), tmpSlot);
       const d = Math.hypot(G.player.pos.x - tmpSlot.x, G.player.pos.z - tmpSlot.z);
       lodShow = d < LOD_SHOW;
+      lodAnim = d > LOD_ANIM;
       const sh = d < LOD_SHADOW;
       if (sh !== lodShadow) {
         lodShadow = sh;
         for (let i = 0; i < pool.length; i++) pool[i].char.traverse((o) => { if (o.isMesh) o.castShadow = sh; });
       }
     }
+    // customers outside the view are not drawn at all (skinned meshes are never frustum-culled)
+    if (T.visT <= 0) {
+      T.visT = 0.15;
+      for (let i = 0; i < pool.length; i++) { const c = pool[i]; c.vis = lodShow && onScreen(G, c.x, 0.9, c.z); }
+    }
+    T.visT -= dt;
     const out = def.customerOut;
     for (let i = 0; i < pool.length; i++) {
       const c = pool[i];
@@ -446,7 +455,7 @@ function createShop(G, def) {
       let moving = false;
       let scale = 1;
       if (c.t < 0) { c.char.visible = false; continue; }
-      c.char.visible = lodShow;
+      c.char.visible = c.vis;
       if (c.t < SPAWN_TIME) scale = popScale(c.t / SPAWN_TIME);
       if (c.state === 1) {
         const idx = line.indexOf(c);
@@ -479,12 +488,14 @@ function createShop(G, def) {
           scale = 1 - u * u;
         }
       }
-      if (!lodShow) continue;
+      if (!c.vis) continue;
       c.char.position.set(c.x, 0, c.z);
       c.char.rotation.y = c.yaw;
       c.char.scale.setScalar(Math.max(0.001, scale * c.base));
       const an = c.anim;
       an.moving = moving; an.speed = Math.max(0.6, c.spd / speed);
+      an.carrying = c.bq.visible;
+      c.char.userData.lod = lodAnim;
       animateCharacter(c.char, dt, an);
     }
   }

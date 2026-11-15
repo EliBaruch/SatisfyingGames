@@ -11,6 +11,9 @@ import { computeStats } from './engine/stats.js';
 import { createEvents } from './engine/events.js';
 import { createView } from './engine/view.js';
 import { createLights } from './engine/lights.js';
+import { preload } from './engine/art/assets.js';
+import { createBlobShadows } from './engine/art/shadows.js';
+import { applyWorldLooks, charactersFor, preloadCharacters, bindBlobs } from './engine/chars.js';
 import { createStations } from './engine/stations/index.js';
 import { createPads } from './engine/pads.js';
 import { createPlayer } from './engine/player.js';
@@ -145,8 +148,39 @@ for (const name of Object.keys(LOADERS)) {
   if (!mod) { G.failed.push(name); mod = FALLBACK[name](); }
   G[name] = mod;
 }
+if (G.audio && G.audio.setWorld) G.audio.setWorld(def.id);
+
+// ------------------------------------------------------------------ assets
+// world.assets = ['kit/model', ...] plus the character models the world's looks use. A missing model
+// never blocks boot (the art kit logs one warning and shows a placeholder). Progress: G.events
+// 'loading' (0..1), also shown on the title overlay's "tap" line.
+applyWorldLooks(def);
+async function loadAssets() {
+  const ids = [...new Set(def.assets || [])];
+  const chars = charactersFor(def);
+  const total = ids.length + chars.length;
+  let done = 0;
+  const tap = document.querySelector('#start .tap');
+  const tapText = tap ? tap.textContent : '';
+  const report = () => {
+    const v = total ? done / total : 1;
+    G.loading = v;
+    G.events.emit('loading', v);
+    if (tap) tap.textContent = v < 1 ? `LOADING ${Math.round(v * 100)}%` : tapText;
+  };
+  const track = (p) => Promise.resolve(p).catch((e) => console.warn('[boot] asset group failed:', e)).then(() => { done++; report(); });
+  report();
+  await Promise.all([
+    ...ids.map((id) => track(preload(id))),
+    ...chars.map((m) => track(preloadCharacters([m]))),
+  ]);
+  G.loading = 1;
+}
+await loadAssets();
 
 view.bind(G);
+G.blobs = createBlobShadows(G.scene, { max: 128 });
+bindBlobs(G.blobs);
 G.lights = createLights(G);
 G.stations = createStations(G);
 G.stations.sync(false);
@@ -180,6 +214,7 @@ G.saveNow = saveNow;
 
 /** Save, then reload into world `id` (each world keeps its own progress). */
 G.travel = (id) => {
+  if (G.audio && G.audio.play) G.audio.play('travel');
   saveNow();
   if (worldInfo(id)) save.level = id;
   writeSave(save);
@@ -192,6 +227,7 @@ G.travel = (id) => {
 setInterval(saveNow, 2000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 window.addEventListener('pagehide', saveNow);
+G.events.on('win', () => { if (G.audio && G.audio.play) G.audio.play('perk'); });
 G.events.on('reset', () => {
   noSave = true;
   clearSave();
@@ -202,7 +238,7 @@ G.level = createLevel(G);
 saveNow();   // persists a migrated / sanitised save right away
 
 // ------------------------------------------------------------------ loop
-const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'lights', 'scenery', 'fx', 'hud'];
+const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
 const errCount = {};
 function step(dt) {
   G.time += dt;

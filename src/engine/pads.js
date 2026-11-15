@@ -13,6 +13,8 @@ const REDRAW_MIN = 0.1;
 const FILL_INSET = 0.13;   // fraction of the pad size kept free around the fill
 
 let fillGeo = null;
+let lineGeo = null;
+let lineMat = null;
 let planeGeo = null;
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -54,7 +56,7 @@ function splitLabel(label) {
   return best;
 }
 
-// Static part shared by every pad: translucent dark body + dashed white border.
+// Static part shared by every pad: soft dark translucent rounded body, glowing cyan-white dashed outline.
 let bgTex = null;
 function getBgTexture() {
   if (bgTex) return bgTex;
@@ -62,14 +64,26 @@ function getBgTexture() {
   const cv = document.createElement('canvas');
   cv.width = cv.height = W;
   const ctx = cv.getContext('2d');
-  roundRect(ctx, 10, 10, W - 20, W - 20, 30);
-  ctx.fillStyle = 'rgba(24, 30, 46, 0.55)';
+  roundRect(ctx, 14, 14, W - 28, W - 28, 44);
+  const g = ctx.createLinearGradient(0, 0, 0, W);
+  g.addColorStop(0, 'rgba(20, 34, 58, 0.50)');
+  g.addColorStop(1, 'rgba(12, 22, 42, 0.66)');
+  ctx.fillStyle = g;
   ctx.fill();
-  ctx.setLineDash([22, 13]);
-  ctx.lineWidth = 9;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.setLineDash([26, 17]);
+  ctx.shadowColor = '#5fe6ff';
+  ctx.shadowBlur = 14;
+  ctx.lineWidth = 10;
   ctx.strokeStyle = '#ffffff';
-  roundRect(ctx, 12, 12, W - 24, W - 24, 28);
+  roundRect(ctx, 20, 20, W - 40, W - 40, 38);
   ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#6fe9ff';
+  ctx.stroke();
+  ctx.restore();
   bgTex = new THREE.CanvasTexture(cv);
   bgTex.colorSpace = THREE.SRGBColorSpace;
   bgTex.anisotropy = 4;
@@ -87,14 +101,14 @@ function drawPad(ctx, pad, remaining) {
   // label
   const lines = splitLabel(pad.label);
   const maxW = W - 52;
-  let size = 46;
-  for (const l of lines) size = Math.min(size, fitFont(ctx, l, maxW, 46));
+  let size = 54;
+  for (const l of lines) size = Math.min(size, fitFont(ctx, l, maxW, 54));
   ctx.font = `900 ${size}px ${FONT}`;
-  const ly = lines.length === 1 ? 82 : 64;
+  const ly = lines.length === 1 ? 78 : 62;
   for (let i = 0; i < lines.length; i++) {
     const y = ly + i * (size + 4);
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = 'rgba(20, 24, 40, 0.75)';
+    ctx.lineWidth = 11;
+    ctx.strokeStyle = 'rgba(14, 22, 44, 0.9)';
     ctx.strokeText(lines[i], W / 2, y);
     ctx.fillStyle = '#ffffff';
     ctx.fillText(lines[i], W / 2, y);
@@ -107,7 +121,7 @@ function drawPad(ctx, pad, remaining) {
     ctx.lineWidth = 10;
     ctx.strokeStyle = 'rgba(20, 24, 40, 0.8)';
     ctx.strokeText(go, W / 2, 182);
-    ctx.fillStyle = '#7dff8a';
+    ctx.fillStyle = '#8dff9a';
     ctx.fillText(go, W / 2, 182);
     return;
   }
@@ -115,7 +129,7 @@ function drawPad(ctx, pad, remaining) {
   const ps = fitFont(ctx, price, 140, 62);
   ctx.font = `900 ${ps}px ${FONT}`;
   const tw = ctx.measureText(price).width;
-  const iw = 54, ih = 34, gap = 10;
+  const iw = 62, ih = 40, gap = 10;
   const total = iw + gap + tw;
   const x0 = W / 2 - total / 2;
   const py = 180;
@@ -138,8 +152,8 @@ function drawPad(ctx, pad, remaining) {
   ctx.stroke();
   // amount
   ctx.textAlign = 'left';
-  ctx.lineWidth = 9;
-  ctx.strokeStyle = 'rgba(20, 24, 40, 0.8)';
+  ctx.lineWidth = 11;
+  ctx.strokeStyle = 'rgba(14, 22, 44, 0.9)';
   ctx.strokeText(price, x0 + iw + gap, py + 3);
   ctx.fillStyle = '#ffe14d';
   ctx.fillText(price, x0 + iw + gap, py + 3);
@@ -162,6 +176,9 @@ export function createPads(G) {
     fillGeo = new THREE.PlaneGeometry(fs, 1);
     fillGeo.translate(0, 0.5, 0);
     fillGeo.rotateX(-Math.PI / 2);
+    lineGeo = new THREE.PlaneGeometry(fs, 0.07);
+    lineGeo.rotateX(-Math.PI / 2);
+    lineMat = new THREE.MeshBasicMaterial({ color: 0xd8ffe6, transparent: true, opacity: 0.95, depthWrite: false });
   }
   for (const p of PADS) byId.set(p.id, p);
   const bgMat = new THREE.MeshBasicMaterial({ map: getBgTexture(), transparent: true, depthWrite: false });
@@ -180,12 +197,18 @@ export function createPads(G) {
     bg.renderOrder = 2;
     group.add(bg);
 
-    const fillMat = new THREE.MeshBasicMaterial({ color: 0x49e86a, transparent: true, opacity: 0.92, depthWrite: false });
+    const fillMat = new THREE.MeshBasicMaterial({ color: 0x4fe88a, transparent: true, opacity: 0.55, depthWrite: false });
     const fill = new THREE.Mesh(fillGeo, fillMat);
     fill.position.set(0, 0.04, PAD.size / 2 - PAD.size * FILL_INSET);
     fill.scale.z = 0.0001;
     fill.renderOrder = 3;
     group.add(fill);
+    // bright waterline riding on the top edge of the fill
+    const line = new THREE.Mesh(lineGeo, lineMat);
+    line.position.set(0, 0.042, PAD.size / 2 - PAD.size * FILL_INSET);
+    line.renderOrder = 3;
+    line.visible = false;
+    group.add(line);
 
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = TEX;
@@ -201,7 +224,7 @@ export function createPads(G) {
 
     G.scene.add(group);
     const v = {
-      pad, group, fill, fillMat, decal, mat, tex, canvas, ctx,
+      pad, group, fill, line, fillMat, decal, mat, tex, canvas, ctx,
       shown: '', rem: -1, redrawT: 0, removing: -1, stand: 0, acc: 0, billT: 0, pulse: 0,
       // a pad that appears under the player (or a free pad) only triggers after the
       // player has stepped off it once: nothing is ever bought by accident
@@ -357,6 +380,8 @@ export function createPads(G) {
       const fullH = PAD.size * (1 - FILL_INSET * 2);
       const target = Math.max(0.0001, frac * fullH);
       v.fill.scale.z += (target - v.fill.scale.z) * Math.min(1, dt * 14);
+      v.line.visible = v.fill.scale.z > 0.02;
+      v.line.position.z = PAD.size / 2 - PAD.size * FILL_INSET - v.fill.scale.z;
       redraw(v, false);
       // gentle pulse when affordable (always for free pads)
       if (!v.group.userData.fxTween) {

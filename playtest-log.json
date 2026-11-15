@@ -1,0 +1,400 @@
+{
+ "win": {
+  "t": 366.4,
+  "event": "win"
+ },
+ "status": null,
+ "simTime": 366.899999999995,
+ "wallSeconds": 7.842,
+ "log": [
+  {
+   "t": 11,
+   "event": "unlock",
+   "id": "cashier0",
+   "label": "CASHIER",
+   "cost": 60,
+   "money": 40
+  },
+  {
+   "t": 15.2,
+   "event": "sample",
+   "money": 40,
+   "earned": 100,
+   "incomePerSec": 6.7,
+   "carried": 25,
+   "action": "sell"
+  },
+  {
+   "t": 21,
+   "event": "unlock",
+   "id": "cutter0a",
+   "label": "HIRE CUTTER",
+   "cost": 80,
+   "money": 60
+  },
+  {
+   "t": 30.2,
+   "event": "sample",
+   "money": 200,
+   "earned": 340,
+   "incomePerSec": 16,
+   "carried": 4,
+   "action": "buy"
+  },
+  {
+   "t": 31.7,
+   "event": "unlock",
+   "id": "cutter0b",
+   "label": "HIRE CUTTER",
+   "cost": 120,
+   "money": 80
+  },
+  {
+   "t": 43.7,
+   "event": "unlock",
+   "id": "cutter0c",
+   "label": "HIRE CUTTER",
+   "cost": 180,
+   "money": 20
+  },
+  {
+   "t": 45.2,
+   "event": "sample",
+   "money": 20,
+   "earned": 460,
+   "incomePerSec": 8,
+   "carried": 25,
+   "action": "sell"
+  },
+  {
+   "t": 54.9,
+   "event": "unlock",
+   "id": "capacity1",
+   "label": "BIGGER STACK",
+   "cost": 300,
+   "money": 20
+  },
+  {
+   "t": 60.2,
+   "event": "sample",
+   "money": 20,
+   "earned": 760,
+   "incomePerSec": 20,
+   "carried": 32,
+   "action": "cash"
+  },
+  {
+   "t": 73.1,
+   "event": "unlock",
+   "id": "speed1",
+   "label": "RUN FASTER",
+   "cost": 350,
+   "money": 150
+  },
+  {
+   "t": 75.2,
+   "event": "sample",
+   "money": 250,
+   "earned": 1340,
+   "incomePerSec": 38.7,
+   "carried": 0,
+   "action": "cash"
+  },
+  {
+   "t": 90.2,
+   "event": "sample",
+   "money": 668,
+   "earned": 1758,
+   "incomePerSec": 27.9,
+   "carried": 0,
+   "action": "cash"
+  },
+  {
+   "t": 94.6,
+   "event": "unlock",
+   "id": "tractor0",
+   "label": "TRACTOR",
+   "cost": 600,
+   "money": 142
+  },
+  {
+   "t": 105.2,
+   "event": "sample",
+   "money": 639,
+   "earned": 2329,
+   "incomePerSec": 38.1,
+   "carried": 0,
+   "action": "cut"
+  },
+  {
+   "t": 120.2,
+   "event": "sample",
+   "money": 1150,
+   "earned": 2840,
+   "incomePerSec": 34.1,
+   "carried": 12,
+   "action": "sell"
+  },
+  {
+   "t": 127.1,
+   "event": "unlock",
+   "id": "farm1",
+   "label": "TULIP FARM",
+   "cost": 1200,
+   "money": 265
+  },
+  {
+   "t": 135.2,
+   "event": "sample",
+   "money": 149,
+   "earned": 3420,
+   "incomePerSec": 38.7,
+   "carried": 0,
+   "action": "buy"
+  },
+  {
+   "t": 135.3,
+   "event": "unlock",
+   "id": "cashier1",
+   "label": "CASHIER",
+   "cost": 400,
+   "money": 130
+  },
+  {
+   "t": 148,
+   "event": "unlock",
+   "id": "cutter1a",
+   "label": "HIRE CUTTER",
+   "cost": 500,
+   "money": 110
+  },
+  {
+   "t": 150.2,
+   "event": "sample",
+   "money": 110,
+   "earned": 3900,
+   "incomePerSec": 32,
+   "carried": 5,
+   "action": "cash"
+  },
+  {
+   "t": 163.2,
+   "event": "unlock",
+   "id": "cutter1b",
+   "label": "HIRE CUTTER",
+   "cost": 700,
+   "money": 108
+  },
+  {
+   "t": 165.2,
+   "event": "sample",
+   "money": 108,
+   "earned": 4598,
+   "incomePerSec": 46.5,
+   "carried": 24,
+   "action": "cut"
+  },
+  {
+   "t": 180.2,
+   "event": "sample",
+   "money": 1462,
+   "earned": 5952,
+   "incomePerSec": 90.3,
+   "carried": 36,
+   "action": "buy"
+  },
+  {
+   "t": 184.6,
+   "event": "unlock",
+   "id": "capacity2",
+   "label": "HUGE STACK",
+   "cost": 1300,
+   "money": 162
+  },
+  {
+   "t": 195.2,
+   "event": "sample",
+   "money": 1182,
+   "earned": 6972,
+   "incomePerSec": 68,
+   "carried": 66,
+   "action": "cash"
+  },
+  {
+   "t": 210,
+   "event": "unlock",
+   "id": "tractor1",
+   "label": "TRACTOR",
+   "cost": 1800,
+   "money": 351
+  },
+  {
+   "t": 210.2,
+   "event": "sample",
+   "money": 351,
+   "earned": 7941,
+   "incomePerSec": 64.6,
+   "carried": 50,
+   "action": "buy"
+  },
+  {
+   "t": 225.2,
+   "event": "sample",
+   "money": 2228,
+   "earned": 9818,
+   "incomePerSec": 125.1,
+   "carried": 4,
+   "action": "cash"
+  },
+  {
+   "t": 233.7,
+   "event": "unlock",
+   "id": "farm2",
+   "label": "SUNFLOWER FARM",
+   "cost": 3200,
+   "money": 134
+  },
+  {
+   "t": 240.2,
+   "event": "sample",
+   "money": 616,
+   "earned": 11406,
+   "incomePerSec": 105.9,
+   "carried": 4,
+   "action": "cash"
+  },
+  {
+   "t": 247.5,
+   "event": "unlock",
+   "id": "cashier2",
+   "label": "CASHIER",
+   "cost": 1200,
+   "money": 366
+  },
+  {
+   "t": 255.2,
+   "event": "sample",
+   "money": 888,
+   "earned": 12878,
+   "incomePerSec": 98.1,
+   "carried": 4,
+   "action": "cash"
+  },
+  {
+   "t": 265.5,
+   "event": "unlock",
+   "id": "cutter2a",
+   "label": "HIRE CUTTER",
+   "cost": 1600,
+   "money": 488
+  },
+  {
+   "t": 270.2,
+   "event": "sample",
+   "money": 488,
+   "earned": 14078,
+   "incomePerSec": 80,
+   "carried": 24,
+   "action": "cash"
+  },
+  {
+   "t": 284.5,
+   "event": "unlock",
+   "id": "cutter2b",
+   "label": "HIRE CUTTER",
+   "cost": 2200,
+   "money": 330
+  },
+  {
+   "t": 285.2,
+   "event": "sample",
+   "money": 330,
+   "earned": 16120,
+   "incomePerSec": 136.1,
+   "carried": 18,
+   "action": "cash"
+  },
+  {
+   "t": 300.2,
+   "event": "sample",
+   "money": 3379,
+   "earned": 19169,
+   "incomePerSec": 203.3,
+   "carried": 18,
+   "action": "buy"
+  },
+  {
+   "t": 302.2,
+   "event": "unlock",
+   "id": "speed2",
+   "label": "TURBO BOOTS",
+   "cost": 2800,
+   "money": 1251
+  },
+  {
+   "t": 315.2,
+   "event": "sample",
+   "money": 3626,
+   "earned": 22216,
+   "incomePerSec": 203.1,
+   "carried": 8,
+   "action": "cash"
+  },
+  {
+   "t": 319.6,
+   "event": "unlock",
+   "id": "tractor2",
+   "label": "TRACTOR",
+   "cost": 4000,
+   "money": 1350
+  },
+  {
+   "t": 330.2,
+   "event": "sample",
+   "money": 3870,
+   "earned": 26460,
+   "incomePerSec": 282.9,
+   "carried": 18,
+   "action": "cash"
+  },
+  {
+   "t": 338.8,
+   "event": "unlock",
+   "id": "price1",
+   "label": "GIFT WRAP +50%",
+   "cost": 5000,
+   "money": 2372
+  },
+  {
+   "t": 345.2,
+   "event": "sample",
+   "money": 2372,
+   "earned": 29962,
+   "incomePerSec": 233.5,
+   "carried": 57,
+   "action": "cash"
+  },
+  {
+   "t": 360.2,
+   "event": "sample",
+   "money": 9327,
+   "earned": 36917,
+   "incomePerSec": 463.7,
+   "carried": 58,
+   "action": "cash"
+  },
+  {
+   "t": 366.4,
+   "event": "unlock",
+   "id": "greenhouse",
+   "label": "GRAND GREENHOUSE",
+   "cost": 12000,
+   "money": 749
+  },
+  {
+   "t": 366.4,
+   "event": "win"
+  }
+ ],
+ "errors": []
+}

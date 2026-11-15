@@ -2,6 +2,7 @@
 // to far-away unlocks), resize handling and adaptive pixel ratio.
 import * as THREE from 'three';
 import { CAMERA } from './config.js';
+import { configureRenderer } from './art/material.js';
 
 export function createView(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -11,10 +12,7 @@ export function createView(canvas) {
   let prLevel = 0;
   const maxPR = window.devicePixelRatio || 1;
   renderer.setPixelRatio(Math.min(maxPR, PR_STEPS[prLevel]));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap; // r187 removed PCFSoftShadowMap
+  configureRenderer(renderer);   // sRGB output, no tone mapping, PCF shadows (art kit)
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9fdcff);
@@ -101,6 +99,11 @@ export function createView(canvas) {
     resize,
     frame(realDt) {
       updateCamera(realDt);
+      if (G) {
+        const pl = G.player;
+        if (G.lights && pl) G.lights.follow(pl.pos.x, pl.pos.z);
+        if (G.blobs) G.blobs.update();
+      }
       renderer.render(scene, camera);
       adaptQuality(realDt);
     },

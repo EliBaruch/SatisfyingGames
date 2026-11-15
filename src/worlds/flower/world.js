@@ -2,7 +2,7 @@
 // cross, each a 'source' bed and a 'shop' counter; the fourth quadrant holds the Grand
 // Greenhouse finale. Everything here is data; the helpers below only compute mirrored
 // plot-local positions. Scenery is in scene.js, models in models.js.
-import { FLOWERS, SIZES, makeBouquetGeometry, makeFlowerGeometry, makeStubGeometry } from './models.js';
+import { FLOWERS, SIZES, makeBouquetGeometry, makeFlowerGeometry, makeStubGeometry, makeTractor } from './models.js';
 
 // ------------------------------------------------------------------ layout
 const ROAD = { minX: 13, maxX: 25, minZ: -40, maxZ: 52 };        // customers walk here
@@ -69,11 +69,26 @@ export default {
   id: 'flower',
   name: 'Flower Farm',
 
-  lighting: {
-    background: 0x6fbf4b,
-    hemi: { sky: 0xe8f6ff, ground: 0x8fc46a, intensity: 1.3 },
-    sun: { color: 0xfff1d6, intensity: 1.95, dir: [9, 22, -8], mapSize: 1536, extent: 19 },
-    fill: { color: 0xffe6f0, intensity: 0.55, pos: [-14, 12, -10] },
+  // the art kit's outdoor lighting (engine/lights.js); only what differs from it is listed
+  lighting: { variant: 'outdoor' },
+
+  // models the scene and the models.js factories use (preloaded before the scene is built)
+  assets: [
+    'car-kit/tractor', 'car-kit/wheel-tractor-back',
+    'farmbuildings/Barn', 'farmbuildings/OpenBarn', 'farmbuildings/Silo', 'farmbuildings/Windmill',
+    'nature-kit/tree_default', 'nature-kit/tree_oak', 'nature-kit/tree_fat', 'nature-kit/tree_small', 'nature-kit/tree_pineTallA',
+    'nature-kit/plant_bush', 'nature-kit/plant_bushLarge', 'nature-kit/plant_bushDetailed',
+    'nature-kit/rock_largeA', 'nature-kit/rock_largeD', 'nature-kit/rock_smallA', 'nature-kit/rock_smallD', 'nature-kit/rock_tallA',
+    'nature-kit/pot_large', 'nature-kit/pot_small', 'nature-kit/flower_redA', 'nature-kit/flower_yellowA', 'nature-kit/flower_purpleA',
+    'nature-kit/log_stack', 'mini-forest/tree', 'mini-forest/tree-high', 'mini-shop/display-flowers',
+  ],
+
+  // the bearded farmer in a straw hat with the scythe; cutters wear a yellow cap; the shop employee runs the till
+  looks: {
+    player: { model: 'male-b', tool: 'scythe', scale: 1, hat: 'straw' },
+    hauler: { model: 'male-a', tool: 'scythe', scale: 1, hat: 'cap' },
+    cashier: 'cashier',
+    customers: ['female-a', 'female-b', 'female-c', 'female-d', 'female-e', 'female-f', 'male-d', 'male-f'],
   },
 
   bounds: { minX: -15, maxX: 53, minZ: -18, maxZ: 54 },   // the player is clamped to this
@@ -93,7 +108,7 @@ export default {
 
   workers: {
     hauler: { look: 'cutter', speed: 4.2, capacity: 10, harvestRadius: 0.95, unloadInterval: 0.06 },
-    harvester: { speed: 5.0, capacity: 60, harvestRadius: 1.7, unloadInterval: 0.02, colors: [0xe53935, 0x1e88e5, 0xfb8c00] },
+    harvester: { speed: 5.0, capacity: 60, harvestRadius: 1.7, unloadInterval: 0.02, colors: [0xe53935, 0x1e88e5, 0xfb8c00], model: makeTractor },
   },
 
   pads: [

@@ -9,7 +9,7 @@ The flower farm (`src/worlds/flower/`) is the worked example throughout.
 ```
 index.html, styles.css        page, HUD markup, overlays (import map: "three", "addons")
 src/main.js                   boot: pick world, load it, build the engine, run the loop
-src/autoplay.js               test bot (?autoplay), plays through station capabilities
+src/autoplay.js               test bot (?autoplay), plays through station capabilities (harvest, pickup, drop, serve, cash)
 src/engine/
   config.js                   engine defaults (player, shop, workers, pads, camera, perk, hint texts), fmtMoney
   registry.js                 registerItem / registerStationType / registerWorkerRole / registerPadEffect
@@ -22,8 +22,9 @@ src/engine/
   stack.js                    carried tower of items (any registered kinds, mixed)
   transfer.js                 flyToStack / flyToDrop / inZone: allocation-free item moves
   player.js                   movement + generic loop over station capabilities
-  stations/index.js           G.stations (built-ins: source.js, shop.js)
-  workers/index.js            G.workers (built-ins: hauler.js, harvester.js, cashier.js)
+  stations/index.js           G.stations (built-ins: source.js, shop.js; pile, converter, trough, shelf,
+                              checkout, cashpile: see docs/STATIONS.md)
+  workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
   geom.js                     Parts / mergeParts / getSharedMaterial / rng / meshOf
   decals.js                   ground decals and signs for scenes (SELL zone, cash zone, signs)
@@ -264,9 +265,10 @@ Prefer `transfer.js`: `flyToStack(G, stack, kind, x, y, z, delay)` and
 
 | role | hire effect | does |
 |---|---|---|
-| `hauler` | `{ role: 'hauler', from, to, home?, spot?, options? }` | `from` harvest area: harvests in its own band (haulers on one station split it); else `from` pickup zone: takes items `to` accepts. Carries a stack to `to.drop.workerSpot`, unloads. |
+| `hauler` | `{ role: 'hauler', from, to, home?, spot?, options? }` | `from` harvest area: harvests in its own band (haulers on one station split it); else `from` pickup zone: takes items `to` accepts. Carries a stack to `to.drop.workerSpot`, unloads. `from` / `to` may be **lists** of station ids: then it picks the source with what a target has room for and the target with the most room (docs/STATIONS.md). |
 | `harvester` | `{ role: 'harvester', from, to, park?, spot?, color?, options? }` | vehicle driving lanes over `from.harvest.bounds`, unloads at `to.drop.vehicleSpot`. Model: `world.workers.harvester.model(color)` else `chars.makeTractor`. |
 | `cashier` | `{ role: 'cashier', to, spot? }` | decorative, stands at `to.staffSpot`, waves on that shop's sales; the shop serves on its own. |
+| `vendor` | `{ role: 'vendor', from, to, options: { path, capacity, every, ... } }` | vehicle that arrives on a schedule, buys up to N items from `from`'s pickup zone and pays onto `to`'s cash pile (docs/STATIONS.md). |
 
 Config merge: `engine/config.js WORKERS[role]` < `world.workers[role]` < `effect.options`.
 
@@ -323,9 +325,13 @@ registerPadEffect('feedBoost', {
 Every 0.25 s (`engine/hints.js`): (1) carrying >= 60% of capacity (or full, or the harvest area
 you stand in is < 15% grown) and some active drop zone accepts a carried item -> that zone
 (preferring the one that takes the topmost item); (2) the cheapest visible pad is affordable ->
-the pad; (3) a cash pile holds >= 20 or >= 25% of what is missing -> the richest pile; (4) the
-most recently opened harvest/pickup station. After the win: the first free pad (travel gate).
-Text: station `def.hint` wins (except for cash), else `world.hints[kind]`, else engine
+the pad; (3) a station with a `serve` capability (checkout) that is unstaffed with >= 2 waiting ->
+its serve zone; (4) a cash pile holds >= 20 or >= 25% of what is missing -> the richest pile;
+(5) an open drop zone whose `drop.need` >= 0.75 (empty shelf / trough) -> it if carrying what it
+accepts, else a pickup that has such items; (6) the most recently opened harvest station or
+non-empty pickup (pickups with `idleHint: false` are skipped). Drop zones with `room() <= 0` are
+never a goal. After the win: the first free pad (travel gate).
+Text: station `def.hints[kind]`, then `def.hint` (except for cash), else `world.hints[kind]`, else engine
 `HINTS`; `{name}` = station name (item name, lower case, for harvest), `{label}` = pad label.
 
 ## 9. Save format, migration, level flow

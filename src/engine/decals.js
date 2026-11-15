@@ -1,6 +1,7 @@
 // Ground markings and canvas helpers for scenes: drop-zone decals ("SELL"), cash-pile
 // decals, signs. Pure builders; a scene adds what they return to its own root.
 import * as THREE from 'three';
+import { makeZone } from './art/props.js';
 
 export function canvasTex(w, h, draw, { repeat = false, anisotropy = 4 } = {}) {
   const c = document.createElement('canvas');
@@ -51,63 +52,6 @@ export function flatPlane(w, d, mat, y, order = 1) {
 }
 
 
-export function dropZoneTexture(text = 'SELL') {
-  return canvasTex(512, 512, (ctx, w, h) => {
-    roundRect(ctx, 14, 14, w - 28, h - 28, 70);
-    ctx.fillStyle = 'rgba(40,200,255,0.30)'; ctx.fill();
-    ctx.lineCap = 'round';
-    ctx.setLineDash([46, 30]); ctx.lineWidth = 22;
-    ctx.strokeStyle = '#ffffff'; ctx.stroke();
-    roundRect(ctx, 44, 44, w - 88, h - 88, 50);
-    ctx.setLineDash([26, 24]); ctx.lineWidth = 9; ctx.strokeStyle = '#19b8f2'; ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    let fs = 170;
-    ctx.font = `900 ${fs}px "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif`;
-    while (fs > 60 && ctx.measureText(text).width > w - 120) { fs -= 10; ctx.font = `900 ${fs}px "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif`; }
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 26; ctx.strokeStyle = '#0a86c4'; ctx.strokeText(text, w / 2, h / 2 - 14);
-    ctx.fillStyle = '#ffffff'; ctx.fillText(text, w / 2, h / 2 - 14);
-    // little arrows pointing in (down on the texture)
-    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#0a86c4'; ctx.lineWidth = 8;
-    for (const dx of [-70, 0, 70]) {
-      const x = w / 2 + dx, y = h - 150;
-      ctx.beginPath(); ctx.moveTo(x - 28, y - 10); ctx.lineTo(x + 28, y - 10); ctx.lineTo(x, y + 24); ctx.closePath();
-      ctx.stroke(); ctx.fill();
-    }
-  });
-}
-
-export function cashZoneTexture() {
-  return canvasTex(512, 512, (ctx, w, h) => {
-    roundRect(ctx, 14, 14, w - 28, h - 28, 70);
-    ctx.fillStyle = 'rgba(255,230,120,0.30)'; ctx.fill();
-    ctx.lineCap = 'round';
-    ctx.setLineDash([46, 30]); ctx.lineWidth = 20; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-    ctx.setLineDash([]);
-    // banknote
-    ctx.save();
-    ctx.translate(w / 2, h / 2);
-    ctx.rotate(-0.12);
-    roundRect(ctx, -150, -85, 300, 170, 24);
-    ctx.fillStyle = '#2fbf5b'; ctx.fill();
-    ctx.lineWidth = 14; ctx.strokeStyle = '#0f7a35'; ctx.stroke();
-    roundRect(ctx, -125, -62, 250, 124, 14);
-    ctx.lineWidth = 6; ctx.strokeStyle = '#a8f0b8'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2);
-    ctx.fillStyle = '#c9f7d2'; ctx.fill(); ctx.lineWidth = 8; ctx.strokeStyle = '#0f7a35'; ctx.stroke();
-    ctx.fillStyle = '#0f7a35'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '900 66px "Arial Black", Impact, Arial, sans-serif';
-    ctx.fillText('$', 0, 4);
-    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * 98, 0, 13, 0, Math.PI * 2); ctx.fillStyle = '#a8f0b8'; ctx.fill(); }
-    ctx.restore();
-    // coin
-    ctx.beginPath(); ctx.arc(w - 140, h - 130, 44, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffd23f'; ctx.fill(); ctx.lineWidth = 9; ctx.strokeStyle = '#d9971a'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(w - 140, h - 130, 25, 0, Math.PI * 2); ctx.lineWidth = 6; ctx.stroke();
-  });
-}
-
 export function signTexture(lines, bg, fg, w = 512, h = 320) {
   return canvasTex(w, h, (ctx) => {
     roundRect(ctx, 6, 6, w - 12, h - 12, 28);
@@ -127,16 +71,37 @@ export function signTexture(lines, bg, fg, w = 512, h = 320) {
 }
 
 
-const texCache = new Map();
-/** Drop-zone decal (dashed rounded square with big text), cached per text. */
+/**
+ * Drop-zone decal ("SELL"): the art kit's zone helper (rounded square, glowing cyan-white dashed
+ * outline, bold label, reads upright from the camera). Returns a Mesh (position it; y is 0.04).
+ */
 export function makeDropDecal(text = 'SELL', size = 3.4) {
-  let t = texCache.get('drop:' + text);
-  if (!t) { t = dropZoneTexture(text); texCache.set('drop:' + text, t); }
-  return makeDecal(t, size, { y: 0.03 });
+  const z = makeZone({ w: size, d: size, label: text });
+  return z;
 }
-/** Cash-pile decal (banknote + coin). */
+
+/** Cash-pile decal: warm zone with a banknote icon painted on it. */
 export function makeCashDecal(size = 3.0) {
-  let t = texCache.get('cash');
-  if (!t) { t = cashZoneTexture(); texCache.set('cash', t); }
-  return makeDecal(t, size, { y: 0.03 });
+  const px = 170;
+  const z = makeZone({ w: size, d: size, label: '', color: '#fff0a0', fill: 'rgba(255,205,70,0.30)', px });
+  const tex = z.material.map;
+  const ctx = tex.image.getContext('2d');
+  const W = tex.image.width, H = tex.image.height;
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(-0.1);
+  const bw = W * 0.5, bh = bw * 0.56;
+  roundRect(ctx, -bw / 2, -bh / 2, bw, bh, bh * 0.16);
+  ctx.fillStyle = '#35b856'; ctx.fill();
+  ctx.lineWidth = Math.max(6, bh * 0.07); ctx.strokeStyle = '#176a33'; ctx.stroke();
+  roundRect(ctx, -bw * 0.42, -bh * 0.36, bw * 0.84, bh * 0.72, bh * 0.1);
+  ctx.lineWidth = Math.max(3, bh * 0.03); ctx.strokeStyle = '#a9f0b9'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, bh * 0.26, 0, Math.PI * 2);
+  ctx.fillStyle = '#c8f7d2'; ctx.fill(); ctx.lineWidth = bh * 0.04; ctx.strokeStyle = '#176a33'; ctx.stroke();
+  ctx.fillStyle = '#176a33'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `900 ${bh * 0.36}px "Arial Black", Impact, Arial, sans-serif`;
+  ctx.fillText('$', 0, bh * 0.02);
+  ctx.restore();
+  tex.needsUpdate = true;
+  return z;
 }

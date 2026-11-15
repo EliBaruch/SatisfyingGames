@@ -126,7 +126,7 @@ export function startAutoplay(G) {
     const st = pl().stack;
     let best = null, bd = Infinity;
     for (const s of active('drop')) {
-      if (!st.has(s.drop.accepts)) continue;
+      if (!st.has(s.drop.accepts) || s.drop.room() <= 0) continue;
       const z = s.drop.zone;
       const d = Math.hypot(z.x - p.x, z.z - p.z);
       if (d < bd) { bd = d; best = s; }
@@ -190,8 +190,21 @@ export function startAutoplay(G) {
       return { kind: 'cash', key: 'cash:' + bestS.id, x: pile.x, z: pile.z, arrive: 0.6, st: bestS };
     }
 
-    // 4. harvest in the most valuable area that has something grown
+    // 3b. pickup zones (piles, machine outputs) and serve zones (checkouts), see docs/STATIONS.md
     const order = harvestByValue();
+    let grown = false;
+    for (const s of order) if (s.harvest.available > 0) { grown = true; break; }
+    const pk = pickupTarget(grown ? Math.min(6, Math.ceil(cap * 0.5)) : 1, true);
+    if (pk) return pk;
+    for (const s of active('serve')) {
+      const sv = s.serve;
+      if (sv.staffed || sv.waiting < 2) continue;
+      return { kind: 'serve', key: 'serve:' + s.id, x: sv.zone.x, z: sv.zone.z, arrive: 0.4, st: s };
+    }
+    const pk2 = pickupTarget(grown ? Math.min(6, Math.ceil(cap * 0.5)) : 1, false);
+    if (pk2) return pk2;
+
+    // 4. harvest in the most valuable area that has something grown
     for (const s of order) {
       if (s.harvest.nearest(p.x, p.z, tmp)) return { kind: 'cut', key: 'cut:' + s.id, x: tmp.x, z: tmp.z, arrive: 0.15, st: s };
     }
@@ -205,6 +218,26 @@ export function startAutoplay(G) {
     return { kind: 'cut', key: 'cutwalk:' + s.id, x: cx, z: cz, arrive: 0.5, st: s };
   }
 
+  // a pickup zone worth visiting: has >= minAvail items some other open drop zone takes now.
+  // urgent: only for drop zones with a high `need` (an empty shelf or trough)
+  function pickupTarget(minAvail, urgent) {
+    if (carried() >= G.stats.capacity) return null;
+    for (const s of active('pickup')) {
+      const pk = s.pickup;
+      if (!(pk.available >= minAvail) || (pk.idleHint === false && !urgent)) continue;
+      let wanted = false;
+      for (const d of active('drop')) {
+        if (d === s || d.drop.room() <= 0) continue;
+        if (urgent && !(d.drop.need >= 0.75)) continue;
+        if (pk.has ? pk.has(d.drop.accepts) : true) { wanted = true; break; }
+      }
+      if (!wanted) continue;
+      const z = pk.zone;
+      return { kind: 'pickup', key: 'pickup:' + s.id, x: z.x, z: z.z, arrive: Math.min(0.6, z.r * 0.5), st: s };
+    }
+    return null;
+  }
+
   // is the current action still worth continuing? (finish before switching)
   function stillValid() {
     if (!act) return false;
@@ -216,15 +249,23 @@ export function startAutoplay(G) {
       }
       case 'sell': {
         const s = act.st;
-        if (carried() > 0 && pl().stack.has(s.drop.accepts)) return true;
+        if (carried() > 0 && pl().stack.has(s.drop.accepts) && s.drop.room() > 0) return true;
         // emptied; without a cashier keep standing until the counter is sold out
         const staff = G.stats.staff[s.id];
-        if (!(staff && staff.cashier) && s.stock > 0 && simT - act.since < 90 && inZone(act)) return true;
+        if (s.cash && !(staff && staff.cashier) && s.stock > 0 && simT - act.since < 90 && inZone(act)) return true;
         return false;
       }
       case 'cash': {
         if (act.st.cash.amount >= 1 && (!act.arrivedAt || simT - act.arrivedAt < 1.5)) return true;
         return false;
+      }
+      case 'pickup': {
+        const pk = act.st.pickup;
+        return pl().stack.room > 0 && pk.available > 0 && (!act.arrivedAt || simT - act.arrivedAt < 4);
+      }
+      case 'serve': {
+        const sv = act.st.serve;
+        return !sv.staffed && sv.waiting > 0 && simT - act.since < 15;
       }
       case 'cut':
       case 'wait':

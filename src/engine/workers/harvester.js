@@ -7,7 +7,7 @@
 // The vehicle model comes from world.workers.harvester.model (a function(color) ->
 // Object3D following the makeTractor contract in chars.js), else chars.makeTractor.
 import { registerWorkerRole } from '../registry.js';
-import { makeTractor } from '../chars.js';
+import { makeTractor, addBlob, onScreen } from '../chars.js';
 import { createStack } from '../stack.js';
 import { flyToStack, flyToDrop } from '../transfer.js';
 import { wrapAngle, roleConfig, playAt, soundOpts, pt } from './common.js';
@@ -31,6 +31,7 @@ function createHarvester(G, hire, team, live) {
   const color = e.color ?? colors[G.workers ? G.workers.list.filter((x) => x.role === 'harvester').length % colors.length : 0];
   const group = (cfg.model || makeTractor)(color);
   const ud = group.userData || {};
+  addBlob(group, { rx: 1.1, rz: ud.blobLength || 1.7, oz: ud.blobOffset ?? -0.3, yaw: true });
   const stack = createStack(G, {
     parent: ud.bedAnchor || group, offset: { x: 0, y: 0, z: 0 },
     capacity: cfg.capacity, perColumn: 12, sway: false,
@@ -46,7 +47,7 @@ function createHarvester(G, hire, team, live) {
   const t = {
     group, stack, lx, n,
     wheels: ud.wheels || [], blade: ud.blade || null,
-    x: park.x, z: park.z, h: 0, spd: 0, bladeW: 0, dist: 0,
+    x: park.x, z: park.z, h: 0, bob: ud.bob || 0, bobPhase: 0, spd: 0, bladeW: 0, dist: 0,
     state: 'wait', wait: 0, pass: -1, passDone: false,
     px: new Float32Array(n * 3 + 4), pz: new Float32Array(n * 3 + 4), pt: new Float32Array(n * 3 + 4),
     pi: 0, pc: 0, bestD: Infinity, stage: 0, vx: 0, vz: 0, rx: 0, rz: 0,
@@ -201,8 +202,11 @@ function createHarvester(G, hire, team, live) {
       t.sndT = 0.5;
       playAt(G, 'tractor', t.x, t.z, 0.25, t.snd);
     }
-    group.position.set(t.x, 0, t.z);
+    // pack tractors have no separate wheels: a little bounce while moving instead
+    t.bobPhase += t.dist * 5;
+    group.position.set(t.x, t.bob * Math.abs(Math.sin(t.bobPhase)) * Math.min(1, t.spd), t.z);
     group.rotation.y = t.h;
+    group.visible = onScreen(G, t.x, 1, t.z, 1.7);   // the stack's meshes are never frustum-culled
     stack.update(dt, Math.min(1, t.spd / cfg.speed));
   }
 
