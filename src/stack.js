@@ -48,9 +48,10 @@ export function createStack(G, opts = {}) {
   let popAge = new Float32Array(16);
 
   // spring state: curvature in root-local x and z (1 / units)
-  let cx = 0, cz = 0, vx = 0, vz = 0;
-  let px = 0, pz = 0, pvx = 0, pvz = 0, hasPrev = false;
-  let idleT = Math.random() * 10;
+  // kept in a typed array: closure doubles would allocate a heap number on every write
+  const K = new Float64Array(9); // cx, cz, vx, vz, px, pz, pvx, pvz, idleT
+  K[8] = Math.random() * 10;
+  let hasPrev = false;
   let dirty = true;
   let settled = false;
 
@@ -134,6 +135,7 @@ export function createStack(G, opts = {}) {
     const row = i - col * perColumn;
     const h = row * STEP;
     const hh = h + STEP * 0.5;
+    const cx = K[0], cz = K[1];
     out.set(
       hash(i, 1) * 0.025 + cx * hh * hh,
       h,
@@ -151,6 +153,7 @@ export function createStack(G, opts = {}) {
   function writeMatrices() {
     for (let t = 0; t < meshes.length; t++) if (meshes[t]) meshes[t].count = 0;
     let popping = false;
+    const cx = K[0], cz = K[1];
     for (let i = 0; i < items.length; i++) {
       const m = meshes[items[i]];
       if (!m) continue;
@@ -184,6 +187,7 @@ export function createStack(G, opts = {}) {
     }
 
     if (swayOn) {
+      let cx = K[0], cz = K[1], vx = K[2], vz = K[3], px = K[4], pz = K[5], pvx = K[6], pvz = K[7];
       root.updateWorldMatrix(true, false);
       const e = root.matrixWorld.elements;
       const wx = e[12], wz = e[14];
@@ -218,9 +222,10 @@ export function createStack(G, opts = {}) {
       if (cx > lim) { cx = lim; vx = 0; } else if (cx < -lim) { cx = -lim; vx = 0; }
       if (cz > lim) { cz = lim; vz = 0; } else if (cz < -lim) { cz = -lim; vz = 0; }
       // subtle idle sway: a cheap rigid rock of the whole tower
-      idleT += dt;
+      const idleT = (K[8] += dt);
       root.rotation.z = Math.sin(idleT * 1.7) * 0.012;
       root.rotation.x = Math.sin(idleT * 1.3 + 1) * 0.01;
+      K[0] = cx; K[1] = cz; K[2] = vx; K[3] = vz; K[4] = px; K[5] = pz; K[6] = pvx; K[7] = pvz;
       const moving = Math.abs(vx) + Math.abs(vz) > 1e-4 || Math.abs(cx - tx) + Math.abs(cz - tz) > 1e-5;
       if (moving) { settled = false; dirty = true; } else if (!settled) { settled = true; dirty = true; }
     }
