@@ -82,6 +82,11 @@ export function createScene(G) {
     const floor = makeGround('tile', W, D, { color: 0xf7efe0, tile: 2.4, seed: 7 });
     floor.position.set(CX, 0.0, CZ); floor.matrixAutoUpdate = false; floor.updateMatrix(); root.add(floor);
 
+    // teal aisle runner along the shelf aisle
+    const run = new THREE.Mesh(new THREE.PlaneGeometry(W - 6, 2.0), litMaterial({ color: 0x8fded2 }));
+    run.rotation.x = -Math.PI / 2; run.position.set(CX - 2.5, 0.009, LAY.aisleZ); run.receiveShadow = true; root.add(run);
+    const run2 = new THREE.Mesh(new THREE.PlaneGeometry(W - 6, 0.16), litMaterial({ color: 0xffffff }));
+    for (const dz of [-0.95, 0.95]) { const r2 = run2.clone(); r2.rotation.x = -Math.PI / 2; r2.position.set(CX - 2.5, 0.011, LAY.aisleZ + dz); root.add(r2); }
     // back-of-house concrete (dock side)
     const dockW = ST.maxX - 15.6;
     const conc = makeGround('paving', dockW, D, { color: 0xc9ced6, tile: 3, seed: 8 });
@@ -384,7 +389,7 @@ export function createScene(G) {
     view.group.add(body);
     // wall sign over the department (back wall, faces -z)
     const sg = flatSign(signTex([{ text: d.label, size: d.label.length > 9 ? 78 : 96, stroke: 'rgba(0,0,0,0.3)' }], d.color, 640, 240, { rim: '#fff' }), 3.3, 1.24);
-    sg.position.set(U.x, 2.75, ST.maxZ - 0.05); sg.rotation.y = Math.PI;
+    sg.position.set(U.x, 2.6, ST.maxZ - 0.05); sg.rotation.y = Math.PI;
     view.sign = sg;
     root.add(view.group); root.add(sg);
     // stock-here zone decal
@@ -397,7 +402,7 @@ export function createScene(G) {
     dm.rotation.x = -Math.PI / 2; dm.rotation.z = Math.PI / 2; dm.position.set(U.x - 0.4, 0.03, U.z); dm.renderOrder = 2;
     lk.add(dm);
     const soon = flatSign(signTex([{ text: 'COMING', size: 80, stroke: '#44505e' }, { text: 'SOON', size: 80, stroke: '#44505e' }], '#8d99a8', 420, 240, { rim: '#fff' }), 2.2, 1.25);
-    soon.position.set(U.x, 2.75, ST.maxZ - 0.05); soon.rotation.y = Math.PI;
+    soon.position.set(U.x, 2.6, ST.maxZ - 0.05); soon.rotation.y = Math.PI;
     lk.add(soon);
     view.locked = lk;
     root.add(lk);
@@ -492,10 +497,26 @@ export function createScene(G) {
     pp.model('mini-shop/shelf-bags', { pos: [20.0, 0, 13.4], rot: [0, Math.PI, 0] });
     pp.model('mini-shop/freezer', { pos: [-3.0, 0, 13.45], rot: [0, Math.PI, 0] });
     addMesh(root, pp.merged({ ao: AO }), { cast: true, receive: true });
-    // welcome signage on the back wall centre
-    const sg = flatSign(signTex([{ text: 'FRESH CORNER', size: 84, color: '#ffffff', stroke: '#1f7d71' }, { text: 'MARKET', size: 100, color: '#ffe27a', stroke: '#1f7d71' }], '#39b8a8', 800, 300, { rim: '#ffffff' }), 5.2, 1.95);
-    sg.position.set(9.0, 3.1, ST.maxZ - 0.06); sg.rotation.y = Math.PI;
-    root.add(sg);
+  }
+
+
+  // ============================================================ street pole sign (becomes the MEGA MART marquee)
+  const pole = new THREE.Group();
+  const nameTex = signTex([{ text: 'FRESH CORNER', size: 84, color: '#ffffff', stroke: '#1f7d71' }, { text: 'MARKET', size: 100, color: '#ffe27a', stroke: '#1f7d71' }], '#39b8a8', 800, 300, { rim: '#ffffff' });
+  const megaTex = signTex([{ text: 'MEGA MART', size: 130, color: '#fff3a0', stroke: '#b3263d' }, { text: 'GRAND OPENING', size: 62, color: '#ffffff', stroke: '#b3263d' }], '#e9525e', 800, 300, { rim: '#ffd23f' });
+  const poleBoard = flatSign(nameTex, 5.0, 1.9);
+  {
+    const pp = new Parts();
+    pp.rbox(0xffffff, 0.2, 2.4, 0.2, 0.06, [-2.0, 1.2, 0]);
+    pp.rbox(0xffffff, 0.2, 2.4, 0.2, 0.06, [2.0, 1.2, 0]);
+    pp.rbox(0xffffff, 5.3, 2.1, 0.2, 0.12, [0, 3.0, -0.04]);
+    pole.add(meshOf(pp.merged({ ao: AO_SOFT })));
+    poleBoard.position.set(0, 3.0, -0.16); poleBoard.rotation.y = Math.PI;
+    pole.add(poleBoard);
+    const back = flatSign(nameTex, 5.0, 1.9); back.position.set(0, 3.0, 0.08); pole.add(back);
+    pole.position.set(5.0, 0, ST.minZ - 3.2);
+    pole.rotation.y = FACE_CAMERA + Math.PI;
+    root.add(pole);
   }
 
   // ============================================================ finale: Mega Mart
@@ -521,16 +542,8 @@ export function createScene(G) {
       const x = ST.minX + 0.5 + i;
       flag(x, 3.0 - Math.sin((i / 30) * Math.PI) * -0.0 - 0.0, ST.maxZ - 0.45, cols[i % 5], true);
     }
-    // gold star arch frame above the centre sign
-    fp.rbox(0xffd23f, 6.4, 0.18, 0.18, 0.06, [9.0, 4.4, ST.maxZ - 0.3]);
-    for (let k = 0; k < 7; k++) fp.sph(k % 2 ? 0xfff3a0 : 0xffd23f, 0.22, [9.0 - 3.0 + k, 4.6, ST.maxZ - 0.3], null, null, 8, 6);
     const fm = meshOf(fp.merged({ ao: AO_SOFT }), { cast: true, receive: true });
     finale.add(fm);
-    // MEGA MART marquee over the +x/+z corner side of the store
-    const mq = flatSign(signTex([{ text: 'MEGA MART', size: 150, color: '#fff3a0', stroke: '#b3263d' }, { text: 'GRAND OPENING', size: 64, color: '#ffffff', stroke: '#b3263d' }], '#e9525e', 900, 330, { rim: '#ffd23f' }), 6.6, 2.4);
-    mq.position.set(9.0, 3.1, ST.maxZ - 0.1); mq.rotation.y = Math.PI;
-    finale.add(mq);
-    finale.userData.mq = mq;
   }
   root.add(finale);
 
@@ -558,6 +571,7 @@ export function createScene(G) {
   // ============================================================ boot state
   G.pads.onDone('megamart', (live) => {
     finale.visible = true;
+    poleBoard.material.map = megaTex; poleBoard.material.needsUpdate = true; pole.scale.setScalar(1.35);
     if (live) { popIn(finale, 0.1); }
   });
   G.pads.onDone('travel', () => {});

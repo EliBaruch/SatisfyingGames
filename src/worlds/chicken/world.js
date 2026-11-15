@@ -168,10 +168,10 @@ export default {
     { id: 'pack2', label: 'TURBO PACKER', cost: 3500, at: [12.5, -3.2], requires: ['truck'], effect: { type: 'stat', stat: 'packSpeed', mul: 1.5 } },
     { id: 'col4', label: 'EGG COLLECTOR', cost: 4000, at: [8.5, -3.2], requires: ['pack2'],
       effect: { type: 'hire', role: 'hauler', from: ['nests'], to: ['packer'] }, toast: 'COLLECTOR HIRED!' },
-    { id: 'cap3', label: 'MEGA STACK', cost: 5000, at: [4.5, -3.2], requires: ['col4'], effect: { type: 'stat', stat: 'capacity', max: 90 } },
+    { id: 'cap3', label: 'MEGA STACK', cost: 4200, at: [4.5, -3.2], requires: ['col4'], effect: { type: 'stat', stat: 'capacity', max: 90 } },
 
     // ---- finale and the way on
-    { id: 'monument', label: 'GIANT GOLDEN EGG', cost: 14000, at: [40, 35.2], requires: ['cap3'], big: true,
+    { id: 'monument', label: 'GIANT GOLDEN EGG', cost: 8000, at: [40, 35.2], requires: ['cap3'], big: true,
       effect: { type: 'win' }, toast: 'GIANT GOLDEN EGG!' },
     { id: 'travel', label: 'NEXT WORLD', cost: 0, at: [29, 66.5], requires: ['monument'], effect: { type: 'travel', world: 'grocery' }, priceText: 'GO' },
   ],
