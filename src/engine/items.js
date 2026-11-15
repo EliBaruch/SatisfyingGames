@@ -1,13 +1,14 @@
 // Item kinds: built-in 'cash' plus lazy geometry/material resolution for any registered kind.
 import { registerItem, getItem } from './registry.js';
-import { makeBillGeometry, getSharedMaterial, BILL } from './geom.js';
+import { getSharedMaterial } from './art/material.js';
+import { makeCashBundleGeometry, CASH } from './art/props.js';
 
-// Money bundles: what flies from counters to cash piles, from piles to the player and
+// Money bundles (the art kit's chunky cash bundle): what flies from counters to cash piles, from piles to the player and
 // from the player into pads. Always available, whatever the world.
 registerItem({
   id: 'cash', name: 'Cash', value: 0,
-  geometry: makeBillGeometry,
-  step: BILL.step, footprint: { w: BILL.len, d: BILL.d },
+  geometry: () => makeCashBundleGeometry(),
+  step: CASH.h, footprint: { w: CASH.len, d: CASH.d },
 });
 
 /** The kind's BufferGeometry (built once). Accepts an id or an item object. */
