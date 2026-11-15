@@ -35,8 +35,11 @@ export function createLevel(G) {
   }
 
   function nextInfo() {
-    const id = finale.next || (nextWorld(G.worldId) || {}).id || null;
-    if (!id) return null;
+    // The last world has no "next": its win card offers the world select instead
+    // (its travel pad may still lead back to an earlier world).
+    const nw = nextWorld(G.worldId);
+    if (!nw) return null;
+    const id = finale.next || nw.id;
     const w = worldInfo(id);
     return { id, name: (w && w.name) || id };
   }
