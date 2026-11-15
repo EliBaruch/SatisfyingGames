@@ -38,7 +38,7 @@ export const SHOP = {
     self: { interval: 0.30, batch: 3 },     // player standing in the drop zone, no cashier
     staffed: { interval: 0.25, batch: 5 },  // a cashier is hired for this shop
   },
-  maxVisibleStock: 160,
+  maxVisibleStock: 120,
   stockPerColumn: 20,
   maxVisibleBills: 36,
   collectTime: 0.6,      // a cash pile empties into the player in about this long

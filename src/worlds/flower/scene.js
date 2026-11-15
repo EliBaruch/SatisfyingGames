@@ -280,7 +280,9 @@ export function createScene(G) {
     };
     for (let z = R.minZ + 4; z < R.maxZ - 2; z += 9) {
       if (Math.abs(z - (X.minZ + X.maxZ) / 2) < 7) continue;
-      lamp(R.minX + 0.8, z); lamp(R.maxX - 0.8, z);
+      const nearSign = (x) => PLOTS.some((f) => f.sign && Math.hypot(f.sign.x - x, f.sign.z - z) < 5.5);
+      if (!nearSign(R.minX)) lamp(R.minX + 0.8, z);
+      if (!nearSign(R.maxX)) lamp(R.maxX - 0.8, z);
     }
     const tp = chunk(R.minX, R.minZ);
     for (const px of [R.minX - 0.6, R.maxX + 0.6]) {
@@ -347,8 +349,8 @@ export function createScene(G) {
     if (f.sign) {
       const sg = new THREE.Group();
       const post = new Parts();
-      post.rbox(0x8a5a30, 0.24, 2.2, 0.24, 0.08, [-1.1, 1.1, 0]);
-      post.rbox(0x8a5a30, 0.24, 2.2, 0.24, 0.08, [1.1, 1.1, 0]);
+      post.rbox(0x8a5a30, 0.24, 2.2, 0.24, 0.08, [-1.62, 1.1, 0]);
+      post.rbox(0x8a5a30, 0.24, 2.2, 0.24, 0.08, [1.62, 1.1, 0]);
       post.rbox(0xb9824a, 3.0, 1.8, 0.16, 0.12, [0, 1.75, -0.02]);
       const pm = meshOf(post.merged({ ao: true })); sg.add(pm);
       const board = signBoard([{ text: 'FOR SALE', size: 100, color: '#ffffff', stroke: '#a33a2a' }, { text: f.name.split(' ')[0], size: 58, color: '#ffe9a8', stroke: '#6b3a1a' }], '#e8553d', 2.7, 1.6);
