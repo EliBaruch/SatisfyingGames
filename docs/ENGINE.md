@@ -26,10 +26,10 @@ src/engine/
                               checkout, cashpile: see docs/STATIONS.md)
   workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
-  geom.js                     Parts / mergeParts / getSharedMaterial / rng / meshOf
-  decals.js                   ground decals and signs for scenes (SELL zone, cash zone, signs)
-  chars.js                    THE indirection for characters and vehicles (see section 10)
-  legacy/characters.js        original code-built characters + tractor (behind chars.js)
+  geom.js                     re-exports Parts / mergeParts / meshOf / getSharedMaterial from the art kit; geo, rng
+  decals.js                   scene helpers: SELL / cash zone decals (art kit zones), signs, canvas textures
+  chars.js                    characters and vehicles for the engine and worlds: art-kit characters, looks,
+                              hats, blob shadows, LOD, default tractor (see section 10)
   art/                        art kit (owned by the art-kit agent, see docs/ART.md)
 src/worlds/<id>/world.js      world definition (data, default export)
 src/worlds/<id>/scene.js      export createScene(G): scenery and per-station furniture
@@ -45,9 +45,13 @@ src/worlds/<id>/models.js     the world's model factories
    folder fails to import, fall back to `flower` with a `console.error` (never a page error).
 3. `import('./worlds/<id>/world.js')`, then every entry of `def.modules` (relative to world.js), then
    `scene.js` (or `def.scene`; `scene: false` = no scenery, bare ground).
+3b. Assets: `def.looks` is merged into `LOOKS`; the art kit preloads `def.assets` (model ids like
+   `'farmbuildings/Barn'`) and every character model the world's looks need (player, hauler, cashier,
+   customers). Progress is `G.loading` (0..1) and the `G.events` `'loading'` event; the title overlay's
+   "tap" line shows `LOADING n%` meanwhile. A missing model never blocks boot (placeholder box + one warning).
 4. Normalise the def (`pads[].at` -> `pads[].pos {x,z}`), `registerItem()` each `def.items` entry.
 5. Build `G`; `G.state = sanitizeLevel(def, save.levels[id])`; `G.stats = computeStats(...)`.
-6. Create, in this order: audio, fx, input, hud -> lights -> **stations** (+ `sync`) -> **pads** ->
+6. Create, in this order: audio (`audio.setWorld(id)`), fx, input, hud -> blob shadows (`G.blobs`) -> lights -> **stations** (+ `sync`) -> **pads** ->
    **scene** (`createScene(G)`) -> **player** -> **workers** (+ `sync`) -> hints -> level.
 7. Save once, start the loop, emit `'ready'`; `?autoplay` imports the bot.
 
@@ -64,7 +68,8 @@ src/worlds/<id>/models.js     the world's model factories
 | `events` | bus: `on(name, fn)`, `off`, `emit` | start |
 | `addMoney(n)`, `spend(n)` | the only way to change money | start |
 | `audio, fx, input, hud` | always present (no-op fallbacks if a module failed) | before stations |
-| `lights` | `{ hemi, sun, fill }` | before stations |
+| `lights` | `{ hemi, sun, fill, follow(x, z) }` (art kit lights; `view.frame` calls `follow` every frame) | before stations |
+| `blobs` | art-kit blob shadows: `attach(obj, r)`, `detach`; updated by `view.frame` (characters attach automatically) | before stations |
 | `stations` | `get(id)`, `list`, `onOpen(id, fn)`, `activationOrder` | **in createScene** |
 | `pads` | `get(id)`, `next()`, `remaining(pad)`, `visible()`, `onDone(id, fn)` | **in createScene** |
 | `scenery` | what createScene returned | after scene |
@@ -82,9 +87,12 @@ export default {
   id: 'flower', name: 'Flower Farm',          // id = folder name = save key
   modules: ['../../engine/stations/pile.js'], // extra modules (registrations) loaded before anything is built
   scene: './scene.js',                         // default; false = none
-  lighting: { background: 0x6fbf4b,            // all optional, see engine/lights.js
-    hemi: { sky, ground, intensity }, sun: { color, intensity, dir: [9, 22, -8], mapSize: 1536, extent: 19 },
-    fill: { color, intensity, pos: [-14, 12, -10] } },
+  assets: ['farmbuildings/Barn', 'nature-kit/tree_oak'],   // pack models to preload (docs/ART.md section 11 lists ids)
+  looks: { player: { model: 'male-b', tool: 'scythe', hat: 'straw' }, hauler: 'cutter', cashier: 'cashier',
+           customers: ['female-a', 'male-d'] },   // see section 10; every entry optional
+  lighting: { variant: 'outdoor',               // all optional, see engine/lights.js: 'outdoor' | 'indoor' (art kit LIGHTING),
+    background: 0x9fdcff,                       // background, hemi / sun / fill overrides in the art kit's format,
+    tint: 0xffe6c0, tintAmount: 0.2 },          // shadow: { extent, mapSize }, shadows: false, tint toward a colour
   camera: { viewPortrait: 23.5, viewLandscape: 17 },   // optional overrides of engine CAMERA
   bounds: { minX: -15, maxX: 53, minZ: -18, maxZ: 54 },  // player is clamped to this
   player: { start: { x: 2.5, z: 5.5 }, speed: 6.5, capacity: 25, harvestRadius: 1.25, look: 'player' },
@@ -377,13 +385,35 @@ G.pads.onDone('greenhouse', (live) => showGreenhouse(live));  // live=false at b
 
 Events: `'open' {station, live}`, `'unlock' {pad, effect, repeat?}`, `'sale' {station, stationId, amount}`,
 `'win' {world}`, `'level:won' {world, next}`, `'hud:win-shown' {time, earned, next}`, `'ready'`, `'reset'`.
-Helpers for scenes: `engine/decals.js` (`makeDropDecal('SELL')`, `makeCashDecal()`,
-`signTexture`, `canvasTex`, `makeDecal`, `flatPlane`), `engine/geom.js` (`Parts`, `rng`).
+Helpers for scenes: `engine/decals.js` (`makeDropDecal('SELL')`, `makeCashDecal()` return art-kit zone meshes
+(put them at y 0.04), `signTexture`, `canvasTex`, `makeDecal`, `flatPlane`), `engine/geom.js` (`Parts`, `rng`);
+everything else (ground textures, scenery, counters, packs) comes from the art kit, docs/ART.md.
 
 Characters: only through `src/engine/chars.js` (`makeCharacter(look)`, `animateCharacter(char, dt,
-{ moving, speed, carrying, action })`, `LOOKS`, `randomCustomerLook()`, `makeTractor(color)`).
-Feet at the origin, faces +Z, ~1.7 tall; actions `'swing' | 'wave' | 'pickup'`. Do not touch
-character internals.
+{ moving, speed, carrying, action })`, `LOOKS`, `randomCustomerLook()`, `makeTractor()`, `lodCharacter(G, char)`,
+`onScreen(G, x, y, z)`, `addBlob(obj, r)`). They are the art kit's animated pack characters (docs/ART.md section 3):
+feet at the origin, faces +Z, ~1.65 tall; actions `'swing' | 'wave'` (`'pickup'` is ignored); `char.userData.hands.left /
+.right`, `.front`, `.back`, `.head` are anchors for held items. A look is `{ model, tool: null | 'scythe' | 'bucket' |
+'basket', scale, hat?: 'straw' | 'cap' }`, a `LOOKS` key, or a model name (`'female-b'`). `world.looks` overrides
+`LOOKS.player` / `hauler` / `cashier` (any extra key becomes a named look) and `looks.customers` (list of looks or
+model names) narrows the customer pool. `makeCharacter` attaches a blob shadow automatically. Skinned meshes are never
+frustum-culled: workers call `lodCharacter` (hidden + not animated outside the view), shop customers are hidden when
+off-screen, and a hidden vehicle skips drawing its stack. Do not touch character internals.
+
+The harvester vehicle comes from `world.workers.harvester.model(color)`, else `chars.makeTractor()` (the pack tractor,
+colour ignored). Its Object3D carries `userData { wheels: [], blade, bedAnchor, bob, blobLength, blobOffset }`; the
+pack tractor has no separate wheels, so the role bounces it (`bob`) instead of spinning wheels.
+
+Purchase pads are drawn by `pads.js` (rounded dark glass square, glowing cyan-white dashed outline, label, banknote +
+price, rising green fill with a bright waterline, pulse when affordable). Money is the art kit's chunky bundle at a
+lower triangle count (`items.js`).
+
+How to build a world scene (checklist): list `assets` and `looks` in world.js; in `createScene(G)` add a ground
+(`makeGround('grass'|'tile'|..., w, d)`), merge static scenery into a few chunk meshes (`Parts.model(id, opts)` merges pack
+models; `meshOf(parts.merged({ ao }))`), use `makeZone` / `makeDropDecal` for markings, counters from `makeCounter`, show
+station furniture in `G.stations.onOpen(id, fn)` and pad results in `G.pads.onDone(id, fn)`; build every model for a
+station item as an item geometry (bottom-centre origin, long axis X) and keep it under ~300 triangles; `addBlob` for
+animals and vehicles; keep shadows off for large merged hedges / small ground clutter (`meshOf(g, { cast: false })`).
 
 HUD hooks for UI work: `G.hud.showWin({time, earned, next})` shows `#win` and, if the page has
 `#win-next` (+ optional `#win-next-name`), shows it when `next` is set and travels on click;
@@ -429,8 +459,10 @@ await page.addInitScript(() => {
   string building in `update`. `fx.fly` options are copied, so one reusable object per call site.
 - **Performance budget**: ~150 draw calls and 250k triangles per view including the shadow pass.
   Merge static scenery (`Parts` -> one mesh), use InstancedMesh for anything repeated, set
-  `boundingSphere`s on big instanced meshes so they cull. Today's flower mid-game: ~300 calls,
-  ~245k triangles (the code-built characters are most of the calls; the GLB swap reduces them).
+  `boundingSphere`s on big instanced meshes so they cull. Flower world with every plot unlocked and every
+  worker hired: ~110 calls / ~245k triangles near a plot, ~50 calls / ~135k at the crossroads (measure with
+  `G.renderer.info.render`). Costs: characters (1 call and ~800 triangles each per pass), flower beds (143 plants
+  x ~130 triangles x 2 passes), bouquet stacks (~230 triangles each).
 - Pads sit 3 cm above the ground (`PAD.lift`); keep ground dressing under 6 cm where pads go.
 - `station.update` runs while inactive; return early. `restore()` runs before `activate()`.
 - The `'sale'` payload object is reused; copy what you need.

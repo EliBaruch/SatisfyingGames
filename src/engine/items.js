@@ -6,8 +6,8 @@ import { Parts } from './art/parts.js';
 
 /**
  * The art kit's chunky cash bundle (CASH size: 0.62 x 0.16 x 0.38, banded green layers, paper band, printed
- * top note) rebuilt with fewer triangles: the original is 884 triangles and the pile on a counter draws up to
- * 40 of them per shop (about 300 here), still bevelled and baked-AO shaded.
+ * top note) rebuilt with fewer triangles: the original is 884 triangles and a pile on a counter draws up to
+ * 36 of them (about 330 here: 3 bevelled boxes), still baked-AO shaded.
  */
 function makeCashBundle() {
   const { len, h, d } = CASH;
