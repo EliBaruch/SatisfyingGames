@@ -69,11 +69,13 @@ export function createStack(G, opts = {}) {
     capacity: Math.max(0, opts.capacity | 0),
     /** items flying toward this stack (they count against room) */
     incoming: 0,
+    /** { kind: n } of the items in `incoming` (kept by transfer.flyToStack) */
+    inbound: {},
     items,
     root,
     get count() { return items.length; },
     get room() { return Math.max(0, this.capacity - items.length - this.incoming); },
-    push, pop, popWhere, countWhere, has, topWorld, setCapacity, clear, update, dispose,
+    push, pop, popWhere, countWhere, has, topWorld, setCapacity, clear, update, dispose, snapshot,
   };
 
   function neededCap() { return Math.max(8, stack.capacity, items.length + 1); }
@@ -170,6 +172,14 @@ export function createStack(G, opts = {}) {
   }
 
   function clear() { items.length = 0; dirty = true; }
+
+  /** Carried items plus the ones still flying in (for saves: nothing in the air is lost). */
+  function snapshot() {
+    const out = items.slice();
+    const ib = stack.inbound;
+    for (const k in ib) for (let i = 0; i < ib[k]; i++) out.push(k);
+    return out;
+  }
 
   function setCapacity(n) {
     stack.capacity = Math.max(0, n | 0);

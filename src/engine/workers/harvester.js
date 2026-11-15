@@ -10,7 +10,7 @@ import { registerWorkerRole } from '../registry.js';
 import { makeTractor, addBlob, onScreen } from '../chars.js';
 import { createStack } from '../stack.js';
 import { flyToStack, flyToDrop } from '../transfer.js';
-import { wrapAngle, roleConfig, playAt, soundOpts, pt } from './common.js';
+import { wrapAngle, roleConfig, playAt, soundOpts, pt, num, r3, refill } from './common.js';
 
 const TURN = 2.5;        // steering, rad/s
 const REACH = 1.6;       // harvest bar distance in front of the vehicle
@@ -53,6 +53,17 @@ function createHarvester(G, hire, team, live) {
     pi: 0, pc: 0, bestD: Infinity, stage: 0, vx: 0, vz: 0, rx: 0, rz: 0,
     unloadT: 0, sndT: 0, snd: soundOpts(),
     update,
+    /** save: the load (incl. items still flying in) and where the vehicle is */
+    serialize() { return { items: stack.snapshot(), x: r3(t.x), z: r3(t.z), h: r3(t.h) }; },
+    restore(d) {
+      if (!d || typeof d !== 'object') return;
+      t.x = num(d.x, t.x); t.z = num(d.z, t.z); t.h = num(d.h, t.h);
+      refill(stack, d.items);
+      t.spd = 0;
+      if (stack.count > 0) { t.passDone = true; startDrop(); } else { t.state = 'wait'; t.wait = 0; }
+      group.position.set(t.x, 0, t.z);
+      group.rotation.y = t.h;
+    },
   };
   group.position.set(t.x, 0, t.z);
   group.rotation.y = t.h;

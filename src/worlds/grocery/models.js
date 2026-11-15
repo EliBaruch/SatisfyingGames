@@ -21,8 +21,9 @@ export function makeCrateGeometry(kind) {
   const P = PRODUCTS[kind];
   const w = 0.62, d = 0.42, h = 0.26;
   const b = new Parts();
-  if (kind === 'drinks') b.box(P.crate, w, h, d, [0, h / 2, 0]); else b.rbox(P.crate, w, h, d, 0.06, [0, h / 2, 0], null, null, 1);
-  b.box(P.rim, w + 0.02, 0.05, d + 0.02, [0, h - 0.02, 0]);
+  // sharp-edged tray (24 triangles with the rim) so the goods stay under ~300 triangles per crate
+  b.box(P.crate, w, h, d, [0, h / 2, 0]);
+  b.box(P.rim, w + 0.03, 0.05, d + 0.03, [0, h - 0.02, 0]);
   const top = h - 0.02;
   if (kind === 'produce') {
     b.model('food-kit/paprika', { pos: [-0.14, top, 0.0], height: 0.28 });
@@ -33,7 +34,9 @@ export function makeCrateGeometry(kind) {
   } else if (kind === 'milk') {
     for (let i = 0; i < 3; i++) b.model('food-kit/carton-small', { pos: [-0.19 + i * 0.19, top, 0.0], height: 0.36 });
   } else {
-    for (let i = 0; i < 2; i++) b.model('food-kit/soda-can', { pos: [-0.14 + i * 0.28, top, 0.0], height: 0.32 });
+    b.model('food-kit/soda-can', { pos: [-0.17, top, 0.0], height: 0.34 });
+    b.cyl(0xffffff, 0.085, 0.085, 0.3, [0.02, top + 0.15, 0.06], null, 7);
+    b.cyl(0x6ad0ff, 0.085, 0.085, 0.3, [0.2, top + 0.15, -0.04], null, 7);
   }
   const g = b.merged({ ao: { ground: 0.12, groundH: 0.12, down: 0.08, noBoxes: true } });
   g.scale(K, K, K);

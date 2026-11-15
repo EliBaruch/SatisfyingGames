@@ -181,14 +181,42 @@ export default {
     PLOTS.forEach((p, i) => {
       stations['shop-' + p.key] = { stock: Math.floor(num(stock[i])), value: Math.floor(num(stock[i])) * FLOWERS[i].price, cash: num(cash[i]) };
     });
+    // v2 moved GIFT WRAP (price1) to the end of the sunflower chain (after tractor2): a v1 save
+    // that bought it early must not skip the farm. Drop it (refunding its v1 price) unless
+    // tractor2 is bought too; then drop any pad whose `requires` are not all bought (refunding
+    // its price), and any partial payment on a pad that is not reachable yet.
+    let refund = 0;
+    const done = {};
+    if (old.done && typeof old.done === 'object') for (const id of Object.keys(old.done)) if (old.done[id] === true) done[id] = true;
+    if (done.price1 && !done.tractor2) { delete done.price1; refund += 3000; }
+    const pads = (this && Array.isArray(this.pads)) ? this.pads : [];
+    const byId = new Map(pads.map((p) => [p.id, p]));
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const id of Object.keys(done)) {
+        const p = byId.get(id);
+        if (!p || (p.requires || []).every((r) => done[r])) continue;
+        delete done[id];
+        refund += num(p.cost);
+        changed = true;
+      }
+    }
+    const paid = {};
+    if (old.paid && typeof old.paid === 'object') {
+      for (const id of Object.keys(old.paid)) {
+        const p = byId.get(id), v = num(old.paid[id]);
+        if (!v || done[id]) continue;
+        if (p && (p.requires || []).every((r) => done[r])) paid[id] = v; else refund += v;
+      }
+    }
     return {
       // the orchid farm is gone: its counter cash goes to the wallet
-      money: num(old.money) + num(cash[3]),
+      money: num(old.money) + num(cash[3]) + refund,
       earned: num(old.earned),
       playTime: num(old.playTime),
-      won: old.won === true,
-      done: old.done || {},
-      paid: old.paid || {},
+      won: old.won === true && !(old.done && old.done.greenhouse === true && !done.greenhouse),
+      done,
+      paid,
       player: old.player,
       carried: (Array.isArray(old.carried) ? old.carried : []).map((i) => KINDS[i]).filter((k) => k && k !== 'orchid'),
       stations,

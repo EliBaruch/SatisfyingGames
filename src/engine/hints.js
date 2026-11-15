@@ -223,6 +223,12 @@ export function createHints(G) {
   }
 
   let hintT = 0;
+  // a purchase changes the goal at once (the bought pad's "Buy: X" must not linger)
+  G.events.on('unlock', () => {
+    hintT = 0.25;
+    try { compute(); } catch (err) { console.error('[hints] failed:', err); }
+    if (G.hud) G.hud.setGoal(hint.text);
+  });
   return {
     /** current goal: { kind, text, has, x, z, target } (read-only) */
     current: hint,

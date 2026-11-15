@@ -268,7 +268,10 @@ export function createStore(G, o) {
 // ------------------------------------------------------------ capabilities
 /**
  * Standard pickup capability on a store. `o.onTake(kind)` is called after each take.
- * take(accept): topmost item `accept` accepts (null = any); has(pred); count(kind).
+ * take(accept): topmost item `accept` accepts (null = any); has(pred); count(kind);
+ * accepts(kind): the store holds this kind. Handing an item back: backRoom(kind) (Infinity for an
+ * infinite store, which just absorbs it), expectBack(kind) when it starts flying, giveBack(kind)
+ * when it lands (counted in saves while in flight, like any arriving item).
  */
 export function pickupCap(store, zone, o = {}) {
   return {
@@ -284,6 +287,10 @@ export function pickupCap(store, zone, o = {}) {
     },
     has(pred) { return store.has(pred || null); },
     count(kind) { return store.countOf(kind); },
+    accepts(kind) { return store.accepts(kind); },
+    backRoom(kind) { return store.infinite ? (store.accepts(kind) ? Infinity : 0) : store.roomFor(kind); },
+    expectBack(kind) { if (!store.infinite) store.expect(kind); },
+    giveBack(kind) { return store.infinite ? store.accepts(kind) : store.give(kind); },
     from(out) { return store.topWorld(out); },
   };
 }
@@ -314,7 +321,7 @@ export function createCashPile(G, pileDef, opts = {}) {
   const pile = { x: pileDef.x, z: pileDef.z, r: pileDef.r ?? 1.5 };
   const cashIt = getItem('cash');
   const BILL = { step: cashIt ? cashIt.step : 0.12 };
-  const maxBills = opts.maxBills || 72;
+  const maxBills = Math.min(36, opts.maxBills || 36);   // like the shop's own pile (perf budget)
   const px = new Float32Array(maxBills), py = new Float32Array(maxBills), pz = new Float32Array(maxBills), pyaw = new Float32Array(maxBills);
   const per = PILE_COLS * PILE_ROWS;
   for (let i = 0; i < maxBills; i++) {
@@ -390,7 +397,7 @@ export function createCashPile(G, pileDef, opts = {}) {
       if (mesh) { mesh.visible = true; return; }
       mesh = new THREE.InstancedMesh(itemGeometry('cash'), itemMaterial('cash'), maxBills);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      mesh.castShadow = true;
+      mesh.castShadow = false;     // flat bills on the ground: a shadow pass per pile is not worth it
       mesh.count = 0;
       mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(pile.x, 0.6, pile.z), 2.4);
       for (let i = 0; i < maxBills; i++) write(i, 1);

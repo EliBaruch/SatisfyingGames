@@ -46,7 +46,7 @@ export const SHOPPERS = {
   entrance: null,        // [{x, z}, ...] required: first point = where shoppers appear
   exit: null,            // [{x, z}, ...] required: last point = where they vanish
   lodShow: 27,           // not drawn further than this from the player
-  lodShadow: 19,         // no shadow further than this
+  lodShadow: 0,          // real (shadow-map) shadows within this distance; 0 = never (they have blob shadows)
 };
 
 const OFF = 0, ENTER = 1, WALK = 2, BROWSE = 3, QUEUE = 4, LEAVE = 5;
@@ -85,15 +85,16 @@ function buildMeshes(G, P) {
   b.box(0x3a3a44, 0.03, 0.15, 0.03, [0, 0.28, 0.15]);
   b.box(0x3a3a44, 0.03, 0.15, 0.03, [0, 0.28, -0.15]);
   P.basketMesh = new THREE.InstancedMesh(b.merged(), getSharedMaterial(), n);
+  // the basket's contents: a box scaled by fill, two low-poly fruits on top (52 triangles)
   const f = new Parts();
   f.box(0xffe08a, 0.36, 1, 0.24, [0, 0.5, 0]);
-  f.sph(0x9be36a, 0.08, [0.1, 1.0, 0.04]);
-  f.sph(0xff8a5c, 0.08, [-0.08, 1.0, -0.03]);
+  f.ico(0x9be36a, 0.08, [0.1, 1.0, 0.04]);
+  f.ico(0xff8a5c, 0.08, [-0.08, 1.0, -0.03]);
   P.fillMesh = new THREE.InstancedMesh(f.merged(), getSharedMaterial(), n);
   for (const m of [P.basketMesh, P.fillMesh]) {
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.frustumCulled = false;
-    m.castShadow = true;
+    m.castShadow = P.cfg.lodShadow > 0;
     m.count = 0;
     G.scene.add(m);
   }
@@ -104,10 +105,12 @@ function makeShopper(G, P, id) {
   const meshes = [];
   char.traverse((o) => { if (o.isMesh) meshes.push(o); });
   char.visible = false;
+  const shadow = P.cfg.lodShadow > 0;
+  if (!shadow) for (const m of meshes) m.castShadow = false;
   G.scene.add(char);
   const cap = P.cfg.basket;
   return {
-    id, char, meshes, base: char.scale.x || 1, shadow: true,
+    id, char, meshes, base: char.scale.x || 1, shadow,
     state: OFF, x: 0, z: 0, yaw: 0, spd: 0, t: 0, life: 0, hidden: false,
     legA: null, legB: null, legC: null, leg: 0, i: 0, fx: 0, fz: 0,
     shelf: null, visits: 0, want: 0, got: 0, takeT: 0, pauseT: 0, visited: 0,

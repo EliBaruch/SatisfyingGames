@@ -15,7 +15,7 @@ import * as THREE from 'three';
 import * as chars from '../chars.js';
 import { createStack } from '../stack.js';
 import { flyToStack, flyToDrop } from '../transfer.js';
-import { turnToward, roleConfig, playAt, soundOpts, pt } from './common.js';
+import { turnToward, roleConfig, playAt, soundOpts, pt, num, r3, refill } from './common.js';
 
 const TURN_RATE = 12;
 const ARRIVE = 0.15;
@@ -43,6 +43,16 @@ export function createMultiHauler(G, hire, team, live) {
     snd: soundOpts(),
     anim: { moving: false, speed: 1, carrying: false, action: null },
     update,
+    /** save: carried items (incl. those still flying in) and where it stands */
+    serialize() { return { items: stack.snapshot(), x: r3(w.x), z: r3(w.z), face: r3(w.face) }; },
+    restore(d) {
+      if (!d || typeof d !== 'object') return;
+      w.x = num(d.x, w.x); w.z = num(d.z, w.z); w.face = num(d.face, w.face);
+      refill(stack, d.items);
+      w.state = 'decide'; w.src = null; w.dst = null; w.last = null;
+      group.position.set(w.x, 0, w.z);
+      group.rotation.y = w.face;
+    },
   };
   group.position.set(w.x, 0, w.z);
   G.scene.add(group);

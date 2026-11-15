@@ -8,12 +8,12 @@ import * as THREE from 'three';
 import { Parts as ArtParts, meshOf } from '../../engine/art/parts.js';
 import { litMaterial } from '../../engine/art/material.js';
 import { makeGround } from '../../engine/art/props.js';
-import { getModel } from '../../engine/art/assets.js';
+import { getModel, getMesh } from '../../engine/art/assets.js';
 import { rng } from '../../engine/geom.js';
 import { addBlob, lodCharacter } from '../../engine/chars.js';
 import { canvasTex, roundRect as rr, signTexture, makeDropDecal, makeCashDecal } from '../../engine/decals.js';
 import { makeZone } from '../../engine/art/props.js';
-import { COLORS, makeStandCounter, makePackerMachine, makeTroughModel, makeHenHouse, makeMonument, makeGateArch } from './models.js';
+import { COLORS, makeStandCounter, makePackerMachine, makeTroughModel, makeHenHouse, makeMonument, makeSparkles, makeGateArch } from './models.js';
 
 class Parts extends ArtParts {
   rbox(c, w, h, d, r, pos, rot, scl, seg = 1) { return super.rbox(c, w, h, d, r, pos, rot, scl, seg); }
@@ -93,8 +93,16 @@ export function createScene(G) {
   // ------------------------------------------------------------------ road --
   {
     const rw = R.maxX - R.minX, rl = R.maxZ - R.minZ, cx = (R.minX + R.maxX) / 2, cz = (R.minZ + R.maxZ) / 2;
-    const asphalt = makeGround('paving', rw, rl, { color: 0x8c93a1, tile: 5, seed: 8, y: 0.02 });
-    asphalt.position.set(cx, 0.02, cz); asphalt.matrixAutoUpdate = false; asphalt.updateMatrix(); root.add(asphalt);
+    const at = canvasTex(256, 256, (ctx, w, h) => {
+      ctx.fillStyle = '#6f7684'; ctx.fillRect(0, 0, w, h);
+      const r = rng(3);
+      for (let i = 0; i < 1400; i++) { const v = (r() * 40) | 0; ctx.fillStyle = `rgba(${130 + v},${135 + v},${145 + v},0.35)`; ctx.fillRect(r() * w, r() * h, 2 + r() * 3, 2 + r() * 3); }
+      for (let i = 0; i < 12; i++) { ctx.strokeStyle = 'rgba(40,44,54,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); const x = r() * w, y = r() * h; ctx.moveTo(x, y); ctx.lineTo(x + (r() - 0.5) * 60, y + (r() - 0.5) * 60); ctx.stroke(); }
+    }, { repeat: true });
+    at.repeat.set(rw / 6, rl / 6);
+    const asphalt = new THREE.Mesh(new THREE.PlaneGeometry(rw, rl), litMaterial({ map: at }));
+    asphalt.rotation.x = -Math.PI / 2; asphalt.position.set(cx, 0.02, cz); asphalt.receiveShadow = true;
+    asphalt.matrixAutoUpdate = false; asphalt.updateMatrix(); root.add(asphalt);
     // sidewalk strips (customers walk here)
     for (const [x0, x1] of [[R.minX, R.minX + 1.9], [R.maxX - 2.9, R.maxX]]) {
       const s = makeGround('paving', x1 - x0, rl, { color: 0xeadfc2, tile: 4, seed: 9, y: 0.03 });
@@ -147,20 +155,20 @@ export function createScene(G) {
   packModel('farmbuildings/Silo', 54, -8, { scale: 1.3, r: 3.5 });
   packModel('farmbuildings/Windmill', 52, 62, { scale: 1.5, r: 5 });
   // tractor parked by the barn
-  chunk(-13, 21).model('car-kit/tractor', { pos: [-13, 0, 21], rot: [0, 0.6, 0], ao: AO });
+  wildChunk(-13, 21).model('car-kit/tractor', { pos: [-13, 0, 21], rot: [0, 0.6, 0], ao: AO });
   exclusions.push({ x: -13, z: 21, r: 3 });
   // crop rows and corn
   for (let i = 0; i < 4; i++) {
-    chunk(-14 + i * 2.2, 6).model('nature-kit/crops_wheatStageA', { pos: [-14 + i * 2.2, 0, 6], rot: [0, FACE_CAMERA, 0], scale: 1.6 });
-    chunk(-14 + i * 2.2, 3).model('nature-kit/crops_wheatStageA', { pos: [-14 + i * 2.2, 0, 3], rot: [0, FACE_CAMERA, 0], scale: 1.6 });
+    wildChunk(-14 + i * 2.2, 6).model('nature-kit/crops_wheatStageA', { pos: [-14 + i * 2.2, 0, 6], rot: [0, FACE_CAMERA, 0], scale: 1.6 });
+    wildChunk(-14 + i * 2.2, 3).model('nature-kit/crops_wheatStageA', { pos: [-14 + i * 2.2, 0, 3], rot: [0, FACE_CAMERA, 0], scale: 1.6 });
   }
   exclusions.push({ x: -8, z: 5, r: 8 });
-  for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) chunk(46 + j * 1.6, -2 + i * 1.5).model('nature-kit/crops_cornStageD', { pos: [46 + j * 1.6, 0, -2 + i * 1.5], scale: 1.2 });
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) wildChunk(46 + j * 1.6, -2 + i * 1.5).model('nature-kit/crops_cornStageD', { pos: [46 + j * 1.6, 0, -2 + i * 1.5], scale: 1.2 });
   exclusions.push({ x: 47, z: 1, r: 6 });
 
   // hay bales
   for (const [x, z] of [[-9, 26], [-10.5, 24.5], [-7.4, 24.2], [48, 36], [49.6, 35]]) {
-    const tp = chunk(x, z);
+    const tp = wildChunk(x, z);
     tp.rcyl(0xe8c25a, 0.62, 0.9, 0.12, [x, 0.62, z], [Math.PI / 2, 0.3, 0], 18);
     tp.rcyl(0xe0b648, 0.55, 0.92, 0.12, [x + 1.3, 0.55, z + 0.2], [Math.PI / 2, 0.1, 0], 18);
   }
@@ -178,10 +186,10 @@ export function createScene(G) {
     const BUSH = [['nature-kit/plant_bush', 1.5], ['nature-kit/plant_bushLarge', 1.7], ['nature-kit/plant_bushDetailed', 1.9]];
     const bush = (x, z, s = 1) => {
       const b = BUSH[(rnd() * 3) | 0]; const sc = (0.8 + rnd() * 0.5) * s;
-      chunk(x, z).model(b[0], { width: b[1], pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], ao: { ground: 0.2, groundH: 0.3, down: 0.1, noBoxes: true } });
+      wildChunk(x, z).model(b[0], { width: b[1], pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], ao: { ground: 0.2, groundH: 0.3, down: 0.1, noBoxes: true } });
     };
     const ROCKS = [['nature-kit/rock_largeA', 1.7], ['nature-kit/rock_smallA', 0.9], ['nature-kit/rock_smallD', 1.0], ['nature-kit/rock_tallA', 1.6]];
-    const rock = (x, z) => { const k = ROCKS[(rnd() * ROCKS.length) | 0]; const sc = 0.7 + rnd() * 0.6; chunk(x, z).model(k[0], { width: k[1], pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], ao: { ground: 0.15, groundH: 0.25, down: 0.05, noBoxes: true } }); };
+    const rock = (x, z) => { const k = ROCKS[(rnd() * ROCKS.length) | 0]; const sc = 0.7 + rnd() * 0.6; wildChunk(x, z).model(k[0], { width: k[1], pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], ao: { ground: 0.15, groundH: 0.25, down: 0.05, noBoxes: true } }); };
     const WILD = ['nature-kit/flower_redA', 'nature-kit/flower_yellowA', 'nature-kit/flower_purpleA'];
     const wild = (x, z) => { const sc = 0.9 + rnd() * 0.6; wildChunk(x, z).model(WILD[(rnd() * 3) | 0], { height: 0.6, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc] }); };
     const step = 6.5;
@@ -218,7 +226,7 @@ export function createScene(G) {
   // road dressing: lamp posts, bale of signs
   {
     const lamp = (x, z) => {
-      const tp = chunk(x, z);
+      const tp = wildChunk(x, z);
       tp.rcyl(0x4a5060, 0.16, 0.14, 0.04, [x, 0.07, z], null, 12);
       tp.cyl(0x4a5060, 0.06, 0.08, 2.6, [x, 1.4, z], null, 10);
       tp.sph(0xfff0a8, 0.26, [x, 2.85, z], null, null, 14, 10);
@@ -316,17 +324,12 @@ export function createScene(G) {
     const OB_A = [{ minX: 4.8, maxX: 8.8, minZ: 17.2, maxZ: 21.6 }, { minX: -5.2, maxX: -1.6, minZ: 18.6, maxZ: 22 }, { minX: 0.2, maxX: 3.8, minZ: 16.4, maxZ: 18 }];
     const dz = PB.minZ - PA.minZ;
     const shift = (r) => ({ minX: r.minX, maxX: r.maxX, minZ: r.minZ + dz, maxZ: r.maxZ + dz });
-    const bandsA = [{ minX: -5.4, maxX: 9.3, minZ: 14.8, maxZ: 21.2 }, { minX: -5.4, maxX: 9.3, minZ: 6.2, maxZ: 8.0 }];
+    const bandsA = [{ minX: -5.4, maxX: 9.3, minZ: 14.8, maxZ: 21.2 }, { minX: -5.4, maxX: 9.3, minZ: 6.2, maxZ: 8.0 }, { minX: 4.9, maxX: 9.3, minZ: 6.2, maxZ: 16.4 }];
     const mkHen = (bands, obst, seed, home) => {
-      const g = getModel('cube-pets/animal-chick', { scale: 1.45, receive: true });
-      const inst = g.userData.instance, clips = g.userData.clips || [];
+      const g = getMesh('cube-pets/animal-chick', { scale: 1.75 });
+      g.castShadow = false;
       const holder = new THREE.Group(); holder.add(g);
-      const h = { g: holder, mixer: null, act: {}, bands, obst, band: bands[seed % bands.length], x: 0, z: 0, tx: 0, tz: 0, state: 'idle', t: Math.random() * 3, acc: 0, peck: 0, rnd: rng(100 + seed), hop: 0, yaw: 0, home };
-      if (inst) {
-        h.mixer = new THREE.AnimationMixer(inst);
-        for (const n of ['idle', 'walk']) { const c = clips.find((k) => k.name === n); if (c) { h.act[n] = h.mixer.clipAction(c); h.act[n].play(); h.act[n].setEffectiveWeight(n === 'idle' ? 1 : 0); } }
-        h.mixer.update(Math.random());
-      }
+      const h = { g: holder, body: g, mixer: null, act: {}, bands, obst, band: bands[seed % bands.length], x: 0, z: 0, tx: 0, tz: 0, state: 'idle', t: Math.random() * 3, acc: 0, peck: 0, rnd: rng(100 + seed), hop: 0, yaw: 0, home, ph: Math.random() * 6 };
       const inObst = (x, z) => { for (const o of obst) if (x > o.minX - 0.5 && x < o.maxX + 0.5 && z > o.minZ - 0.5 && z < o.maxZ + 0.5) return true; return false; };
       h.inObst = inObst;
       h.pick = () => {
@@ -340,14 +343,14 @@ export function createScene(G) {
       };
       for (let k = 0; k < 20; k++) { h.x = h.band.minX + h.rnd() * (h.band.maxX - h.band.minX); h.z = h.band.minZ + h.rnd() * (h.band.maxZ - h.band.minZ); if (!inObst(h.x, h.z)) break; }
       holder.position.set(h.x, 0, h.z);
-      addBlob(holder, 0.55);
+      addBlob(holder, 0.7);
       root.add(holder);
       hens.push(h);
       return h;
     };
-    for (let i = 0; i < 6; i++) mkHen(bandsA, OB_A, i, 'A');
+    for (let i = 0; i < 9; i++) mkHen(bandsA, OB_A, i, 'A');
     const bandsB = bandsA.map(shift), obB = OB_A.map(shift);
-    for (let i = 0; i < 3; i++) { const h = mkHen(bandsB, obB, 10 + i, 'B'); h.g.visible = false; h.off = true; }
+    for (let i = 0; i < 4; i++) { const h = mkHen(bandsB, obB, 9 + i, 'B'); h.g.visible = false; h.off = true; }
   }
   const henStep = (h, dt) => {
     if (h.off) return;
@@ -372,7 +375,9 @@ export function createScene(G) {
     holder.rotation.y += d * Math.min(1, dt * 10);
     holder.rotation.x = h.state === 'peck' ? 0.28 + Math.abs(Math.sin(h.peck)) * 0.35 : 0;
     const walk = h.state === 'walk';
-    if (h.act.walk) { h.act.walk.setEffectiveWeight(walk ? 1 : 0); h.act.idle.setEffectiveWeight(walk ? 0 : 1); }
+    h.ph += dt * (walk ? 15 : 2);
+    h.body.rotation.z = walk ? Math.sin(h.ph) * 0.14 : Math.sin(h.ph) * 0.02;
+    h.body.position.y = walk ? Math.abs(Math.sin(h.ph)) * 0.07 : 0;
   };
   const happy2 = (h) => (h.home === 'A' ? trough : trough2).boosting;
 
@@ -546,12 +551,13 @@ export function createScene(G) {
   const monument = new THREE.Group();
   monument.add(meshOf(makeMonument(), { receive: true }));
   monument.position.set(MON.x, 0, MON.z); monument.visible = false; root.add(monument);
+  const sparkles = meshOf(makeSparkles(), { cast: false }); sparkles.position.set(MON.x, 0, MON.z); sparkles.visible = false; root.add(sparkles);
   let monBuilt = false;
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(7, 40), new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.0, depthWrite: false }));
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(9, 40), new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.0, depthWrite: false }));
   glow.rotation.x = -Math.PI / 2; glow.position.set(MON.x, 0.05, MON.z); root.add(glow);
   const showMonument = (animate) => {
     if (monBuilt) return;
-    monBuilt = true; site.visible = false; monument.visible = true; glow.userData.on = true;
+    monBuilt = true; site.visible = false; monument.visible = true; sparkles.visible = true; glow.userData.on = true;
     if (animate) popIn(monument, 0.1);
   };
 
@@ -569,12 +575,147 @@ export function createScene(G) {
   // ------------------------------------------------------------ cows & pig ---
   const critters = [];
   for (const [id, x, z, yaw] of [['cube-pets/animal-cow', -11, 42, 2.4], ['cube-pets/animal-cow', -9.5, 44.5, 4.0], ['cube-pets/animal-pig', -12, 46, 1.0], ['cube-pets/animal-cow', 49, 20, 0.6]]) {
-    const g = getModel(id, { scale: 3.0, receive: true });
+    const g = getMesh(id, { scale: 3.0 }); g.castShadow = false;
     const holder = new THREE.Group(); holder.add(g); place(holder, x, z, yaw); addBlob(holder, 0.9); root.add(holder);
-    const inst = g.userData.instance, clip = (g.userData.clips || []).find((k) => k.name === 'idle');
-    let mixer = null;
-    if (inst && clip) { mixer = new THREE.AnimationMixer(inst); mixer.clipAction(clip).play(); mixer.update(Math.random() * 2); }
+    const mixer = null;
     critters.push({ holder, mixer, acc: 0 });
+  }
+
+
+  // ------------------------------------------------------------- farmyard dressing ---
+  // straw paths, flower beds, crates, sacks, signs, a pond and a vegetable patch: all merged into two meshes
+  {
+    const hi = new Parts(), lo = new Parts();
+    const rnd = rng(4242);
+    const zones = [];
+    for (const st of G.stations.list) {
+      const p = st.pickup && st.pickup.zone, d = st.drop && st.drop.zone;
+      if (p) zones.push(p); if (d) zones.push(d);
+      if (st.cash && st.cash.pile) zones.push(st.cash.pile);
+    }
+    const free = (x, z, r) => {
+      for (const p of PADV) if (Math.hypot(x - p.x, z - p.z) < r + 1.9) return false;
+      for (const q of zones) if (Math.hypot(x - q.x, z - q.z) < r + (q.r || 1.5) + 0.2) return false;
+      return true;
+    };
+    // straw path: a flat bed of straw with scattered strands
+    const path = (cx, cz, w, d, yaw = 0) => {
+      lo.rbox(0xe7c46f, w, 0.03, d, 0.012, [cx, 0.028, cz], [0, yaw, 0], null, 1);
+      const cs = Math.cos(yaw), sn = Math.sin(yaw);
+      for (let i = 0; i < w * d * 1.3; i++) {
+        const lx = (rnd() - 0.5) * (w - 0.3), lz = (rnd() - 0.5) * (d - 0.3);
+        lo.rbox([0xf6dc8a, 0xd9a94a, 0xfff0b0][i % 3], 0.5, 0.012, 0.06, 0.004, [cx + lx * cs + lz * sn, 0.05, cz - lx * sn + lz * cs], [0, rnd() * 3.14, 0], null, 1);
+      }
+    };
+    path(12.0, 9.8, 5.0, 3.0);         // pen gate to the stand
+    path(13.8, 4.6, 2.4, 7.0);         // stand to the packer input
+    path(14.6, 6.0, 6.0, 1.6, 0);
+    path(23.2, 2.2, 3.6, 2.4);         // packer output towards the road
+    path(21.0, 7.6, 7.0, 1.8);         // stand to the truck stop
+    path(0.8, 4.3, 14, 1.8);           // pen's south gate row (pads)
+    // flower bed
+    const bed = (x, z, w, d, c1, c2) => {
+      hi.rbox(0xd2a36a, w + 0.5, 0.3, 0.3, 0.1, [x, 0.15, z - d / 2]); hi.rbox(0xd2a36a, w + 0.5, 0.3, 0.3, 0.1, [x, 0.15, z + d / 2]);
+      hi.rbox(0xd2a36a, 0.3, 0.3, d, 0.1, [x - w / 2, 0.15, z]); hi.rbox(0xd2a36a, 0.3, 0.3, d, 0.1, [x + w / 2, 0.15, z]);
+      lo.rbox(0x6e4526, w, 0.18, d, 0.06, [x, 0.1, z], null, null, 1);
+      for (let i = 0; i < Math.round(w * d * 2.2); i++) {
+        const fx = x + (rnd() - 0.5) * (w - 0.4), fz = z + (rnd() - 0.5) * (d - 0.4);
+        lo.cyl(0x3fae4a, 0.025, 0.03, 0.3, [fx, 0.3, fz], null, 4);
+        lo.sph([c1, c2, 0xffffff][i % 3], 0.14 + rnd() * 0.05, [fx, 0.5 + rnd() * 0.1, fz], null, null, 6, 4);
+      }
+    };
+    const beds = [[23.0, 18.0, 2.6, 1.5, 0xff6fa5, 0xffd23f], [13.2, 18.6, 2.8, 1.5, 0xffd23f, 0xb48cff], [-9.5, 10, 1.7, 4.2, 0xff6fa5, 0xffffff], [24.8, 13.8, 1.6, 2.6, 0xffd23f, 0xff7a59], [-9.5, 18, 1.7, 3.6, 0xb48cff, 0xffd23f], [29.5, 52, 3, 1.5, 0xffd23f, 0xff6fa5]];
+    for (const [x, z, w, d, a, b2] of beds) if (free(x, z, Math.max(w, d) / 2)) bed(x, z, w, d, a, b2);
+    // crates, egg crates, sacks, hay
+    const crate = (x, z, eggs = false, yaw = 0) => {
+      hi.rbox(0xcfa56a, 0.95, 0.55, 0.95, 0.1, [x, 0.28, z], [0, yaw, 0]);
+      hi.rbox(0xb98448, 1.0, 0.1, 1.0, 0.05, [x, 0.58, z], [0, yaw, 0], null, 1);
+      if (eggs) for (let i = 0; i < 5; i++) hi.sph(i % 2 ? 0xfff1dc : 0xf3dcbc, 0.15, [x + (i % 3 - 1) * 0.24, 0.72, z + (i > 2 ? 0.22 : -0.12)], [1, 1.3, 1], null, 6, 5);
+    };
+    const sack = (x, z, yaw = 0, h = 1) => {
+      hi.rbox(0xecd7a6, 0.7, 0.5 * h, 0.5, 0.15, [x, 0.25 * h, z], [0, yaw, 0], null, 2);
+      hi.rbox(0x58b45a, 0.26, 0.34 * h, 0.52, 0.05, [x, 0.25 * h, z], [0, yaw, 0], null, 1);
+      hi.sph(0xecd7a6, 0.12, [x, 0.52 * h, z], [1.4, 0.6, 1], [0, yaw, 0], 6, 4);
+    };
+    const bale = (x, z, yaw = 0.3, y = 0) => { hi.rcyl(0xe8c25a, 0.62, 0.95, 0.12, [x, y + 0.62, z], [Math.PI / 2, yaw, 0], 16); hi.rcyl(0xc99a32, 0.64, 0.06, 0.02, [x, y + 0.62, z], [Math.PI / 2, yaw, 0], 16); };
+    const props = [
+      () => { crate(14.9, -0.9, true, 0.2); crate(15.0, 0.4, false, -0.1); }, [14.9, -0.2, 1.2],
+      () => { crate(19.2, -1.5, true, 0.5); }, [19.2, -1.5, 0.8],
+      () => { sack(-0.9, 21.6, 0.3); sack(-0.2, 21.2, -0.2); sack(-0.6, 21.5, 0.1, 1); }, [-0.6, 21.4, 1.2],
+      () => { sack(-6.9, 17, 1.3); sack(-6.9, 18.2, 1.4); sack(-6.8, 17.6, 1.35, 1.1); }, [-6.9, 17.6, 1.2],
+      () => { bale(11.5, 20.3, 0.3); bale(12.8, 20.6, 0.1); bale(12.1, 20.4, 0.6, 1.15); }, [12.0, 20.4, 1.6],
+      () => { crate(11.2, 14.8, true, 0.3); crate(11.3, 16.0, false, 0.1); }, [11.2, 15.4, 1.2],
+      () => { crate(-9.0, 3.2, false, 0.3); crate(-9.2, 4.4, true, 0.1); bale(-10.3, 1.4); }, [-9.5, 3, 1.5],
+      () => { crate(10.8, 24.8, false, 0.2); sack(12.0, 25.0, 0.4); }, [11.2, 24.9, 1.2],
+      () => { bale(-4.6, 24.6); bale(-3.2, 24.9, 0.2); bale(-3.9, 24.7, 0.5, 1.15); }, [-4.0, 24.7, 1.5],
+    ];
+    for (let i = 0; i < props.length; i += 2) { const [x, z, r] = props[i + 1]; if (free(x, z, r)) props[i](); }
+    // water troughs
+    const water = (x, z, yaw) => {
+      hi.rbox(0x9a6532, 2.2, 0.45, 0.8, 0.1, [x, 0.25, z], [0, yaw, 0]);
+      hi.rbox(0x5fc4f2, 1.9, 0.06, 0.5, 0.03, [x, 0.48, z], [0, yaw, 0], null, 1);
+    };
+    if (free(8.6, 14.6, 1.3)) water(8.6, 14.6, 0);
+    water(8.6, 40.4, 0);
+    // arrow signpost at the yard crossing
+    const sg = new Parts();
+    sg.rbox(0x8a5a30, 0.22, 2.6, 0.22, 0.07, [0, 1.3, 0]);
+    const arrow = (txt, y, dir, c) => { sg.rbox(c, 1.5, 0.4, 0.1, 0.06, [dir * 0.7, y, 0], null, null, 1); };
+    arrow('', 2.3, 1, 0xe5483c); arrow('', 1.7, -1, 0x2fb59a); arrow('', 1.1, 1, 0xf0a92a);
+    hi.append(sg, [11.2, 0, 14.2], [0, FACE_CAMERA + 0.1, 0]);
+    // pond (set piece) with lilies, reeds, rocks
+    const pond = { x: 18.6, z: 23.2, r: 3.2 };
+    if (free(pond.x, pond.z, pond.r)) {
+      lo.rcyl(0x9a8a6a, pond.r + 0.5, 0.2, 0.08, [pond.x, 0.1, pond.z], null, 28, [1.12, 1, 0.9]);
+      lo.rcyl(0x58bfe8, pond.r, 0.24, 0.05, [pond.x, 0.12, pond.z], null, 28, [1.12, 1, 0.9]);
+      lo.rcyl(0x86d9f7, pond.r * 0.6, 0.25, 0.05, [pond.x - 0.4, 0.13, pond.z - 0.2], null, 24, [1.1, 1, 0.8]);
+      for (let i = 0; i < 9; i++) { const a = i * 0.7, rr = (pond.r + 0.7) * (0.95 + 0.1 * Math.sin(i * 3)); hi.sph(i % 3 ? 0xb3a58a : 0x8f8570, 0.4 + 0.15 * (i % 2), [pond.x + Math.cos(a) * rr * 1.1, 0.2, pond.z + Math.sin(a) * rr * 0.9], [1.2, 0.8, 1], null, 6, 5); }
+      for (let i = 0; i < 4; i++) { const a = 1 + i * 0.5, rr = pond.r + 0.3; for (let k = 0; k < 4; k++) lo.cyl(0x4fb04a, 0.03, 0.05, 0.9 + 0.2 * k, [pond.x + Math.cos(a) * rr * 1.1 + k * 0.08, 0.5, pond.z + Math.sin(a) * rr * 0.9 + k * 0.05], [0.1 * k, 0, 0.15 * k], 4); lo.cyl(0x8a5a30, 0.08, 0.08, 0.5, [pond.x + Math.cos(a) * rr * 1.1 + 0.3, 0.9, pond.z + Math.sin(a) * rr * 0.9 + 0.2], null, 6); }
+      for (const [dx, dz, c] of [[-1.2, 0.8, 0xff9ec7], [1.4, -0.9, 0xffffff], [0.6, 1.3, 0xffd23f]]) { lo.cyl(0x3da34a, 0.4, 0.4, 0.03, [pond.x + dx, 0.27, pond.z + dz], null, 10); lo.sph(c, 0.13, [pond.x + dx + 0.05, 0.34, pond.z + dz], [1, 0.7, 1], null, 6, 4); }
+      zones.push({ x: pond.x, z: pond.z, r: pond.r + 0.8 });
+    }
+    // vegetable patch (set piece)
+    {
+      const vx = -12.5, vz = 13.5;
+      hi.rbox(0xcd8f4e, 5.6, 0.3, 0.3, 0.1, [vx, 0.15, vz - 3.4]); hi.rbox(0xcd8f4e, 5.6, 0.3, 0.3, 0.1, [vx, 0.15, vz + 3.4]);
+      hi.rbox(0xcd8f4e, 0.3, 0.3, 6.8, 0.1, [vx - 2.75, 0.15, vz]); hi.rbox(0xcd8f4e, 0.3, 0.3, 6.8, 0.1, [vx + 2.75, 0.15, vz]);
+      lo.rbox(0x6e4526, 5.4, 0.16, 6.6, 0.05, [vx, 0.09, vz], null, null, 1);
+      for (let r = 0; r < 4; r++) {
+        const x = vx - 1.9 + r * 1.27;
+        lo.rbox(0x80532e, 0.55, 0.28, 6.0, 0.2, [x, 0.2, vz], null, null, 1);
+        for (let k = 0; k < 6; k++) {
+          const z = vz - 2.5 + k * 1.0;
+          if (r % 2 === 0) { lo.sph(r === 0 ? 0x7cc65a : 0x58b45a, 0.3, [x, 0.46, z], [1, 0.8, 1], null, 7, 5); lo.sph(0xa6e07e, 0.2, [x, 0.55, z], [1, 0.7, 1], null, 6, 4); }
+          else { lo.cone(0xff8a2a, 0.12, 0.3, [x, 0.38, z], [Math.PI, 0, 0], 5); for (let q = 0; q < 3; q++) lo.cone(0x4fb04a, 0.05, 0.45, [x + (q - 1) * 0.1, 0.62, z], [0, 0, (q - 1) * 0.35], 4); }
+        }
+      }
+      // scarecrow
+      hi.rbox(0x8a5a30, 0.12, 2.0, 0.12, 0.04, [vx + 3.6, 1.0, vz - 2.4]); hi.rbox(0x8a5a30, 1.5, 0.12, 0.12, 0.04, [vx + 3.6, 1.5, vz - 2.4]);
+      hi.rbox(0x4a78c8, 0.6, 0.8, 0.3, 0.1, [vx + 3.6, 1.25, vz - 2.4]); hi.sph(0xf5d6a8, 0.24, [vx + 3.6, 1.85, vz - 2.4], null, null, 8, 6);
+      hi.rcyl(0xe8c25a, 0.36, 0.05, 0.02, [vx + 3.6, 2.05, vz - 2.4], null, 14); hi.rcyl(0xe8c25a, 0.18, 0.2, 0.05, [vx + 3.6, 2.15, vz - 2.4], null, 12);
+      exclusions.push({ x: vx, z: vz, r: 5 });
+    }
+    // duck-free fence line guiding the eye along the road side and flower tubs at the forecourt
+    for (let z = -10; z < 60; z += 3.6) {
+      if (Math.abs(z - 11) < 3.5 || (z > -5 && z < 6)) continue;
+      hi.rbox(0xa9703a, 0.18, 0.9, 0.18, 0.06, [R.minX - 0.9, 0.45, z]);
+      hi.rbox(0xd9a566, 0.08, 0.12, 3.6, 0.04, [R.minX - 0.9, 0.35, z + 1.8]); hi.rbox(0xd9a566, 0.08, 0.12, 3.6, 0.04, [R.minX - 0.9, 0.7, z + 1.8]);
+    }
+    // framing bushes and trees on the yard edges
+    const frame = [[-9.5, -4.5], [-8, -7], [-3, -7.5], [3, -8], [9, -8.5], [-11, 7], [-12, 0], [27, -9.5], [22, -9], [-8.5, 27.5], [-8, 30], [-9, 22.5], [14, 31.5], [26, 32], [30, 38], [-8, 50], [4, 52], [12, 52], [20, 50], [-5, 56]];
+    for (const [x, z] of frame) {
+      if (!free(x, z, 1.5)) continue;
+      const k = rnd();
+      const B = [['nature-kit/plant_bushLarge', 1.8], ['nature-kit/plant_bushDetailed', 2.0], ['nature-kit/plant_bush', 1.6]][(k * 3) | 0];
+      const sc = 0.9 + rnd() * 0.5;
+      wildChunk(x, z).model(B[0], { width: B[1], pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], ao: { ground: 0.2, groundH: 0.3, down: 0.1, noBoxes: true } });
+    }
+    for (const [x, z, id, h] of [[-12, -3, 'nature-kit/tree_oak', 4.4], [-13, 9, 'nature-kit/tree_fat', 4.2], [8, -10.5, 'nature-kit/tree_default', 4.6], [-6, -9, 'nature-kit/tree_small', 4.0], [-11, 27, 'nature-kit/tree_oak', 4.6], [22, -11.5, 'nature-kit/tree_fat', 4.2], [28, 30, 'nature-kit/tree_default', 4.8], [-5, 33, 'nature-kit/tree_pineTallA', 5.0]]) {
+      if (!free(x, z, 1.2)) continue;
+      chunk(x, z).model(id, { height: h, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], ao: AO });
+    }
+    addMesh(root, hi.merged({ ao: { ground: 0.18, groundH: 0.35, down: 0.05, noBoxes: true } }));
+    addMesh(root, lo.merged(), { cast: false, receive: true }).name = 'yard-low';
   }
 
   // ------------------------------------------------------------ boot state ---
@@ -608,7 +749,6 @@ export function createScene(G) {
         lodCharacter(G, h.g);
         if (!h.g.visible) continue;
         henPose(h, dt);
-        if (h.mixer) { h.acc += dt; if (doMix) { h.mixer.update(h.acc * (h.state === 'walk' ? 1.4 : 0.8)); h.acc = 0; } }
       }
       if (doMix) {
         for (const c of critters) { const p = c.holder.position; const far = !G.camera || Math.abs(p.x - G.player.pos.x) + Math.abs(p.z - G.player.pos.z) > 34; c.holder.visible = !far; if (c.mixer && !far) c.mixer.update(hensAcc.t); }
@@ -640,7 +780,7 @@ export function createScene(G) {
         }
       }
       if (glow.userData.on) glow.material.opacity = 0.16 + Math.sin(T * 2) * 0.06;
-      if (monBuilt) monument.rotation.y = Math.sin(T * 0.6) * 0.05;
+      if (monBuilt) { monument.rotation.y = Math.sin(T * 0.6) * 0.05; sparkles.rotation.y = T * 0.8; const sc = 1 + Math.sin(T * 3) * 0.08; sparkles.scale.setScalar(sc); }
     },
   };
 }

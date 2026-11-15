@@ -46,7 +46,7 @@ export default {
   },
   lighting: { variant: 'outdoor', background: 0x9fdcff },
   bounds: { minX: -22, maxX: 52, minZ: -14, maxZ: 62 },
-  player: { start: { x: 11, z: 9.5 }, speed: 6.5, capacity: 25, harvestRadius: 1.3, look: 'player' },
+  player: { start: { x: 9, z: 10.2 }, speed: 6.5, capacity: 25, harvestRadius: 1.3, look: 'player' },
 
   // regrow = seconds for a nest to lay again; regrowB for the golden nests
   stats: { regrow: 7, regrowB: 11, packSpeed: 1, packSpeedB: 1 },

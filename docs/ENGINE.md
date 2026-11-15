@@ -41,14 +41,18 @@ src/worlds/<id>/models.js     the world's model factories
 `main.js`, in order:
 
 1. `loadSave()` (v2, else migrated v1, else fresh).
-2. World id = `?world=<id>`, else `save.level`, else `'flower'`. Ids not in `worlds.js`, or worlds whose
+2. World id = `?world=<id>`, else `save.level`, else `'flower'`. A world that is not unlocked for this
+   save (`isUnlocked(id, save.meta)`) falls back to `save.level` if that is unlocked, else `flower`;
+   the dev override `?world=<id>&unlock=1` skips the check. Ids not in `worlds.js`, or worlds whose
    folder fails to import, fall back to `flower` with a `console.error` (never a page error).
 3. `import('./worlds/<id>/world.js')`, then every entry of `def.modules` (relative to world.js), then
    `scene.js` (or `def.scene`; `scene: false` = no scenery, bare ground).
 3b. Assets: `def.looks` is merged into `LOOKS`; the art kit preloads `def.assets` (model ids like
    `'farmbuildings/Barn'`) and every character model the world's looks need (player, hauler, cashier,
    customers). Progress is `G.loading` (0..1) and the `G.events` `'loading'` event; the title overlay's
-   "tap" line shows `LOADING n%` meanwhile. A missing model never blocks boot (placeholder box + one warning).
+   "tap" line shows `LOADING n%` meanwhile. A missing model never blocks boot (placeholder box + one warning),
+   and neither does a stalled one: each preload is raced against a 12 s timeout, after which the game
+   starts with the placeholder and the art kit swaps the model in if it arrives later.
 4. Normalise the def (`pads[].at` -> `pads[].pos {x,z}`), `registerItem()` each `def.items` entry.
 5. Build `G`; `G.state = sanitizeLevel(def, save.levels[id])`; `G.stats = computeStats(...)`.
 6. Create, in this order: audio (`audio.setWorld(id)`), fx, input, hud -> blob shadows (`G.blobs`) -> lights -> **stations** (+ `sync`) -> **pads** ->
@@ -146,13 +150,15 @@ Capabilities (the player, workers, hints and the bot use only these):
 | capability | fields | player behaviour |
 |---|---|---|
 | **harvest** area | `kind, bounds {minX..maxZ}, spacing, total, available, action`, `harvestAt(x, z, r, max, onItem(kind, x, z, data), data) -> n`, `hasNear(x, z, r)`, `nearest(x, z, out) -> bool` | walking through harvests within `player.harvestRadius`; MAX popup when full |
-| **pickup** zone | `zone {x, z, r}`, `take(accept|null) -> kind|null`, `from(out: Vector3) -> out`, optional `interval`, `action`, `available` | standing in the zone takes one item per `pickupInterval` while there is room |
+| **pickup** zone | `zone {x, z, r}`, `take(accept|null) -> kind|null`, `from(out: Vector3) -> out`, optional `interval`, `action`, `available`, `accepts(kind)`, `backRoom(kind)`, `expectBack(kind)`, `giveBack(kind)` | standing in the zone takes one item per `pickupInterval` while there is room, and only kinds that some other open drop zone still has room for beyond what the player already carries of that kind (a shop's room is unlimited; feed is taken only as the troughs need it). Surplus of a kind the zone holds (carried beyond what the open drop zones can take) is handed back while standing there; items no open drop zone accepts, no pickup holds and no harvest area grows are dropped |
 | **drop** zone | `zone {x, z, r}`, `accepts(kind) -> bool`, `room() -> n`, `target(out) -> out`, `expect(kind)`, `give(kind)`, optional `face {x,z}`, `workerSpot`, `vehicleSpot`, `sound` | standing in the zone unloads the topmost accepted items (a full stack in ~1.3 s) |
 | **cash** pile | `pile {x, z, r}`, `amount`, `take(max) -> n`, optional `top(out)`, `bundleValue()` | walking over it vacuums the cash in ~0.6 s with flying bills and a +$ popup |
 
 Contract for item hand-over: the giver pops the item, calls `drop.expect(kind)` at launch and
 `drop.give(kind)` on landing (`transfer.flyToDrop` does both). Items in flight toward a drop zone
-must be counted in its `serialize()` (the shop saves `pending` as stock).
+must be counted in its `serialize()` (the shop saves `pending` as stock). Items flying toward a
+stack are counted per kind in `stack.inbound`; `stack.snapshot()` (carried + inbound) is what the
+player and workers save.
 `accepts` must be a pre-built function (it is called every step); same for `onItem` callbacks.
 
 ### Built-in `source` (harvest area)
@@ -280,6 +286,12 @@ Prefer `transfer.js`: `flyToStack(G, stack, kind, x, y, z, delay)` and
 
 Config merge: `engine/config.js WORKERS[role]` < `world.workers[role]` < `effect.options`.
 
+Saving: a role may give its worker `serialize() -> data` and `restore(data)`. `G.workers.serialize()`
+stores them under `levels.<world>.workers.<hirePadId>` and each is restored right after that pad's
+worker is created at boot. The built-in carrying roles save `{ items: stack.snapshot(), x, z, ... }`:
+haulers resume delivering, a harvester drives to its drop spot, a vendor resumes its visit (its load
+is already paid for).
+
 Adding a role, in its own file listed in a world's `modules`:
 
 ```js
@@ -350,13 +362,15 @@ Key `bloomrush.save.v2`:
 { v: 2, level: 'flower',
   meta: { perks: { flower: { speedMul: 1.08, capacityAdd: 10 } }, totalEarned, playTime, finished: { flower: true } },
   levels: { flower: { money, earned, playTime, won, done: {padId: true}, paid: {padId: n},
-                      player: {x, z}, carried: ['rose', ...], stations: { 'shop-roses': { stock, value, cash } } } } }
+                      player: {x, z}, carried: ['rose', ...], stations: { 'shop-roses': { stock, value, cash } },
+                      workers: { cutter0a: { items: ['rose', ...], x, z, face } } } } }
 ```
 
 Only the current world's level is sanitised (unknown pads, stations and item kinds dropped,
 numbers validated, position clamped to bounds); other worlds and unknown top-level / meta keys are
 kept as they are. A v1 save (`bloomrush.save.v1`) becomes `levels.flower.$v1` and is converted
-by `flower.migrateV1` on the flower world's first load; the v1 key is deleted after the first v2
+by `flower.migrateV1` on the flower world's first load (pads whose `requires` are not all bought are
+dropped and refunded; `price1` moved after `tractor2` in v2); the v1 key is deleted after the first v2
 write. Saving: every 2 s, on hide/pagehide, after every unlock (`G.saveNow()`).
 
 Level flow: buying the `win` pad -> `'win'` -> `meta.finished[id] = true`, perk stored and applied
@@ -364,7 +378,8 @@ at once (`G.refresh`), confetti storm over `finale.focus`, and after 2.5 s the w
 `hud.showWin({ time, earned, next: { id, name } | null })` + `'level:won'`. `state.won` is only
 saved once the card is shown, so a reload mid-celebration shows the card on the next boot.
 The `travel` pad appears (it `requires` the win pad). `G.travel(id)` saves, sets `save.level`
-and reloads with `?world=<id>`. Switching worlds always reloads; nothing is torn down.
+and reloads with `?world=<id>`. Switching worlds always reloads; nothing is torn down. `'reset'`
+clears the save and reloads the bare path (so it lands in the first world).
 
 ## 10. Scene, characters, HUD hooks
 
@@ -422,9 +437,10 @@ HUD hooks for UI work: `G.hud.showWin({time, earned, next})` shows `#win` and, i
 
 ## 11. Testing
 
-- `?world=<id>` play a world; `?worldUrl=/dev/<you>/x/world.js` load a world from anywhere on the
+- `?world=<id>` play a world if this save has unlocked it; `?world=<id>&unlock=1` play it anyway (dev
+  and tests: a fresh save only has `flower` unlocked); `?worldUrl=/dev/<you>/x/world.js` load a world from anywhere on the
   same origin (does not change `save.level`); `?speed=N` sim speed; `?autoplay` bot.
-- `node tools/playtest.js [--world=flower] [--shots=DIR] [--until=padId]` plays a world to the win
+- `node tools/playtest.js [--world=flower] [--shots=DIR] [--until=padId]` (adds `&unlock=1`) plays a world to the win
   headlessly (page-driven: `G.timeScale = 0` and `G.step(1/60)` in batches) and prints the unlock
   timeline, gaps over 60 s, stuck events and errors.
 - Step the sim yourself: `const G = window.__game; G.timeScale = 0; for (let i = 0; i < 600; i++) G.step(1 / 60);`

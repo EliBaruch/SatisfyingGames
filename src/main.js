@@ -25,8 +25,10 @@ const params = new URLSearchParams(location.search);
 const save = loadSave();
 
 // ------------------------------------------------------------------ world
-// ?world=<id> wins over the save's level. ?worldUrl=<same-origin url of a world.js> loads a
-// world from anywhere (dev and tests only; it does not change the saved level).
+// ?world=<id> wins over the save's level, if that world is unlocked for this save (else the
+// save's level if unlocked, else the first world). Dev and tests: ?world=<id>&unlock=1 skips the
+// unlock check; ?worldUrl=<same-origin url of a world.js> loads a world from anywhere (it does not
+// change the saved level).
 async function importWorld(url) {
   const mod = await import(url.href);
   const def = mod && mod.default;
@@ -57,6 +59,12 @@ async function resolveWorld() {
   if (!worldInfo(id)) {
     console.error(`[boot] unknown world '${id}', falling back to '${GAME.defaultWorld}'`);
     id = GAME.defaultWorld;
+  }
+  if (params.get('unlock') !== '1' && !isUnlocked(id, save.meta)) {
+    const lvl = save.level;
+    const to = worldInfo(lvl) && isUnlocked(lvl, save.meta) ? lvl : GAME.defaultWorld;
+    console.warn(`[boot] world '${id}' is locked for this save; opening '${to}' (dev: add &unlock=1)`);
+    id = to;
   }
   try {
     return await importWorld(new URL(`./worlds/${id}/world.js`, import.meta.url));
@@ -159,6 +167,7 @@ if (G.audio && G.audio.setWorld) G.audio.setWorld(def.id);
 // never blocks boot (the art kit logs one warning and shows a placeholder). Progress: G.events
 // 'loading' (0..1), also shown on the title overlay's "tap" line.
 applyWorldLooks(def);
+const PRELOAD_TIMEOUT = 12000;
 async function loadAssets() {
   const ids = [...new Set(def.assets || [])];
   const chars = charactersFor(def);
@@ -172,11 +181,20 @@ async function loadAssets() {
     G.events.emit('loading', v);
     if (tap) tap.textContent = v < 1 ? `LOADING ${Math.round(v * 100)}%` : tapText;
   };
-  const track = (p) => Promise.resolve(p).catch((e) => console.warn('[boot] asset group failed:', e)).then(() => { done++; report(); });
+  // a stalled request must not hold the title on LOADING: after PRELOAD_TIMEOUT the game starts
+  // with the art kit's placeholder, which is swapped for the model if it arrives later
+  const track = (p, what) => {
+    let timer = 0;
+    const timeout = new Promise((res) => {
+      timer = setTimeout(() => { console.warn(`[boot] ${what} still loading after ${PRELOAD_TIMEOUT / 1000} s; starting with a placeholder`); res(); }, PRELOAD_TIMEOUT);
+    });
+    return Promise.race([Promise.resolve(p).catch((e) => console.warn('[boot] asset group failed:', e)), timeout])
+      .then(() => { clearTimeout(timer); done++; report(); });
+  };
   report();
   await Promise.all([
-    ...ids.map((id) => track(preload(id))),
-    ...chars.map((m) => track(preloadCharacters([m]))),
+    ...ids.map((id) => track(preload(id), id)),
+    ...chars.map((m) => track(preloadCharacters([m]), 'character ' + m)),
   ]);
   G.loading = 1;
 }
@@ -210,8 +228,9 @@ function saveNow() {
   if (noSave) return;
   const pl = G.player;
   if (pl && pl.pos) G.state.player = { x: +pl.pos.x.toFixed(3), z: +pl.pos.z.toFixed(3) };
-  if (pl && pl.stack) G.state.carried = pl.stack.items.slice();
+  if (pl && pl.stack) G.state.carried = pl.stack.snapshot ? pl.stack.snapshot() : pl.stack.items.slice();
   G.state.stations = G.stations.serialize({});
+  if (G.workers && G.workers.serialize) G.state.workers = G.workers.serialize({});
   save.levels[def.id] = G.state;
   writeSave(save);
 }
@@ -236,7 +255,7 @@ G.events.on('win', () => { if (G.audio && G.audio.play) G.audio.play('perk'); })
 G.events.on('reset', () => {
   noSave = true;
   clearSave();
-  location.reload();
+  location.href = location.pathname;   // bare path: a fresh save starts in the first world
 });
 
 G.level = createLevel(G);

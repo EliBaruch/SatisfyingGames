@@ -252,7 +252,7 @@ shoppers: {
   items: [1, 3],             // items taken per shelf visit (min, max)
   takeInterval: 0.25, pause: 0.35, basket: 12,
   spawnEvery: 0.45,          // seconds between arrivals while below the population (x4 when every shelf is empty)
-  lodShow: 27, lodShadow: 19 // hidden beyond, no shadow beyond (distance from the player)
+  lodShow: 27, lodShadow: 0  // hidden beyond; real shadows only within lodShadow (0 = never: blob shadows only)
 }
 ```
 
@@ -284,7 +284,8 @@ the population grows by `perCheckout`, and new shoppers use the new shelves.
 to narrow the pool. They are pooled and grow on demand up to `max`, and are never destroyed. Each
 carries a red basket placeholder on its right side whose fill shows the items. All baskets use 2
 instanced draw calls in total. Shoppers far from the player are hidden with `userData.lod = true`
-and lose their shadow.
+and lose their shadow. By default (`lodShadow: 0`) shoppers and baskets cast no shadow-map
+shadow at all; they have blob shadows.
 
 **Capabilities**
 
@@ -331,6 +332,8 @@ How to estimate it:
 
 It provides the `cash` capability with `deposit(amount, from)`. Something else pays onto it,
 usually the vendor truck. The player collects it like any other pile. **Save:** `{ cash }`.
+Like every pile made with `kit.createCashPile` (checkouts too), it draws at most 36 bill bundles and
+casts no shadow.
 
 ## 7. Hints
 
@@ -622,7 +625,7 @@ In the chicken farm:
 
 ## 10. Testing a world
 
-`node tools/playtest.js --url=http://localhost:8100/?worldUrl=/dev/<you>/world.js` (or `--world=<id>`)
+`node tools/playtest.js --url=http://localhost:8100/?worldUrl=/dev/<you>/world.js` (or `--world=<id>`, which adds the `&unlock=1` dev override)
 now plays these worlds too. The bot (`src/autoplay.js`) does the following:
 
 - picks up at pickup zones whose items an open drop zone takes, urgent ones first;

@@ -11,7 +11,7 @@ import { registerWorkerRole } from '../registry.js';
 import { makeCharacter, animateCharacter, lodCharacter, LOOKS } from '../chars.js';
 import { createStack } from '../stack.js';
 import { flyToStack, flyToDrop } from '../transfer.js';
-import { turnToward, roleConfig, playAt, soundOpts, pt } from './common.js';
+import { turnToward, roleConfig, playAt, soundOpts, pt, num, r3, refill } from './common.js';
 import { createMultiHauler } from './hauler-multi.js';
 
 const TURN_RATE = 12;            // rad/s
@@ -49,6 +49,16 @@ function createHauler(G, hire, team, live) {
     snd: soundOpts(),
     anim: { moving: false, speed: 1, carrying: false, action: null },
     update,
+    /** save: carried items (incl. those still flying in) and where it stands */
+    serialize() { return { items: stack.snapshot(), x: r3(w.x), z: r3(w.z), face: r3(w.face) }; },
+    restore(d) {
+      if (!d || typeof d !== 'object') return;
+      w.x = num(d.x, w.x); w.z = num(d.z, w.z); w.face = num(d.face, w.face);
+      refill(stack, d.items);
+      w.state = stack.count > 0 ? 'deliver' : 'seek'; w.wait = 0;
+      group.position.set(w.x, 0, w.z);
+      group.rotation.y = w.face;
+    },
   };
   // initially face the bed / source
   w.face = Math.atan2(A.pos.x - w.x, A.pos.z - w.z);

@@ -12,6 +12,9 @@ export function createWorkers(G) {
   const byPad = new Map();      // pad id -> worker
   const teams = new Map();      // role|from -> [worker]
   const errCount = new Map();
+  // saved worker state by hire pad id (G.state.workers); each entry is used once, right after
+  // that pad's worker is created at boot
+  const saved = { ...(G.state.workers || {}) };
 
   function sync(live) {
     const hires = G.stats.hires;
@@ -36,6 +39,11 @@ export function createWorkers(G) {
         w.role = h.role;
         w.hire = h;
         list.push(w);
+        const d = saved[h.pad];
+        if (d != null) {
+          delete saved[h.pad];
+          if (w.restore) { try { w.restore(d); } catch (err) { console.error(`[workers] restoring '${h.pad}' failed:`, err); } }
+        }
       }
     }
   }
@@ -43,6 +51,20 @@ export function createWorkers(G) {
   return {
     list,
     sync,
+    /** Per-worker data for the save: { hirePadId: serialize() } for workers that have it. */
+    serialize(out) {
+      for (let i = 0; i < list.length; i++) {
+        const w = list[i];
+        if (!w.serialize || !w.hire || !w.hire.pad) continue;
+        try {
+          const d = w.serialize();
+          if (d != null) out[w.hire.pad] = d;
+        } catch (err) { console.error(`[workers] serialize '${w.hire.pad}' failed:`, err); }
+      }
+      // a saved entry whose worker could not be created this boot is kept for the next one
+      for (const id in saved) if (!(id in out)) out[id] = saved[id];
+      return out;
+    },
     update(dt) {
       for (let i = 0; i < list.length; i++) {
         try { list[i].update(dt); } catch (err) {

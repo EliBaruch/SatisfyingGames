@@ -328,15 +328,32 @@ export function createHud(G) {
   // ---- win screen
   // info: { time, earned, next: { id, name } | null }.
   let nextId = null;
+  let winSub = null;
+  function winSubtitle() {
+    if (winSub || !winTitle || !winTitle.parentNode) return winSub;
+    winSub = document.createElement('p');
+    winSub.id = 'win-subtitle';
+    winSub.className = 'win-subtitle';
+    winSub.style.cssText = 'margin:-10px 0 14px;font-size:16px;font-weight:600;color:#7a6a4a;';
+    winSub.hidden = true;
+    winTitle.after(winSub);
+    return winSub;
+  }
   function showWin(info) {
     if (!winEl) return;
     const { time, earned, next = null } = info || {};
     const hasNext = !!(next && next.id);
     nextId = hasNext ? next.id : null;
 
-    const curName = G.world && G.world.name ? G.world.name : nameOf(G.worldId);
-    if (winWorld) winWorld.textContent = curName;
+    // the registry name (as on the world cards and buttons); the world's own name, if it has
+    // one, as a subtitle under the title
+    const listed = worlds().some((x) => x.id === G.worldId);
+    const regName = listed ? nameOf(G.worldId) : (G.world && G.world.name) || String(G.worldId);
+    const ownName = G.world && G.world.name && G.world.name !== regName ? G.world.name : '';
+    if (winWorld) winWorld.textContent = regName;
     if (winTitle) winTitle.textContent = hasNext ? 'WORLD COMPLETE!' : 'ALL WORLDS COMPLETE!';
+    const sub = winSubtitle();
+    if (sub) { sub.textContent = ownName; sub.hidden = !ownName; }
     if (winTime) winTime.textContent = formatTime(time);
     if (winEarned) winEarned.textContent = fmtMoney(earned || 0);
 

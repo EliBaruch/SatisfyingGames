@@ -2,6 +2,8 @@
 // Bloom Rush playtest runner: plays the whole game with src/autoplay.js and reports the unlock timeline.
 // Usage: node tools/playtest.js [--speed=20] [--max=1200] [--shots=DIR] [--url=http://localhost:8100/]
 //                               [--fresh|--no-fresh] [--until=padId] [--driver=page|loop] [--world=flower]
+// --world=<id> plays that world from a fresh save (it adds the dev override &unlock=1, as later worlds
+//   are locked until the previous one is finished).
 // driver=page (default): the page's own loop is frozen (G.timeScale = 0) and the sim is advanced by calling
 //   G.step(1/60) in batches inside page.evaluate (fast, no rendering needed). driver=loop: uses the game loop at ?speed=N.
 const { chromium } = require('playwright');
@@ -44,7 +46,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   page.on('pageerror', () => { pageErrors++; });
 
   if (FRESH) await page.addInitScript(() => { try { if (!sessionStorage.getItem('__pt')) { localStorage.clear(); sessionStorage.setItem('__pt', '1'); } } catch (e) {} });
-  const base = URL_ + (URL_.includes('?') ? '&' : '?') + 'autoplay&speed=' + (DRIVER === 'loop' ? SPEED : 1) + (WORLD ? '&world=' + WORLD : '');
+  const base = URL_ + (URL_.includes('?') ? '&' : '?') + 'autoplay&speed=' + (DRIVER === 'loop' ? SPEED : 1) + (WORLD ? '&world=' + WORLD + '&unlock=1' : '');
   await page.goto(base, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__game && window.__game.step && window.__autoplay, null, { timeout: 30000 });
   await page.touchscreen.tap(195, 420);

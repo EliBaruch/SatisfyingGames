@@ -9,7 +9,8 @@
 //   ...unknown top-level keys are kept as they are
 // }
 // LevelState = { money, earned, playTime, won, done: {padId: true}, paid: {padId: n},
-//                player: {x, z}, carried: [itemId...], stations: {stationId: any} }
+//                player: {x, z}, carried: [itemId...], stations: {stationId: any},
+//                workers: {hirePadId: { items: [itemId...], ...role state }} }
 //
 // Only the level of the world being played is sanitised (against its definition);
 // other worlds' levels are kept untouched until they are loaded.
@@ -99,6 +100,7 @@ export function freshLevel(def) {
     player: { x: st.x, z: st.z },
     carried: [],
     stations: {},
+    workers: {},
   };
 }
 
@@ -132,8 +134,15 @@ export function sanitizeLevel(def, raw) {
     if (b) { x = Math.min(b.maxX, Math.max(b.minX, x)); z = Math.min(b.maxZ, Math.max(b.minZ, z)); }
     s.player = { x, z };
   }
-  if (Array.isArray(raw.carried)) {
-    s.carried = raw.carried.filter((k) => typeof k === 'string' && k !== 'cash' && getItem(k)).slice(0, 2000);
+  const items = (list) => list.filter((k) => typeof k === 'string' && k !== 'cash' && getItem(k)).slice(0, 2000);
+  if (Array.isArray(raw.carried)) s.carried = items(raw.carried);
+  // workers: keyed by their (bought) hire pad; the role validates the rest on restore
+  if (isObj(raw.workers)) {
+    for (const id of Object.keys(raw.workers)) {
+      const w = raw.workers[id];
+      if (!padIds.has(id) || !s.done[id] || !isObj(w)) continue;
+      s.workers[id] = { ...w, items: Array.isArray(w.items) ? items(w.items) : [] };
+    }
   }
   if (isObj(raw.stations)) {
     const ids = new Set((def.stations || []).map((d) => d.id));

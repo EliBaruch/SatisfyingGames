@@ -11,7 +11,7 @@ import { litMaterial } from '../../engine/art/material.js';
 
 export const COLORS = {
   egg: 0xfff1dc, eggShade: 0xf3dcbc, gold: 0xffc42e, goldDark: 0xe49a12, goldLight: 0xffe58a,
-  straw: 0xe8bd5c, strawDark: 0xcf9b3a, kraft: 0xd9a566, kraftDark: 0xb98448, cream: 0xfff4d6,
+  straw: 0xd9953c, strawDark: 0xb26e26, kraft: 0xd9a566, kraftDark: 0xb98448, cream: 0xfff4d6,
   red: 0xe5483c, barn: 0xd9503f, barnDark: 0xa83a2e, roof: 0x7c8794, wood: 0xc98a4b, woodDark: 0x9a6532,
   pulp: 0xdcc9a2, sack: 0xecd7a6, sackBand: 0x58b45a,
 };
@@ -75,8 +75,8 @@ function nestParts(b, egg, gold) {
   for (let i = 0; i < 6; i++) b.sph(i % 2 ? COLORS.strawDark : COLORS.straw, 0.07, [Math.cos(i * 1.05) * 0.4, 0.2, Math.sin(i * 1.05) * 0.4], [2, 0.4, 0.7], [0, -i * 1.05, 0], 4, 3);
   if (egg) {
     const shell = gold ? COLORS.gold : COLORS.egg, shade = gold ? COLORS.goldDark : COLORS.eggShade;
-    b.sph(shell, 0.17, [0.02, 0.3, 0.02], [1, 1.28, 1], [0, 0, 0.18], 8, 6);
-    if (!gold) b.sph(shade, 0.1, [-0.14, 0.2, -0.08], [1, 0.85, 1], null, 5, 4);
+    b.sph(shell, 0.21, [0.02, 0.33, 0.02], [1, 1.25, 1], [0, 0, 0.18], 8, 6);
+    if (!gold) b.sph(0xffffff, 0.14, [-0.16, 0.24, -0.1], [1, 1.2, 1], null, 6, 4);
   }
 }
 /** nest holding an egg (the source's `plant`) */
@@ -238,27 +238,44 @@ export function makeDeliveryTruck() {
 }
 
 // ---------------------------------------------------------------- monument ---
-/** The Giant Golden Egg: stepped stone plinth, a big shiny egg, flowers and a ring of small eggs. */
+/** The Giant Golden Egg: stepped stone plinth, a big shiny egg with a gloss streak, flowers and a ring of small eggs. */
 export function makeMonument() {
   const b = new Parts();
-  b.rcyl(0xd8d0c0, 5.0, 0.5, 0.18, [0, 0.25, 0], null, 36);
-  b.rcyl(0xece4d2, 4.0, 0.5, 0.18, [0, 0.72, 0], null, 36);
-  b.rcyl(0xf6efdf, 3.1, 0.5, 0.16, [0, 1.18, 0], null, 36);
+  b.rcyl(0xd8d0c0, 5.4, 0.5, 0.18, [0, 0.25, 0], null, 36);
+  b.rcyl(0xece4d2, 4.4, 0.5, 0.18, [0, 0.72, 0], null, 36);
+  b.rcyl(0xf6efdf, 3.5, 0.5, 0.16, [0, 1.18, 0], null, 36);
+  b.rcyl(0xc9892a, 3.0, 0.3, 0.1, [0, 1.55, 0], null, 36);
+  const H = 11, W = 3.2, y0 = 1.7;
   const prof = [];
-  for (let i = 0; i <= 18; i++) { const t = i / 18, a = t * Math.PI; const r = Math.sin(a) * (1 - 0.18 * Math.cos(a)) * 2.5; prof.push([Math.max(r, 0.001), 1.6 + (1 - Math.cos(a)) * 0.5 * 6.2]); }
-  b.lathe(COLORS.gold, prof, [0, 0, 0], null, 36);
-  b.sph(COLORS.goldLight, 0.9, [-1.3, 9.0, -1.1], [0.8, 1.4, 0.4], [0.2, -0.75, 0.25], 10, 8);
-  b.sph(0xffffff, 0.24, [-1.6, 10.6, -1.4], [1, 1.2, 0.4], [0.2, -0.75, 0], 8, 6);
+  for (let i = 0; i <= 24; i++) { const t = i / 24, a = t * Math.PI; const r = Math.sin(a) * (1 - 0.2 * Math.cos(a)) * W; prof.push([Math.max(r, 0.001), y0 + (1 - Math.cos(a)) * 0.5 * H]); }
+  b.lathe(COLORS.gold, prof, [0, 0, 0], null, 40);
+  // warm shade near the bottom, bright gloss on the camera side (-X, -Z)
+  const d = 0.707, rAt = (y) => { const c = 1 - 2 * (y - y0) / H, a = Math.acos(Math.max(-1, Math.min(1, c))); return Math.sin(a) * (1 - 0.2 * c) * W; };
+  for (const [y, k, sy, c] of [[y0 + H * 0.62, 0.8, 1.7, 0xffeaa0], [y0 + H * 0.85, 0.4, 0.6, 0xfff6d0]]) {
+    const r = rAt(y) + 0.02;
+    b.sph(c, 0.7 * k, [-d * r, y, -d * r], [0.45, sy, 0.22], [0, -Math.PI * 0.75, 0], 10, 8);
+  }
+  b.sph(0xffffff, 0.2, [-d * (rAt(y0 + H * 0.9) + 0.02), y0 + H * 0.9, -d * (rAt(y0 + H * 0.9) + 0.02)], [0.5, 1.4, 0.3], [0, -Math.PI * 0.75, 0], 8, 6);
   for (let i = 0; i < 12; i++) {
     const a = i * Math.PI / 6;
-    b.sph(i % 2 ? 0xfff1dc : COLORS.gold, 0.34, [Math.cos(a) * 4.2, 1.2, Math.sin(a) * 4.2], [1, 1.3, 1], null, 8, 6);
+    b.sph(i % 2 ? 0xfff1dc : COLORS.gold, 0.38, [Math.cos(a) * 4.7, 1.2, Math.sin(a) * 4.7], [1, 1.3, 1], null, 8, 6);
   }
-  for (let i = 0; i < 10; i++) {
-    const a = i * 0.63 + 0.3, r = 5.5 + (i % 2) * 0.5;
-    b.sph([0xff6fa5, 0xffd23f, 0xffffff][i % 3], 0.3, [Math.cos(a) * r, 0.35, Math.sin(a) * r], [1, 0.8, 1], null, 7, 5);
-    b.sph(0x45b84e, 0.4, [Math.cos(a) * r, 0.2, Math.sin(a) * r], [1, 0.5, 1], null, 7, 5);
+  for (let i = 0; i < 12; i++) {
+    const a = i * 0.55 + 0.3, r = 5.8 + (i % 2) * 0.4;
+    b.sph([0xff6fa5, 0xffd23f, 0xffffff][i % 3], 0.32, [Math.cos(a) * r, 0.35, Math.sin(a) * r], [1, 0.8, 1], null, 7, 5);
+    b.sph(0x45b84e, 0.42, [Math.cos(a) * r, 0.2, Math.sin(a) * r], [1, 0.5, 1], null, 7, 5);
   }
-  return b.merged({ ao: { ground: 0.18, groundH: 0.6, down: 0.05, noBoxes: true } });
+  return b.merged({ ao: { ground: 0.18, groundH: 0.6, down: 0.0, noBoxes: true } });
+}
+
+/** four-point sparkle star (merged into one mesh that the scene spins) */
+export function makeSparkles() {
+  const b = new Parts();
+  for (const [x, y, z, s] of [[-3.6, 8.5, -2.2, 0.55], [3.4, 11.0, -1.5, 0.45], [-1.8, 12.2, 2.6, 0.5], [2.6, 6.5, 3.2, 0.4]]) {
+    b.oct(0xfff3b0, s, [x, y, z], [0.4, 1.6, 0.4]);
+    b.oct(0xfff3b0, s, [x, y, z], [1.6, 0.4, 0.4]);
+  }
+  return b.merged();
 }
 
 export function makeGateArch(width = 8) {

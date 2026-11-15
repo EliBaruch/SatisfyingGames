@@ -66,7 +66,7 @@ export function createPlayer(G) {
   const billOpts = { kind: 'cash', from: tmpA, to: chestFn, dur: 0.3, arc: 1.2, delay: 0, onDone: null };
   const dustOpts = { color: 0xf1e3c2, count: 2, speed: 1.1, size: 0.09, life: 0.38, gravity: 3, up: 1.1 };
   const fullTextOpts = { color: '#ff5a5a', size: 1.1, life: 0.8 };
-  const cashTextOpts = { color: '#7dff8a', size: 1.15, life: 1.0 };
+  const cashTextOpts = { color: '#7dff8a', size: 0.58, life: 1.0, maxW: 0.4 };
   const harvestCtx = { i: 0, sound: 'cut' };
   const onHarvest = (kind, x, z, ctx) => {
     flyToStack(G, stack, kind, x, 0.55, z, ctx.i * 0.02);
@@ -75,7 +75,7 @@ export function createPlayer(G) {
   };
 
   let lastAction = -10, actionName = null;
-  const T = { fullCooldown: 0.5, unloadT: 0.5, pickT: 0, dustT: 0.5, grabBillT: 0.5 };
+  const T = { fullCooldown: 0.5, unloadT: 0.5, pickT: 0, dustT: 0.5, grabBillT: 0.5, backT: 0, orphanT: 1 };
   let unloadBatch = 1, lastDrop = null;
   // cash grab
   let grabSt = null, grabTotal = 0, grabSum = 0, grabBills = 0, grabBillEvery = 0.05;
@@ -196,6 +196,35 @@ export function createPlayer(G) {
   }
 
   // ---------------------------------------------------------------- pickup
+  // The player only takes a kind from a pickup zone while the open drop zones that accept it
+  // (other than the pickup's own station) still have room beyond what is already carried of it.
+  // Sellable goods (a shop's room is unlimited) keep flowing; a consumable such as feed is only
+  // taken as needed. Surplus of a kind is handed back when standing in a pickup zone that holds
+  // that kind, and items nothing accepts, holds or grows any more are dropped.
+  let pickSt = null;                        // pickup station being evaluated (excluded from room)
+  function carriedOf(kind) {
+    let n = 0;
+    const it = stack.items;
+    for (let i = 0; i < it.length; i++) if (it[i] === kind) n++;
+    return n + (stack.inbound[kind] || 0);
+  }
+  /** Room for `kind` in the open drop zones (except `skip`), capped at `cap` (Infinity allowed). */
+  function dropRoom(kind, skip, cap) {
+    let r = 0;
+    for (let s = 0; s < stations.length; s++) {
+      const c = stations[s];
+      if (!c.active || !c.drop || c === skip || !c.drop.accepts(kind)) continue;
+      const v = c.drop.roomFor ? c.drop.roomFor(kind) : c.drop.room();
+      if (v > 0) r += v;
+      if (r > cap) return r;
+    }
+    return r;
+  }
+  const wantTake = (kind) => {
+    const have = carriedOf(kind);
+    return dropRoom(kind, pickSt, have) > have;
+  };
+
   function pickup(dt) {
     let st = null;
     for (let s = 0; s < stations.length; s++) {
@@ -204,21 +233,74 @@ export function createPlayer(G) {
       if (inZone(c.pickup.zone, pos.x, pos.z)) { st = c; break; }
     }
     player.pickupStation = st;
+    if (st) handBack(dt, st);
     if (!st || stack.room <= 0) { T.pickT = 0; return; }
     const pk = st.pickup;
     const every = pk.interval || P.pickupInterval;
     T.pickT += dt;
+    pickSt = st;
     let guard = 8;
     while (T.pickT >= every && stack.room > 0 && guard-- > 0) {
       T.pickT -= every;
-      const kind = pk.take(null);
+      const kind = pk.take(wantTake);
       if (kind === null || kind === undefined) { T.pickT = 0; break; }
       pk.from(tmpA);
       flyToStack(G, stack, kind, tmpA.x, tmpA.y, tmpA.z, 0);
       lastAction = G.time;
       actionName = pk.action || 'pickup';
     }
+    pickSt = null;
   }
+
+  // surplus of a kind this pickup holds goes back to it, a few items per tick
+  const backOpts = { kind: '', from: tmpB, to: (out, pk) => pk.from(out), dur: 0.28, arc: 1.2, delay: 0, onDone: (pk, kind) => { if (pk.giveBack) pk.giveBack(kind); }, data: null };
+  let backKind = null;
+  const isBackKind = (k) => k === backKind;
+  function handBack(dt, st) {
+    const pk = st.pickup;
+    T.backT -= dt;
+    if (T.backT > 0 || stack.count === 0) return;
+    T.backT = 0.06;
+    if (player.dropStation && player.dropStation.drop && stack.has(player.dropStation.drop.accepts)) return;  // unloading first
+    const its = stack.items;
+    for (let i = its.length - 1; i >= 0; i--) {
+      const k = its[i];
+      if (!(pk.accepts ? pk.accepts(k) : pk.count && pk.count(k) > 0)) continue;
+      const have = carriedOf(k);
+      if (dropRoom(k, st, have) >= have) continue;
+      if (pk.backRoom && !(pk.backRoom(k) > 0)) continue;
+      backKind = k;
+      stack.topWorld(tmpB);
+      stack.popWhere(isBackKind);
+      backOpts.kind = k; backOpts.data = pk;
+      if (pk.expectBack) pk.expectBack(k);
+      if (G.fx && G.fx.fly) G.fx.fly(backOpts); else if (pk.giveBack) pk.giveBack(k);
+      lastAction = G.time;
+      actionName = pk.action || 'pickup';
+      return;
+    }
+  }
+
+  // items no open drop zone accepts, no pickup holds and no harvest area grows: dropped
+  const orphan = (k) => {
+    for (let s = 0; s < stations.length; s++) {
+      const c = stations[s];
+      if (!c.active) continue;
+      if (c.drop && c.drop.accepts(k)) return false;
+      if (c.harvest && c.harvest.kind === k) return false;
+      if (c.pickup && (c.pickup.accepts ? c.pickup.accepts(k) : c.pickup.count && c.pickup.count(k) > 0)) return false;
+    }
+    return true;
+  };
+  function dropOrphans(dt) {
+    T.orphanT -= dt;
+    if (T.orphanT > 0) return;
+    T.orphanT = 1;
+    let n = 0;
+    while (stack.count > 0 && stack.popWhere(orphan) !== null) n++;
+    if (n > 0 && G.fx && G.fx.burst) { tmpB.set(pos.x, 1, pos.z); G.fx.burst(tmpB, dustOpts); }
+  }
+  player.dropOrphans = () => { T.orphanT = 0; dropOrphans(0); };
 
   // ------------------------------------------------------------- cash grab
   function endGrab() {
@@ -275,6 +357,7 @@ export function createPlayer(G) {
     harvest(dt);
     drop(dt);
     pickup(dt);
+    dropOrphans(dt);
     collect(dt);
     stack.update(dt, player.speed01);
     // feet dust

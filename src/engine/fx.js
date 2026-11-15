@@ -284,7 +284,8 @@ export function createFx(G) {
   // 1 world unit of em-height ~ 0.72 cap-height; sprite canvas = FONT_PX + 2*pad
   const TEXT_UNITS_PER_PX = 1.1 / (FONT_PX * 0.72);
 
-  function popText(pos, text, { color = '#fff', size = 1, life = 0.9 } = {}) {
+  // maxW: the widest a text may be, as a fraction of the view width (the pop-in overshoot included)
+  function popText(pos, text, { color = '#fff', size = 1, life = 0.9, maxW = 0.4 } = {}) {
     text = String(text);
     const css = hexToCss(color);
     const e = getTextTexture(text, css);
@@ -292,7 +293,13 @@ export function createFx(G) {
     spriteCursor = (spriteCursor + 1) % TEXT_POOL;
     const d = s.userData;
     s.material.map = e.tex;
-    const h = e.tex.image.height * TEXT_UNITS_PER_PX * size;
+    let h = e.tex.image.height * TEXT_UNITS_PER_PX * size;
+    const cam = G.camera;
+    if (cam && cam.isOrthographicCamera && maxW > 0) {
+      const viewW = (cam.right - cam.left) / (cam.zoom || 1);
+      const limit = (viewW * maxW) / 1.15;
+      if (h * e.aspect > limit) h = limit / e.aspect;
+    }
     d.on = true; d.age = 0; d.life = Math.max(0.1, life);
     d.baseY = pos.y + 0.6; d.h = h; d.w = h * e.aspect; d.key = e.key;
     s.position.set(pos.x, d.baseY, pos.z);

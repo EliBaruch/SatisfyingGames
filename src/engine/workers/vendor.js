@@ -29,7 +29,7 @@ import { Parts, meshOf } from '../geom.js';
 import { itemValue } from '../items.js';
 import { createStack } from '../stack.js';
 import { flyToStack } from '../transfer.js';
-import { wrapAngle, roleConfig, playAt, soundOpts, pt } from './common.js';
+import { wrapAngle, roleConfig, playAt, soundOpts, pt, num, r3, refill } from './common.js';
 
 const DEFAULTS = { capacity: 12, every: 25, first: 8, minStock: 1, patience: 3, loadInterval: 0.12, speed: 7, turn: 3.2, priceMult: 1, kinds: null };
 
@@ -89,6 +89,32 @@ function createVendor(G, hire, team, live) {
     visits: 0, totalItems: 0, totalPaid: 0,
     snd: soundOpts(), sndT: 0,
     update,
+    /** save: visit state and the (already paid) load, so a reload resumes the visit */
+    serialize() {
+      return {
+        items: stack.snapshot(), state: v.state, t: r3(v.t), x: r3(v.x), z: r3(v.z), h: r3(v.h), wi: v.wi,
+        loaded: v.loaded, amount: Math.round(v.amount * 100) / 100, visits: v.visits,
+      };
+    },
+    restore(d) {
+      if (!d || typeof d !== 'object') return;
+      const st = ['away', 'in', 'load', 'out'].indexOf(d.state) >= 0 ? d.state : 'away';
+      v.t = Math.max(0, num(d.t, v.t));
+      v.visits = Math.max(0, num(d.visits, 0) | 0);
+      if (st === 'away') return;
+      v.state = st;
+      v.x = num(d.x, v.x); v.z = num(d.z, v.z); v.h = num(d.h, v.h); v.spd = 0;
+      const lim = st === 'in' ? pin.length : pout.length;
+      v.wi = Math.max(0, Math.min(lim - (st === 'out' ? 1 : 0), num(d.wi, 0) | 0));
+      if (st === 'in' && v.wi < 1) v.wi = 1;
+      v.loaded = Math.max(0, num(d.loaded, 0) | 0);
+      v.amount = Math.max(0, num(d.amount, 0));
+      v.loadT = 0; v.idle = 0;
+      refill(stack, d.items);
+      group.visible = true;
+      group.position.set(v.x, 0, v.z);
+      group.rotation.y = v.h;
+    },
   };
   const ev = { worker: v, phase: '', loaded: 0, amount: 0 };
   const sale = { station: B, stationId: hire.to, amount: 0, items: 0 };

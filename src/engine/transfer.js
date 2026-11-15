@@ -3,7 +3,8 @@
 // passed through fx.fly's `data`. Used by the player, workers and stations alike.
 //
 //   flyToStack(G, stack, kind, x, y, z, delay)  item appears at (x,y,z) and lands on top of `stack`
-//                                               (counts in stack.incoming until it lands)
+//                                               (counts in stack.incoming, and per kind in
+//                                               stack.inbound, until it lands)
 //   flyToDrop(G, stack, station, kind, delay)   item leaves the top of `stack` (already popped by
 //                                               the caller) and lands in station.drop
 //
@@ -15,6 +16,8 @@ const _from = new THREE.Vector3();
 const stackTop = (out, stack) => stack.topWorld(out);
 function landOnStack(stack, kind) {
   stack.incoming = Math.max(0, stack.incoming - 1);
+  const ib = stack.inbound;
+  if (ib && ib[kind] > 0) ib[kind]--;
   stack.push(kind);
   if (stack.onLand) stack.onLand(kind);
 }
@@ -36,6 +39,8 @@ const dropOpts = { kind: '', from: _from, to: dropTarget, dur: 0.3, arc: 1.5, de
 
 export function flyToStack(G, stack, kind, x, y, z, delay = 0) {
   stack.incoming++;
+  // kinds still in the air toward the stack, so saves can count them (stack.inbound: { kind: n })
+  if (stack.inbound) stack.inbound[kind] = (stack.inbound[kind] || 0) + 1;
   const fx = G.fx;
   if (!fx || !fx.fly) { landOnStack(stack, kind); return; }
   _from.set(x, y, z);

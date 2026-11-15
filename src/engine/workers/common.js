@@ -30,3 +30,17 @@ export function soundOpts() { return { pos: { x: 0, z: 0 }, volume: 1 }; }
 
 /** Point of a zone or spot: accepts {x, z} or [x, z]. */
 export function pt(p) { return Array.isArray(p) ? { x: p[0], z: p[1] } : p; }
+
+// ---- saving (docs/ENGINE.md "Saving"): each carrying role has serialize() / restore(d)
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+/** A number from a save, or `fallback`. */
+export function num(v, fallback) { return isNum(v) ? v : fallback; }
+/** Round to 3 decimals for the save. */
+export const r3 = (v) => Math.round(v * 1000) / 1000;
+/** Put saved item kinds back on a stack (no flight); returns how many fit. */
+export function refill(stack, items) {
+  let n = 0;
+  if (!Array.isArray(items)) return 0;
+  for (let i = 0; i < items.length; i++) if (typeof items[i] === 'string' && stack.push(items[i])) n++;
+  return n;
+}

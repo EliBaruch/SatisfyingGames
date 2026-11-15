@@ -82,11 +82,6 @@ export function createScene(G) {
     const floor = makeGround('tile', W, D, { color: 0xf7efe0, tile: 2.4, seed: 7 });
     floor.position.set(CX, 0.0, CZ); floor.matrixAutoUpdate = false; floor.updateMatrix(); root.add(floor);
 
-    // teal aisle runner along the shelf aisle
-    const run = new THREE.Mesh(new THREE.PlaneGeometry(W - 6, 2.0), litMaterial({ color: 0x8fded2 }));
-    run.rotation.x = -Math.PI / 2; run.position.set(CX - 2.5, 0.009, LAY.aisleZ); run.receiveShadow = true; root.add(run);
-    const run2 = new THREE.Mesh(new THREE.PlaneGeometry(W - 6, 0.16), litMaterial({ color: 0xffffff }));
-    for (const dz of [-0.95, 0.95]) { const r2 = run2.clone(); r2.rotation.x = -Math.PI / 2; r2.position.set(CX - 2.5, 0.011, LAY.aisleZ + dz); root.add(r2); }
     // back-of-house concrete (dock side)
     const dockW = ST.maxX - 15.6;
     const conc = makeGround('paving', dockW, D, { color: 0xc9ced6, tile: 3, seed: 8 });
@@ -249,7 +244,6 @@ export function createScene(G) {
   // ============================================================ interior dressing
   {
     const ip = new Parts();
-    // plants in the front corners and by the doors
     const plant = (x, z, s = 1) => {
       ip.rcyl(0xf2f2f2, 0.42 * s, 0.5 * s, 0.06, [x, 0.25 * s, z], null, 14);
       ip.sph(0x45b84e, 0.5 * s, [x, 0.85 * s, z], [1, 1.15, 1], null, 10, 7);
@@ -257,20 +251,66 @@ export function createScene(G) {
       ip.sph(0x3cb857, 0.32 * s, [x - 0.2 * s, 1.05 * s, z - 0.12 * s], null, null, 8, 6);
     };
     plant(ST.minX + 0.9, ST.minZ + 0.9, 1.1);
-    plant(ST.maxX - 5.2, ST.minZ + 0.9, 1.1);
     plant(ST.minX + 0.9, ST.maxZ - 1.0, 1.2);
-    plant(LAY.doorIn + 2.3, ST.minZ + 1.0, 1.0);
-    plant(LAY.doorOut - 2.2, ST.minZ + 1.0, 1.0);
-    // shopping carts and baskets by the entrance (pack models)
-    ip.model('mini-shop/shopping-cart', { pos: [LAY.doorIn + 2.2, 0, ST.minZ + 2.4], rot: [0, FACE_CAMERA + 0.4, 0] });
-    ip.model('mini-shop/shopping-cart', { pos: [LAY.doorIn + 3.0, 0, ST.minZ + 2.9], rot: [0, FACE_CAMERA + 0.1, 0] });
-    for (let i = 0; i < 3; i++) ip.model('mini-shop/shopping-basket', { pos: [LAY.doorIn + 4.2, 0.0 + i * 0.4, ST.minZ + 1.3], rot: [0, 0.2 * i, 0] });
-    // promo stands along the left wall: fruit, bread, cans (pack displays)
-    ip.model('mini-shop/display-fruit', { pos: [ST.minX + 1.0, 0, 8.6], rot: [0, FACE_CAMERA, 0], scale: 1.1 });
-    ip.model('mini-shop/display-bread', { pos: [ST.minX + 1.0, 0, 11.4], rot: [0, FACE_CAMERA, 0], scale: 1.1 });
-    ip.model('mini-shop/display-cans', { pos: [ST.minX + 1.1, 0, 5.6], rot: [0, FACE_CAMERA, 0], scale: 0.9 });
-    // columns near the dock line
+    plant(LAY.doorOut - 2.4, ST.minZ + 0.9, 1.0);
+    plant(15.6, 13.3, 1.2);
+    // cart corral and baskets by the entrance (left of the OUT door, clear of every lane)
+    ip.model('mini-shop/shopping-cart', { pos: [6.6, 0, -7.1], rot: [0, FACE_CAMERA + 0.15, 0] });
+    ip.model('mini-shop/shopping-cart', { pos: [7.5, 0, -7.2], rot: [0, FACE_CAMERA - 0.1, 0] });
+    ip.model('mini-shop/shopping-cart', { pos: [8.4, 0, -7.1], rot: [0, FACE_CAMERA + 0.2, 0] });
+    for (let i = 0; i < 4; i++) ip.model('mini-shop/shopping-basket', { pos: [4.9, i * 0.4, -7.3], rot: [0, 0.25 * i, 0] });
+    ip.model('mini-shop/hand-truck', { pos: [3.2, 0, -7.2], rot: [0, FACE_CAMERA + 0.4, 0] });
+    // promo stands along the left wall: fruit and bread displays, a flower stand, a service desk
+    ip.model('mini-shop/display-fruit', { pos: [ST.minX + 0.9, 0, 11.3], rot: [0, FACE_CAMERA, 0], scale: 1.1 });
+    ip.model('mini-shop/display-bread', { pos: [ST.minX + 0.9, 0, 8.9], rot: [0, FACE_CAMERA, 0], scale: 1.1 });
+    ip.model('mini-shop/display-cans', { pos: [ST.minX + 1.1, 0, -1.6], rot: [0, FACE_CAMERA, 0], scale: 0.85 });
+    for (let k = 0; k < 3; k++) {   // flower stand: three tubs with blooms
+      const z = 4.2 + k * 0.95, x = ST.minX + 0.75;
+      ip.rcyl(0xe07a4a, 0.4, 0.45, 0.06, [x, 0.22, z], null, 12);
+      ip.sph(0x45b84e, 0.42, [x, 0.55, z], [1, 0.7, 1], null, 9, 6);
+      for (let j = 0; j < 5; j++) ip.sph([0xff6fa5, 0xffe14d, 0xffffff, 0xb583ff, 0xff9a3d][(j + k) % 5], 0.15, [x + Math.cos(j * 1.26) * 0.28, 0.85 + (j % 2) * 0.06, z + Math.sin(j * 1.26) * 0.28], null, null, 7, 5);
+    }
+    ip.rbox(0xfdf6e8, 1.0, 1.0, 2.2, 0.08, [ST.minX + 0.7, 0.5, -5.0]);                 // service desk
+    ip.rbox(COL.band, 1.04, 0.14, 2.24, 0.05, [ST.minX + 0.7, 1.02, -5.0]);
+    ip.rbox(0xe9525e, 0.4, 0.2, 0.4, 0.08, [ST.minX + 0.75, 1.2, -4.5]);
+    ip.sph(0xffd23f, 0.12, [ST.minX + 0.75, 1.36, -4.5], null, null, 8, 6);
+    // stacked crates and wrapped pallets against the dock wall, between the bays
+    const crateStack = (x, z, cols, rows, c1, c2) => {
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) ip.rbox((r + c) % 2 ? c1 : c2, 0.7, 0.34, 0.5, 0.05, [x + (r % 2) * 0.05, 0.17 + r * 0.34, z + (c - (cols - 1) / 2) * 0.58]);
+    };
+    for (const z of [6.0, 2.4, -1.2]) crateStack(20.4, z, 2, 3, 0xe3a45a, 0xf0c27c);
+    crateStack(20.3, 10.4, 2, 2, 0x7fd34f, 0xa7e86f);
+    crateStack(20.3, -4.8, 2, 2, 0x5db6f0, 0xa6dcff);
     addMesh(root, ip.merged({ ao: AO }), { cast: true, receive: true }).name = 'interior';
+
+    // floor decals: department-coloured aisle strips, flow arrows on the door lanes, a logo medallion
+    const fl = new Parts();
+    for (const d of LAY.departments) {
+      const x = LAY.shelfX[d.key];
+      fl.rbox(new THREE.Color(d.color).lerp(new THREE.Color(0xffffff), 0.55).getHex(), 4.1, 0.014, 2.0, 0.05, [x, 0.012, LAY.aisleZ]);
+    }
+    fl.rbox(0xffffff, 23.0, 0.016, 0.1, 0.02, [CX - 3.6, 0.014, LAY.aisleZ - 1.05]);
+    fl.rbox(0xffffff, 23.0, 0.016, 0.1, 0.02, [CX - 3.6, 0.014, LAY.aisleZ + 1.05]);
+    const arrow = (x, z, dir, c) => {
+      fl.rbox(c, 0.3, 0.014, 0.7, 0.03, [x, 0.014, z - dir * 0.25]);
+      fl.cone(c, 0.5, 0.7, [x, 0.014, z + dir * 0.45], [dir * Math.PI / 2, 0, 0], 3, [1, 1, 0.03]);
+    };
+    for (let z = -5.5; z < 7; z += 2.6) arrow(LAY.doorIn, z, 1, 0x9fdcd0);
+    for (let z = -2.5; z > -7.5; z -= 2.2) arrow(LAY.doorOut, z, -1, 0xf3b27a);
+    const lx = 3.0, lz = -3.2;
+    fl.rcyl(0x39b8a8, 2.3, 0.02, 0.008, [lx, 0.012, lz], null, 32);
+    fl.rcyl(0xffffff, 2.0, 0.024, 0.008, [lx, 0.014, lz], null, 32);
+    fl.rcyl(0x39b8a8, 1.75, 0.028, 0.008, [lx, 0.016, lz], null, 32);
+    fl.rcyl(0xfff0c8, 1.5, 0.032, 0.008, [lx, 0.018, lz], null, 32);
+    for (let k = 0; k < 8; k++) fl.sph(k % 2 ? 0xff6fa5 : 0x7fd34f, 0.3, [lx + Math.cos(k * 0.785) * 0.95, 0.03, lz + Math.sin(k * 0.785) * 0.95], [1, 0.12, 1], null, 8, 5);
+    fl.rcyl(0xffd23f, 0.45, 0.04, 0.01, [lx, 0.02, lz], null, 20);
+    addMesh(root, fl.merged(), { cast: false, receive: true }).name = 'floor-decals';
+
+    // wall posters between the department signs
+    const poster = (x, lines, bg) => { const sg = flatSign(signTex(lines, bg, 360, 460), 1.05, 1.34); sg.position.set(x, 2.1, ST.maxZ - 0.04); sg.rotation.y = Math.PI; root.add(sg); };
+    poster(0.1, [{ text: 'FRESH', size: 80, stroke: '#1f7d71' }, { text: 'DAILY', size: 80, color: '#ffe27a', stroke: '#1f7d71' }], '#39b8a8');
+    poster(-4.4, [{ text: 'SALE', size: 96, stroke: '#a82b3c' }, { text: 'TODAY', size: 72, color: '#fff3a0', stroke: '#a82b3c' }], '#e9525e');
+    poster(8.8, [{ text: 'LOCAL', size: 80, stroke: '#2f7a1f' }, { text: 'FARMS', size: 80, color: '#fff3a0', stroke: '#2f7a1f' }], '#5fc04a');
   }
 
   // ============================================================ dock (back of house)
@@ -523,48 +563,100 @@ export function createScene(G) {
   // ============================================================ finale: Mega Mart
   const finale = new THREE.Group();
   finale.visible = false;
+  let bulbs = null;
   {
     const fp = new Parts();
-    // red carpet from the door to the middle
-    fp.rbox(0xd7263d, 2.6, 0.05, 14.0, 0.02, [LAY.doorIn - 0.0, 0.04, ST.minZ + 7.4]);
-    // balloons clusters near doors and the dock wall
-    const balloons = [[-7.5, 12.6], [20.4, 13.4], [-7.5, -6.5], [14.8, 13.0], [0.2, 13.2]];
     const cols = [0xff5d73, 0xffd23f, 0x4cc9f0, 0x7ee081, 0xb583ff];
-    balloons.forEach(([x, z], j) => {
+    const zf = ST.minZ - 0.9;
+    // red carpet from the IN door to the middle
+    fp.rbox(0xd7263d, 2.6, 0.05, 15.0, 0.02, [LAY.doorIn, 0.04, ST.minZ + 7.0]);
+    fp.rbox(0xffd23f, 0.12, 0.052, 15.0, 0.02, [LAY.doorIn - 1.3, 0.042, ST.minZ + 7.0]);
+    fp.rbox(0xffd23f, 0.12, 0.052, 15.0, 0.02, [LAY.doorIn + 1.3, 0.042, ST.minZ + 7.0]);
+    // gold frontage: a bright trim on the low wall, gold door posts, pennant poles along the pavement kerb
+    fp.rbox(0xffd23f, 30.6, 0.12, 0.8, 0.04, [CX, LOW_H + 0.16, ST.minZ - 0.28]);
+    fp.rbox(0xffd23f, 0.5, 0.12, D + 1, 0.04, [ST.minX - 0.28, LOW_H + 0.16, CZ]);
+    const poles = [-9.2, -1.0, 4.5, 9.0, 15.2, 19.5];
+    poles.forEach((x, j) => {
+      fp.cyl(0xf2f2f2, 0.05, 0.06, 3.6, [x, 1.8, zf], null, 6);
+      fp.sph(0xffd23f, 0.12, [x, 3.65, zf], null, null, 8, 6);
+      fp.cone(cols[j % 5], 0.3, 0.9, [x + 0.45, 3.2, zf], [0, 0, -Math.PI / 2], 3, [1, 1, 0.12]);
+    });
+    // bunting between the poles (hangs low over the pavement, well clear of the department signs)
+    for (let j = 0; j + 1 < poles.length; j++) {
+      const x0 = poles[j], x1 = poles[j + 1], n = Math.round((x1 - x0) / 0.8);
+      for (let i = 1; i < n; i++) {
+        const t = i / n, x = x0 + (x1 - x0) * t;
+        fp.cone(cols[(i + j) % 5], 0.17, 0.4, [x, 3.3 - Math.sin(t * Math.PI) * 0.45, zf], [Math.PI, 0, 0], 3, [1, 1, 0.25]);
+      }
+    }
+    // ribbon across the IN door, with a bow
+    fp.rbox(0xe9253e, 3.3, 0.22, 0.05, 0.03, [LAY.doorIn, 1.35, ST.minZ - 0.05]);
+    for (const sx of [-1, 1]) fp.sph(0xe9253e, 0.26, [LAY.doorIn + sx * 0.32, 1.35, ST.minZ - 0.1], [1.1, 0.8, 0.5], null, 8, 6);
+    fp.sph(0xff5d73, 0.18, [LAY.doorIn, 1.35, ST.minZ - 0.1], null, null, 8, 6);
+    // balloon clusters
+    [[8.4, ST.minZ - 1.4], [16.3, ST.minZ - 1.4], [ST.maxX - 0.6, ST.minZ - 1.4], [-8.3, 12.6]].forEach(([x, z], j) => {
       fp.cyl(0xdddddd, 0.015, 0.015, 2.4, [x, 1.2, z], null, 5);
-      for (let k = 0; k < 5; k++) {
-        const a = k * 1.3 + j;
-        fp.sph(cols[(k + j) % 5], 0.36, [x + Math.cos(a) * 0.45, 2.7 + (k % 3) * 0.28, z + Math.sin(a) * 0.45], [1, 1.2, 1], null, 10, 8);
+      for (let k = 0; k < 6; k++) {
+        const a = k * 1.1 + j;
+        fp.sph(cols[(k + j) % 5], 0.34, [x + Math.cos(a) * 0.42, 2.6 + (k % 3) * 0.3, z + Math.sin(a) * 0.42], [1, 1.2, 1], null, 9, 7);
       }
     });
-    // bunting along the back wall and the left edge
-    const flag = (x, y, z, c, alongX) => fp.cone(c, 0.2, 0.42, [x, y, z], [Math.PI, 0, 0], 4, alongX ? [1, 1, 0.3] : [0.3, 1, 1]);
-    for (let i = 0; i < 30; i++) {
-      const x = ST.minX + 0.5 + i;
-      flag(x, 3.0 - Math.sin((i / 30) * Math.PI) * -0.0 - 0.0, ST.maxZ - 0.45, cols[i % 5], true);
-    }
-    const fm = meshOf(fp.merged({ ao: AO_SOFT }), { cast: true, receive: true });
-    finale.add(fm);
+    // marquee gantry on top of the back wall: big illuminated MEGA MART sign
+    fp.rbox(0xffffff, 8.2, 2.6, 0.3, 0.1, [9.0, 5.0, ST.maxZ + 0.1]);
+    fp.rbox(0xffd23f, 8.5, 0.18, 0.4, 0.06, [9.0, 6.4, ST.maxZ + 0.1]);
+    fp.rbox(0xffd23f, 8.5, 0.18, 0.4, 0.06, [9.0, 3.6, ST.maxZ + 0.1]);
+    for (const sx of [-1, 1]) fp.rbox(0xffd23f, 0.18, 2.9, 0.4, 0.06, [9.0 + sx * 4.2, 5.0, ST.maxZ + 0.1]);
+    for (const sx of [-1, 1]) fp.sph(0xffd23f, 0.3, [9.0 + sx * 4.2, 6.6, ST.maxZ + 0.1], null, null, 10, 8);
+    finale.add(meshOf(fp.merged({ ao: AO_SOFT }), { cast: true, receive: true }));
+    // light bulbs round the marquee (unlit material, blinking)
+    const bp = new Parts();
+    const bz = ST.maxZ - 0.2;
+    for (let i = 0; i <= 20; i++) { const x = 9.0 - 4.0 + i * 0.4; bp.sph(i % 2 ? 0xfff3a0 : 0xffffff, 0.09, [x, 6.28, bz], null, null, 6, 4); bp.sph(i % 2 ? 0xffffff : 0xfff3a0, 0.09, [x, 3.72, bz], null, null, 6, 4); }
+    for (let i = 1; i < 6; i++) { const y = 3.72 + i * 0.43; bp.sph(i % 2 ? 0xfff3a0 : 0xffffff, 0.09, [5.0, y, bz], null, null, 6, 4); bp.sph(i % 2 ? 0xffffff : 0xfff3a0, 0.09, [13.0, y, bz], null, null, 6, 4); }
+    const bm = new THREE.Mesh(bp.merged(), new THREE.MeshBasicMaterial({ vertexColors: true }));
+    finale.add(bm);
+    bulbs = bm;
+    const mq = flatSign(signTex([{ text: 'MEGA MART', size: 150, color: '#fff3a0', stroke: '#b3263d' }, { text: 'GRAND OPENING', size: 66, color: '#ffffff', stroke: '#b3263d' }], '#e9525e', 900, 330, { rim: '#ffd23f' }), 7.6, 2.4);
+    mq.position.set(9.0, 5.0, ST.maxZ - 0.07); mq.rotation.y = Math.PI;
+    finale.add(mq);
   }
   root.add(finale);
+  let blink = 0;
+  animated.push((dt) => { if (bulbs && finale.visible) { blink += dt; const k = Math.floor(blink / 0.35) % 2; bulbs.material.color.setScalar(k ? 0.55 : 1); } });
 
   // ============================================================ travel gate
   const gate = new THREE.Group();
   {
     const pos = G.world.pads.find((p) => p.id === 'travel').pos;
     const gp = new Parts();
-    gp.rbox(0xffffff, 0.4, 3.4, 0.4, 0.12, [-1.9, 1.7, 0]);
-    gp.rbox(0xffffff, 0.4, 3.4, 0.4, 0.12, [1.9, 1.7, 0]);
-    gp.rbox(COL.band, 4.5, 0.5, 0.5, 0.15, [0, 3.45, 0]);
-    gp.rbox(0xffd23f, 4.6, 0.12, 0.6, 0.05, [0, 3.18, 0]);
-    gate.add(meshOf(gp.merged({ ao: AO_SOFT })));
-    const bd = flatSign(signTex([{ text: 'NEXT WORLD', size: 80 }], '#39b8a8', 600, 190), 4.0, 1.2);
-    bd.position.set(0, 4.1, -0.26); bd.rotation.y = Math.PI;
-    gate.add(bd);
-    const back = flatSign(bd.material.map, 4.0, 1.2); back.position.set(0, 4.1, 0.26); gate.add(back);
-    gate.position.set(pos.x, 0, pos.z + 1.2);
-    gate.rotation.y = FACE_CAMERA + Math.PI * 0.5 * 0;
-    gate.rotation.y = 0;
+    const pillar = (x) => {
+      gp.rbox(0xffffff, 0.5, 3.0, 0.5, 0.14, [x, 1.5, 0]);
+      gp.rbox(COL.band, 0.62, 0.35, 0.62, 0.1, [x, 0.18, 0]);
+      gp.rbox(COL.band, 0.62, 0.2, 0.62, 0.08, [x, 3.0, 0]);
+      gp.rcyl(0xe07a4a, 0.42, 0.5, 0.06, [x * 1.28, 0.25, 0.15], null, 12);
+      gp.sph(0x45b84e, 0.46, [x * 1.28, 0.62, 0.15], [1, 0.75, 1], null, 9, 6);
+      for (let k = 0; k < 6; k++) gp.sph([0xff6fa5, 0xffe14d, 0xffffff, 0xb583ff, 0xff9a3d, 0xff6fa5][k], 0.15, [x * 1.28 + Math.cos(k * 1.05) * 0.3, 0.95 + (k % 2) * 0.07, 0.15 + Math.sin(k * 1.05) * 0.3], null, null, 7, 5);
+    };
+    pillar(-1.9); pillar(1.9);
+    gp.torus(COL.band, 1.9, 0.2, [0, 3.05, 0], [0, 0, 0], [1, 0.42, 1], Math.PI, 8, 20);
+    gp.torus(0xffd23f, 1.9, 0.07, [0, 3.05, 0.2], [0, 0, 0], [1, 0.42, 1], Math.PI, 5, 20);
+    for (let k = 0; k < 9; k++) {    // vines and blossoms along the arch
+      const a = Math.PI * (k + 0.5) / 9;
+      gp.sph(0x45b84e, 0.2, [Math.cos(a) * 1.9, 3.05 + Math.sin(a) * 0.8, 0.0], null, null, 7, 5);
+      gp.sph([0xff6fa5, 0xffe14d, 0xffffff][k % 3], 0.13, [Math.cos(a) * 1.9, 3.05 + Math.sin(a) * 0.8 + 0.18, 0.12], null, null, 6, 5);
+    }
+    gp.rbox(0xe9dcc3, 3.6, 0.06, 1.6, 0.03, [0, 0.03, -0.6]);                    // stepping stones
+    gate.add(meshOf(gp.merged({ ao: AO_SOFT }), { cast: true, receive: true }));
+    const bd = flatSign(signTex([{ text: 'FLOWER FARM', size: 78, color: '#ffffff', stroke: '#c4326a' }, { text: 'THIS WAY', size: 54, color: '#ffe27a', stroke: '#c4326a' }], '#ff6fa5', 560, 250), 3.1, 1.4);
+    bd.position.set(0, 2.55, 0.3); gate.add(bd);
+    const bk = flatSign(bd.material.map, 3.1, 1.4); bk.position.set(0, 2.55, -0.3); bk.rotation.y = Math.PI; gate.add(bk);
+    // soft glowing doorway
+    const glowTex = canvasTex(256, 256, (ctx, w, h) => { const g = ctx.createRadialGradient(w / 2, h * 0.55, 8, w / 2, h * 0.55, w * 0.5); g.addColorStop(0, 'rgba(255,255,220,0.85)'); g.addColorStop(0.6, 'rgba(190,255,200,0.4)'); g.addColorStop(1, 'rgba(160,255,180,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h); });
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.2), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false }));
+    glow.position.set(0, 1.55, -0.12); glow.renderOrder = 1; gate.add(glow);
+    gate.position.set(pos.x + 1.6, 0, pos.z + 1.6);
+    gate.scale.setScalar(1.25);
+    gate.rotation.y = FACE_CAMERA;
     gate.visible = false;
   }
   root.add(gate);
