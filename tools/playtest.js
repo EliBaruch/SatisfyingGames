@@ -49,7 +49,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.touchscreen.tap(195, 420);
   await page.waitForTimeout(200);
 
-  if (DRIVER === 'page') await page.evaluate(() => { window.__game.timeScale = 0; });
+  if (DRIVER === 'page') {
+    // freeze the game's own loop and skip rendering while stepping (rendering is only re-enabled for screenshots)
+    await page.evaluate(() => { const G = window.__game; G.timeScale = 0; window.__origRender = G.renderer.render.bind(G.renderer); G.renderer.render = () => {}; });
+  }
 
   const shotsDone = new Set();
   let shot10 = false;
@@ -60,8 +63,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function shoot(name, wait) {
     if (!SHOTS) return;
+    if (DRIVER === 'page') await page.evaluate(() => { window.__game.renderer.render = window.__origRender; });
     await page.waitForTimeout(wait);
     await page.screenshot({ path: path.join(SHOTS, name + '.png') });
+    if (DRIVER === 'page') await page.evaluate(() => { window.__game.renderer.render = () => {}; });
   }
 
   async function snapshot() {
@@ -76,9 +81,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (SHOT_AT[e.id] && SHOTS && !shotsDone.has(e.id)) {
           shotsDone.add(e.id);
           if (e.id === 'greenhouse' && DRIVER === 'page') {
-            await page.evaluate(() => { for (let i = 0; i < 180; i++) window.__game.step(1 / 60); });
+            await page.evaluate(() => { window.__autoplay.hold = true; for (let i = 0; i < 180; i++) window.__game.step(1 / 60); });
           }
-          await shoot(SHOT_AT[e.id], BIG_WAIT.has(e.id) ? 1700 : 300);
+          await shoot(SHOT_AT[e.id], e.id === 'greenhouse' ? 800 : BIG_WAIT.has(e.id) ? 1700 : 300);
+          if (e.id === 'greenhouse') await page.evaluate(() => { window.__autoplay.hold = false; });
         }
         if (UNTIL && e.id === UNTIL) status = 'until';
       }

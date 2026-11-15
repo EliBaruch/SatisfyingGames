@@ -182,9 +182,11 @@ export function createWorld(G) {
   const sun = new THREE.DirectionalLight(0xfff1d6, 1.95);
   const SUN_DIR = new THREE.Vector3(9, 22, -8).normalize();
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1536, 1536);
   const sc = sun.shadow.camera;
-  sc.left = -24; sc.right = 24; sc.top = 24; sc.bottom = -24; sc.near = 1; sc.far = 90;
+  // just big enough for the visible area around the player; a larger box makes the
+  // shadow pass draw everything off-screen too
+  sc.left = -19; sc.right = 19; sc.top = 19; sc.bottom = -19; sc.near = 1; sc.far = 90;
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.04;
   sun.shadow.radius = 3;

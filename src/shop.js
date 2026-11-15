@@ -1,6 +1,6 @@
 // Bloom Rush — counters (stock), customers (queue + serving) and cash piles.
 import * as THREE from 'three';
-import { FARMS, SHOP, SIZES, bouquetPrice } from './config.js';
+import { FARMS, FLOWERS, SHOP, SIZES, bouquetPrice } from './config.js';
 import { makeCharacter, animateCharacter, randomCustomerLook, makeBillGeometry, getSharedMaterial } from './models.js';
 import { bouquetGeo } from './stack.js';
 
@@ -203,9 +203,10 @@ function makeShop(G, farm, f) {
     get stock() { return S.stock[f]; },
     set stock(v) { S.stock[f] = v; stockDirty = true; },
     get cash() { return S.cash[f]; },
-    dropTarget, deposit, takeCash, pileTop, bundleValue, activate, update,
+    dropTarget, deposit, expect, takeCash, pileTop, bundleValue, activate, update,
     get lineLength() { return line.length; },
     sold: 0,
+    pending: 0,
   };
 
   function dropTarget(out) {
@@ -213,10 +214,19 @@ function makeShop(G, farm, f) {
     return out.set(slotX[i], slotY[i] + 0.05, slotZ[i]);
   }
 
+  // Each bouquet keeps its own flower's value wherever it is sold: stockBase is the
+  // summed base price of everything on the counter (re-derived from the farm's own
+  // flower after a reload).
+  let stockBase = S.stock[f] * FLOWERS[type].price;
   function deposit(typeIdx, n = 1) {
+    const fl = FLOWERS[typeIdx] || FLOWERS[type];
     S.stock[f] += n;
+    stockBase += n * fl.price;
+    if (shop.pending > 0) shop.pending = Math.max(0, shop.pending - n);
     stockDirty = true;
   }
+  /** Call when a bouquet starts flying to this counter, so a save in mid-flight keeps it. */
+  function expect(n = 1) { shop.pending += n; }
 
   function bundleValue() {
     return Math.max(1, bouquetPrice(type, G.stats) * 1.5);
@@ -284,10 +294,12 @@ function makeShop(G, farm, f) {
     const n = Math.min(cfg.batch, S.stock[f]);
     if (n <= 0) return;
     const visBefore = Math.min(S.stock[f], maxStock);
+    const each = stockBase > 0 ? stockBase / S.stock[f] : FLOWERS[type].price;
     S.stock[f] -= n;
+    stockBase = S.stock[f] > 0 ? Math.max(0, stockBase - n * each) : 0;
     stockDirty = true;
     shop.sold += n;
-    const amount = n * bouquetPrice(type, G.stats);
+    const amount = Math.max(1, Math.round(n * each * G.stats.priceMult));
     S.cash[f] += amount;
     const fx = G.fx;
     // bouquets fly to the customer
@@ -416,7 +428,9 @@ function makeShop(G, farm, f) {
       c.char.position.set(c.x, 0, c.z);
       c.char.rotation.y = c.yaw;
       c.char.scale.setScalar(Math.max(0.001, scale * c.base));
-      animateCharacter(c.char, dt, { moving, speed: Math.max(0.6, c.spd / speed), carrying: false, action: null });
+      const an = c.anim || (c.anim = { moving: false, speed: 1, carrying: false, action: null });
+      an.moving = moving; an.speed = Math.max(0.6, c.spd / speed);
+      animateCharacter(c.char, dt, an);
     }
   }
 

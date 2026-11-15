@@ -270,7 +270,7 @@ export function createAudio(G) {
   // ---- gestures / visibility
   const onGesture = () => ensure();
   if (typeof window !== 'undefined') {
-    for (const ev of ['pointerdown', 'touchstart', 'keydown', 'click']) window.addEventListener(ev, onGesture, { passive: true });
+    for (const ev of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'click']) window.addEventListener(ev, onGesture, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
       try {

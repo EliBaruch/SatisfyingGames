@@ -189,6 +189,7 @@ export function createPlayer(G) {
         const t = stack.pop();
         stack.topWorld(tmpA);
         if (fx && fx.fly) {
+          G.shops.get(farmIn)?.expect?.(1);
           flyOpts.type = t;
           flyOpts.from = tmpA;
           flyOpts.to = dropFns[farmIn];

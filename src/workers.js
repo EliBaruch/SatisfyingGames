@@ -50,6 +50,7 @@ export function createWorkers(G) {
     const farm = FARMS[f];
     if (fx && fx.fly) {
       stack.topWorld(tmpV);
+      shop.expect?.(1);
       fx.fly({
         kind: 'bouquet', type,
         from: { x: tmpV.x, y: tmpV.y, z: tmpV.z },
@@ -94,7 +95,7 @@ export function createWorkers(G) {
     });
     stack.toWorldFn = (o) => stack.topWorld(o);
     const w = {
-      f, farm, group, stack,
+      f, farm, group, stack, k,
       x: farm.workerHome.x + ((k % 3) - 1) * 0.9,
       z: farm.workerHome.z + ((k / 3) | 0) * 0.9,
       face: farm.flip > 0 ? 0 : 0, dirX: -farm.flip, dirZ: 0, spd: 0,
@@ -225,7 +226,8 @@ export function createWorkers(G) {
 
     if (w.state === 'deliver') {
       carrying = true;
-      const rem = walk(w, farm.workerDrop.x, farm.workerDrop.z, dt);
+      // fan the cutters out a little so they do not stand inside each other
+      const rem = walk(w, farm.workerDrop.x, farm.workerDrop.z + ((w.k % 3) - 1) * 0.8, dt);
       if (rem <= ARRIVE) { w.state = 'unload'; w.unloadT = CUT.unloadInterval; }
     }
 

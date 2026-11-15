@@ -181,7 +181,7 @@ const PAD_DEFS = [
   { id: 'capacity1', label: 'BIGGER STACK',  cost: 300,    at: [0, 2.6, 7.6],    requires: ['cutter0c'],  effect: { type: 'capacity', value: 50 } },
   { id: 'speed1',    label: 'RUN FASTER',    cost: 350,    at: [0, 2.6, -8.2],   requires: ['capacity1'], effect: { type: 'speed', mult: 1.25 } },
   { id: 'tractor0',  label: 'TRACTOR',       cost: 600,    at: [0, -5.5, -9.6],  requires: ['speed1'],    effect: { type: 'tractor', farm: 0 }, big: true },
-  { id: 'farm1',     label: 'TULIP FARM',    cost: 1500,   abs: [27.5, 6.5],     requires: ['tractor0'],  effect: { type: 'farm', farm: 1 }, big: true },
+  { id: 'farm1',     label: 'TULIP FARM',    cost: 1200,   abs: [27.5, 6.5],     requires: ['tractor0'],  effect: { type: 'farm', farm: 1 }, big: true },
 
   // ---- Farm 1: tulips -----------------------------------------------------
   { id: 'cashier1',  label: 'CASHIER',       cost: 400,    at: [1, 6.0, -4.3],   requires: ['farm1'],     effect: { type: 'cashier', farm: 1 } },
@@ -191,29 +191,29 @@ const PAD_DEFS = [
   { id: 'capacity2', label: 'HUGE STACK',    cost: 2000,   at: [1, 2.6, 7.6],    requires: ['cutter1c'],  effect: { type: 'capacity', value: 80 } },
   { id: 'tractor1',  label: 'TRACTOR',       cost: 2500,   at: [1, -5.5, -9.6],  requires: ['capacity2'], effect: { type: 'tractor', farm: 1 }, big: true },
   { id: 'price1',    label: 'GIFT WRAP +50%', cost: 3000,  at: [1, 2.6, -8.2],   requires: ['tractor1'],  effect: { type: 'price', mult: 1.5 } },
-  { id: 'farm2',     label: 'SUNFLOWER FARM', cost: 8000,  abs: [6.5, 27.5],     requires: ['price1'],    effect: { type: 'farm', farm: 2 }, big: true },
+  { id: 'farm2',     label: 'SUNFLOWER FARM', cost: 6500,  abs: [6.5, 27.5],     requires: ['price1'],    effect: { type: 'farm', farm: 2 }, big: true },
 
   // ---- Farm 2: sunflowers -------------------------------------------------
   { id: 'cashier2',  label: 'CASHIER',       cost: 2000,   at: [2, 6.0, -4.3],   requires: ['farm2'],     effect: { type: 'cashier', farm: 2 } },
   { id: 'cutter2a',  label: 'HIRE CUTTER',   cost: 2500,   at: [2, -2.5, 9.4],   requires: ['cashier2'],  effect: { type: 'cutter', farm: 2 } },
   { id: 'cutter2b',  label: 'HIRE CUTTER',   cost: 3500,   at: [2, -6.0, 9.4],   requires: ['cutter2a'],  effect: { type: 'cutter', farm: 2 } },
   { id: 'cutter2c',  label: 'HIRE CUTTER',   cost: 4500,   at: [2, -9.5, 9.4],   requires: ['cutter2b'],  effect: { type: 'cutter', farm: 2 } },
-  { id: 'speed2',    label: 'TURBO BOOTS',   cost: 8000,   at: [2, 2.6, 7.6],    requires: ['cutter2c'],  effect: { type: 'speed', mult: 1.2 } },
-  { id: 'tractor2',  label: 'TRACTOR',       cost: 12000,  at: [2, -5.5, -9.6],  requires: ['speed2'],    effect: { type: 'tractor', farm: 2 }, big: true },
-  { id: 'regrow1',   label: 'SUPER SOIL',    cost: 15000,  at: [2, 2.6, -8.2],   requires: ['tractor2'],  effect: { type: 'regrow', seconds: 4 } },
-  { id: 'farm3',     label: 'ORCHID FARM',   cost: 40000,  abs: [27.5, 31.5],    requires: ['regrow1'],   effect: { type: 'farm', farm: 3 }, big: true },
+  { id: 'speed2',    label: 'TURBO BOOTS',   cost: 6500,   at: [2, 2.6, 7.6],    requires: ['cutter2c'],  effect: { type: 'speed', mult: 1.2 } },
+  { id: 'tractor2',  label: 'TRACTOR',       cost: 10000,  at: [2, -5.5, -9.6],  requires: ['speed2'],    effect: { type: 'tractor', farm: 2 }, big: true },
+  { id: 'regrow1',   label: 'SUPER SOIL',    cost: 12000,  at: [2, 2.6, -8.2],   requires: ['tractor2'],  effect: { type: 'regrow', seconds: 4 } },
+  { id: 'farm3',     label: 'ORCHID FARM',   cost: 28000,  abs: [27.5, 31.5],    requires: ['regrow1'],   effect: { type: 'farm', farm: 3 }, big: true },
 
   // ---- Farm 3: orchids ----------------------------------------------------
-  { id: 'cashier3',  label: 'CASHIER',       cost: 10000,  at: [3, 6.0, -4.3],   requires: ['farm3'],     effect: { type: 'cashier', farm: 3 } },
-  { id: 'cutter3a',  label: 'HIRE CUTTER',   cost: 12000,  at: [3, -2.5, 9.4],   requires: ['cashier3'],  effect: { type: 'cutter', farm: 3 } },
-  { id: 'cutter3b',  label: 'HIRE CUTTER',   cost: 16000,  at: [3, -6.0, 9.4],   requires: ['cutter3a'],  effect: { type: 'cutter', farm: 3 } },
-  { id: 'cutter3c',  label: 'HIRE CUTTER',   cost: 20000,  at: [3, -9.5, 9.4],   requires: ['cutter3b'],  effect: { type: 'cutter', farm: 3 } },
-  { id: 'capacity3', label: 'MEGA STACK',    cost: 30000,  at: [3, 2.6, 7.6],    requires: ['cutter3c'],  effect: { type: 'capacity', value: 120 } },
-  { id: 'tractor3',  label: 'TRACTOR',       cost: 50000,  at: [3, -5.5, -9.6],  requires: ['capacity3'], effect: { type: 'tractor', farm: 3 }, big: true },
-  { id: 'price2',    label: 'GOLD RIBBON x2', cost: 80000, at: [3, 2.6, -8.2],   requires: ['tractor3'],  effect: { type: 'price', mult: 2 } },
+  { id: 'cashier3',  label: 'CASHIER',       cost: 8000,  at: [3, 6.0, -4.3],   requires: ['farm3'],     effect: { type: 'cashier', farm: 3 } },
+  { id: 'cutter3a',  label: 'HIRE CUTTER',   cost: 10000,  at: [3, -2.5, 9.4],   requires: ['cashier3'],  effect: { type: 'cutter', farm: 3 } },
+  { id: 'cutter3b',  label: 'HIRE CUTTER',   cost: 13000,  at: [3, -6.0, 9.4],   requires: ['cutter3a'],  effect: { type: 'cutter', farm: 3 } },
+  { id: 'cutter3c',  label: 'HIRE CUTTER',   cost: 16000,  at: [3, -9.5, 9.4],   requires: ['cutter3b'],  effect: { type: 'cutter', farm: 3 } },
+  { id: 'capacity3', label: 'MEGA STACK',    cost: 24000,  at: [3, 2.6, 7.6],    requires: ['cutter3c'],  effect: { type: 'capacity', value: 120 } },
+  { id: 'tractor3',  label: 'TRACTOR',       cost: 40000,  at: [3, -5.5, -9.6],  requires: ['capacity3'], effect: { type: 'tractor', farm: 3 }, big: true },
+  { id: 'price2',    label: 'GOLD RIBBON x2', cost: 60000, at: [3, 2.6, -8.2],   requires: ['tractor3'],  effect: { type: 'price', mult: 2 } },
 
   // ---- Finale ---------------------------------------------------------------
-  { id: 'greenhouse', label: 'GRAND GREENHOUSE', cost: 400000, abs: [19, 53], requires: ['price2'], effect: { type: 'win' }, big: true },
+  { id: 'greenhouse', label: 'GRAND GREENHOUSE', cost: 200000, abs: [19, 53], requires: ['price2'], effect: { type: 'win' }, big: true },
 ];
 
 export const PADS = PAD_DEFS.map((p) => {

@@ -10,7 +10,12 @@ const MAX_STEPS = 40;
 // ------------------------------------------------------------------ renderer
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// Render resolution adapts to the device: start at up to 2x and step down if the
+// frame rate cannot hold (see adaptQuality below).
+const PR_STEPS = [2, 1.5, 1.25, 1];
+let prLevel = 0;
+const maxPR = window.devicePixelRatio || 1;
+renderer.setPixelRatio(Math.min(maxPR, PR_STEPS[prLevel]));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
@@ -322,7 +327,6 @@ G.events.on('unlock', ({ pad, effect } = {}) => {
 });
 
 G.events.on('win', () => {
-  G.state.won = true;
   hint.has = false;
   G.hud.setGoal('');
   G.audio.play('win');
@@ -334,9 +338,18 @@ G.events.on('win', () => {
     }
     if (++n >= 8) clearInterval(storm);
   }, 280);
-  setTimeout(() => G.hud.showWin({ time: G.state.playTime, earned: G.state.earned }), 2500);
+  setTimeout(showWinCard, 2500);
   saveNow();
 });
+// `won` is only saved once the win card has actually been shown, so reloading during
+// the celebration still shows it on the next boot.
+function showWinCard() {
+  if (G.state.won) return;
+  G.state.won = true;
+  G.hud.showWin({ time: G.state.playTime, earned: G.state.earned });
+  saveNow();
+}
+if (G.stats.won && !G.state.won) setTimeout(showWinCard, 1200);
 
 // ------------------------------------------------------------------ saving
 let noSave = false;
@@ -345,7 +358,15 @@ function saveNow() {
   const pl = G.player;
   if (pl && pl.pos) G.state.player = { x: +pl.pos.x.toFixed(3), z: +pl.pos.z.toFixed(3) };
   if (pl && pl.stack) G.state.carried = pl.stack.items.slice();
+  // bouquets still flying to a counter count as stock in the save
+  const st = G.state.stock, add = [0, 0, 0, 0];
+  for (let f = 0; f < st.length; f++) {
+    const sh = G.shops && G.shops.get ? G.shops.get(f) : null;
+    add[f] = sh && sh.pending > 0 ? sh.pending | 0 : 0;
+    st[f] += add[f];
+  }
   save(G.state);
+  for (let f = 0; f < st.length; f++) st[f] -= add[f];
 }
 G.saveNow = saveNow;
 setInterval(saveNow, 2000);
@@ -428,8 +449,28 @@ function frame(now) {
   updateCamera(realDt);
   renderer.render(scene, camera);
   G.frames++;
+  adaptQuality(realDt);
 }
 G.step = step;
+
+// Drop the render resolution one notch whenever the smoothed frame time stays above
+// ~24 ms (under ~42 fps) for a while. Never goes back up, so it cannot oscillate.
+let qEma = 1 / 60, qBad = 0, qWarm = 0;
+function adaptQuality(realDt) {
+  if (document.hidden || G.timeScale > 1.5 || realDt <= 0) return;
+  qWarm += realDt;
+  if (qWarm < 3) return;                       // ignore start-up hitches
+  qEma += (Math.min(realDt, 0.1) - qEma) * 0.05;
+  if (qEma > 0.024) qBad += realDt; else qBad = Math.max(0, qBad - realDt * 2);
+  if (qBad > 2 && prLevel < PR_STEPS.length - 1) {
+    prLevel++;
+    qBad = 0; qEma = 1 / 60; qWarm = 1.5;
+    if (PR_STEPS[prLevel] < maxPR) {
+      renderer.setPixelRatio(PR_STEPS[prLevel]);
+      resize();
+    }
+  }
+}
 requestAnimationFrame((t) => { last = t; frame(t); });
 
 // ------------------------------------------------------------------ autoplay

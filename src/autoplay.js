@@ -37,13 +37,62 @@ export function startAutoplay(G) {
 
   function nextPad() { return G.pads && G.pads.next ? G.pads.next() : null; }
 
+  // ---- counters are solid: route around them with corner waypoints
+  const HX = 0.6 + 0.45 + 0.45, HZ = 1.7 + 0.45 + 0.45;   // inflated half extents (counter + player radius + margin)
+  function segHitsRect(ax, az, bx, bz, c) {
+    // slab test against the slightly shrunk rect
+    const hx = HX - 0.5, hz = HZ - 0.5;
+    let t0 = 0, t1 = 1;
+    const dx = bx - ax, dz = bz - az;
+    const ps = [-dx, dx, -dz, dz];
+    const qs = [ax - (c.x - hx), (c.x + hx) - ax, az - (c.z - hz), (c.z + hz) - az];
+    for (let i = 0; i < 4; i++) {
+      if (ps[i] === 0) { if (qs[i] < 0) return false; continue; }
+      const r = qs[i] / ps[i];
+      if (ps[i] < 0) { if (r > t1) return false; if (r > t0) t0 = r; }
+      else { if (r < t0) return false; if (r < t1) t1 = r; }
+    }
+    return t0 <= t1;
+  }
+  function waypoint(px, pz, tx, tz) {
+    for (let f = 0; f < FARMS.length; f++) {
+      if (!G.stats.farms[f]) continue;
+      const c = FARMS[f].counter;
+      if (!segHitsRect(px, pz, tx, tz, c)) continue;
+      let best = null, bd = Infinity;
+      const cs = [];
+      for (let i = 0; i < 4; i++) cs.push({ x: c.x + (i & 1 ? HX : -HX), z: c.z + (i & 2 ? HZ : -HZ) });
+      for (let i = 0; i < 4; i++) {
+        const A = cs[i];
+        if (segHitsRect(px, pz, A.x, A.z, c)) continue;
+        if (!segHitsRect(A.x, A.z, tx, tz, c)) {
+          const d = Math.hypot(A.x - px, A.z - pz) + Math.hypot(tx - A.x, tz - A.z);
+          if (d < bd) { bd = d; best = A; }
+        }
+        for (let j = 0; j < 4; j++) {
+          if (j === i) continue;
+          const B = cs[j];
+          if (segHitsRect(A.x, A.z, B.x, B.z, c) || segHitsRect(B.x, B.z, tx, tz, c)) continue;
+          const d = Math.hypot(A.x - px, A.z - pz) + Math.hypot(B.x - A.x, B.z - A.z) + Math.hypot(tx - B.x, tz - B.z);
+          if (d < bd) { bd = d; best = A; }
+        }
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
   function walkInput(tx, tz, arrive) {
     const p = pl().pos;
-    const dx = tx - p.x, dz = tz - p.z;
-    const d = Math.hypot(dx, dz);
-    if (d < arrive) return { x: 0, y: 0, d };
-    const m = Math.min(1, d * 1.5);
-    return { x: ((-dx + dz) * S2 / d) * m, y: ((dx + dz) * S2 / d) * m, d };
+    const fd = Math.hypot(tx - p.x, tz - p.z);
+    if (fd < arrive) return { x: 0, y: 0, d: fd };
+    const wp = waypoint(p.x, p.z, tx, tz);
+    let gx = tx, gz = tz, m0 = 1.5;
+    if (wp) { gx = wp.x; gz = wp.z; m0 = 20; }
+    const dx = gx - p.x, dz = gz - p.z;
+    const d = Math.hypot(dx, dz) || 1e-6;
+    const m = Math.min(1, d * m0);
+    return { x: ((-dx + dz) * S2 / d) * m, y: ((dx + dz) * S2 / d) * m, d: fd };
   }
 
   function bedLowHere() {
@@ -205,16 +254,17 @@ export function startAutoplay(G) {
     if (!cand) return;
     if (act && cand.key === act.key) {
       // same action: refresh target (e.g. nearest flower moves)
-      act.x = cand.x; act.z = cand.z;
+      act.x = cand.x; act.z = cand.z; pendingAct = null;
       return;
     }
     // cut→cut across a changing target within the same farm is the same action (keys equal), handled above
     if (act && act.kind === 'cut' && cand.kind === 'cut' && act.farm === cand.farm) {
-      act.x = cand.x; act.z = cand.z;
+      act.x = cand.x; act.z = cand.z; pendingAct = null;
       return;
     }
-    // change of action: reaction pause
+    // change of action: reaction pause (a pause already running is not restarted)
     cand.since = simT;
+    if (pendingAct) { pendingAct = cand; return; }
     pendingAct = cand;
     pauseLeft = act ? REACTION : 0.0;
     if (!act) { act = cand; pendingAct = null; }
@@ -273,6 +323,7 @@ export function startAutoplay(G) {
     if (!G.player || !G.player.stack || !G.shops || !G.fields) return;
     simT += STEP;
     steps++;
+    if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
     if (steps % DECIDE_EVERY === 1) decide();
     stuckCheck();
     G.input.override = drive();
