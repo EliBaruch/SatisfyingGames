@@ -25,6 +25,27 @@ Nothing is built now. This plan is the brief for the scheduled run.
 
 Known unknowns the build must check first (I have only seen thumbnails and metadata): the Quaternius rig's bone names, whether its materials can be tinted per part, and how the low-poly vs Smooth variants look in-engine.
 
+## Visual reference from the owner
+
+The owner sent two YouTube Shorts as the look to aim for (both show Township's walk-and-carry mini-games):
+https://www.youtube.com/shorts/lJUrHtyG028 and https://www.youtube.com/shorts/vXVBPdqyzjg
+
+Still frames can be re-fetched for reference from `https://i.ytimg.com/vi/<id>/oar1.jpg` (also `oar2`, `oar3`, `maxresdefault`); `www.youtube.com` and `i.ytimg.com` are allowed in the environment. Look at them before the look test. They are another studio's art: use them as a style target only, do not commit them to the repo and do not copy its characters, logo or specific models.
+
+What the frames show, and what to carry over to the factory:
+
+| In the reference | In the factory world |
+|---|---|
+| Player is tall and slim (about 6-7 heads), in overalls, and fills roughly a sixth of the screen height | Prefer the Quaternius "Smooth" variants for the player; perspective camera set closer than the current worlds at the start, pulling back as the factory grows |
+| Ground is richly textured: grass with tufts and pebbles, dirt pens with a raised stone curb, soft contact shadows | No flat single-colour floors. Canvas-generated detail textures (sealed concrete with scuffs, painted lane lines, hazard stripes, asphalt, grass outside), raised curbs around work areas, baked AO and blob shadows |
+| Vehicles are chunky, rounded and glossy | Glossy PBR paint with the environment map on vans, trucks, AGVs and finished cars |
+| Each truck has an order bubble above it (item icon and count) | Order bubbles above vans, trucks and the car carrier showing what they want and how many |
+| Work zones are dashed cyan outlines; a big 3D arrow bobs over the next place to go; cash sits on green pad decals | Restyle zone markers, the hint arrow and cash pads to this language for the factory |
+| Very tall carried stacks that sway; a crowd of customers queuing; a "SELL" pad at a counter | Keep tall swaying stacks; trucks queue on the road as demand grows |
+| Warm, saturated colour with soft shadows | Warm key light, tone mapping tuned for saturation, soft shadow radius |
+
+Expect a clear step up from the current worlds, not a match for a studio's hand-made art: the models are free low-poly packs, so the gain comes from proportions, camera, lighting, textured surfaces and gloss.
+
 ## Game design
 
 Working name **Volt Works** (`id: 'factory'`, unlocked by finishing `grocery`). No real brands.
