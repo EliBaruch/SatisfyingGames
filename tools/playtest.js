@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bloom Rush playtest runner: plays the whole game with src/autoplay.js and reports the unlock timeline.
 // Usage: node tools/playtest.js [--speed=20] [--max=1200] [--shots=DIR] [--url=http://localhost:8100/]
-//                               [--fresh|--no-fresh] [--until=padId] [--driver=page|loop]
+//                               [--fresh|--no-fresh] [--until=padId] [--driver=page|loop] [--world=flower]
 // driver=page (default): the page's own loop is frozen (G.timeScale = 0) and the sim is advanced by calling
 //   G.step(1/60) in batches inside page.evaluate (fast, no rendering needed). driver=loop: uses the game loop at ?speed=N.
 const { chromium } = require('playwright');
@@ -23,8 +23,9 @@ const DRIVER = args.driver || 'page';
 const WALL_LIMIT = 15 * 60 * 1000;
 const BATCH = 120; // steps per evaluate in page mode (2 sim-seconds)
 
-const SHOT_AT = { cashier0: 'first-cashier', cutter0c: 'third-cutter', tractor0: 'tractor0', farm1: 'farm1', farm2: 'farm2', farm3: 'farm3', greenhouse: 'greenhouse' };
-const BIG_WAIT = new Set(['farm1', 'farm2', 'farm3', 'tractor0', 'greenhouse']);
+const SHOT_AT = { cashier0: 'first-cashier', cutter0c: 'third-cutter', tractor0: 'tractor0', farm1: 'farm1', farm2: 'farm2', greenhouse: 'greenhouse' };
+const BIG_WAIT = new Set(['farm1', 'farm2', 'tractor0', 'greenhouse']);
+const WORLD = args.world && args.world !== true ? args.world : null;
 
 const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -43,7 +44,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   page.on('pageerror', () => { pageErrors++; });
 
   if (FRESH) await page.addInitScript(() => { try { if (!sessionStorage.getItem('__pt')) { localStorage.clear(); sessionStorage.setItem('__pt', '1'); } } catch (e) {} });
-  const base = URL_ + (URL_.includes('?') ? '&' : '?') + 'autoplay&speed=' + (DRIVER === 'loop' ? SPEED : 1);
+  const base = URL_ + (URL_.includes('?') ? '&' : '?') + 'autoplay&speed=' + (DRIVER === 'loop' ? SPEED : 1) + (WORLD ? '&world=' + WORLD : '');
   await page.goto(base, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__game && window.__game.step && window.__autoplay, null, { timeout: 30000 });
   await page.touchscreen.tap(195, 420);

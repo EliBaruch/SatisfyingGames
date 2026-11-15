@@ -1,16 +1,19 @@
-// Bloom Rush — autoplay bot. Plays like a competent human through G.input.override only.
+// Autoplay bot. Plays like a competent human through G.input.override only, using the
+// same station capabilities as the player (harvest areas, drop zones, cash piles, pads).
 // Driven by simulation steps (wraps G.input.update, which runs once per fixed step).
+import { getItem } from './engine/registry.js';
 
 const STEP = 1 / 60;
 const DECIDE_EVERY = 15;      // steps between decisions (~4 per sim-second)
 const REACTION = 0.25;        // sim seconds of standing still before changing action
 const SAMPLE_EVERY = 15;      // sim seconds
 const S2 = Math.SQRT1_2;
+const PAD_RADIUS = 1.3;
 
 export function startAutoplay(G) {
-  const { FARMS, FLOWERS, PADS, PLAYER, PAD } = G.cfg;
   const state = G.state;
   const ap = (window.__autoplay = { log: [], done: false, stuck: false, action: 'init' });
+  const stations = G.stations.list;
 
   function push(entry) {
     ap.log.push(entry);
@@ -31,17 +34,24 @@ export function startAutoplay(G) {
   // ------------------------------------------------------------ helpers
   const pl = () => G.player;
   const carried = () => { const s = pl().stack; return s.count + s.incoming; };
-  const dist = (a, x, z) => Math.hypot(a.x - x, a.z - z);
+  const active = (cap) => stations.filter((s) => s.active && s[cap]);
 
-  function remainingCost(pad) { return pad.cost - (state.paid[pad.id] || 0); }
-
+  function remainingCost(pad) { return G.pads.remaining(pad); }
   function nextPad() { return G.pads && G.pads.next ? G.pads.next() : null; }
 
-  // ---- counters are solid: route around them with corner waypoints
-  const HX = 0.6 + 0.45 + 0.45, HZ = 1.7 + 0.45 + 0.45;   // inflated half extents (counter + player radius + margin)
+  // ---- station blockers are solid: route around them with corner waypoints
+  const M = 0.9;  // player radius + margin
+  function boxes() {
+    const out = [];
+    for (const s of stations) {
+      if (!s.active || !s.blockers) continue;
+      for (const o of s.blockers) out.push(o.r !== undefined ? { x: o.x, z: o.z, hx: o.r + M, hz: o.r + M } : { x: o.x, z: o.z, hx: o.hx + M, hz: o.hz + M });
+    }
+    return out;
+  }
   function segHitsRect(ax, az, bx, bz, c) {
     // slab test against the slightly shrunk rect
-    const hx = HX - 0.5, hz = HZ - 0.5;
+    const hx = c.hx - 0.5, hz = c.hz - 0.5;
     let t0 = 0, t1 = 1;
     const dx = bx - ax, dz = bz - az;
     const ps = [-dx, dx, -dz, dz];
@@ -55,13 +65,11 @@ export function startAutoplay(G) {
     return t0 <= t1;
   }
   function waypoint(px, pz, tx, tz) {
-    for (let f = 0; f < FARMS.length; f++) {
-      if (!G.stats.farms[f]) continue;
-      const c = FARMS[f].counter;
+    for (const c of boxes()) {
       if (!segHitsRect(px, pz, tx, tz, c)) continue;
       let best = null, bd = Infinity;
       const cs = [];
-      for (let i = 0; i < 4; i++) cs.push({ x: c.x + (i & 1 ? HX : -HX), z: c.z + (i & 2 ? HZ : -HZ) });
+      for (let i = 0; i < 4; i++) cs.push({ x: c.x + (i & 1 ? c.hx : -c.hx), z: c.z + (i & 2 ? c.hz : -c.hz) });
       for (let i = 0; i < 4; i++) {
         const A = cs[i];
         if (segHitsRect(px, pz, A.x, A.z, c)) continue;
@@ -95,47 +103,42 @@ export function startAutoplay(G) {
     return { x: ((-dx + dz) * S2 / d) * m, y: ((dx + dz) * S2 / d) * m, d: fd };
   }
 
-  function bedLowHere() {
-    // is the bed we are working nearly empty?
+  function lowHere() {
+    // is the harvest area we are working nearly empty?
     const p = pl().pos;
-    for (let f = 0; f < FARMS.length; f++) {
-      const fl = G.fields.get(f);
-      if (!fl || !fl.active) continue;
-      const b = fl.bounds;
+    for (const s of active('harvest')) {
+      const b = s.harvest.bounds;
       if (p.x > b.minX - 4 && p.x < b.maxX + 4 && p.z > b.minZ - 4 && p.z < b.maxZ + 4) {
-        if (fl.grownCount < fl.total * 0.15) return true;
+        if (s.harvest.available < s.harvest.total * 0.15) return true;
       }
     }
     return false;
   }
 
   function anyGrown() {
-    for (let f = 0; f < FARMS.length; f++) {
-      const fl = G.fields.get(f);
-      if (fl && fl.active && fl.grownCount > 0) return true;
-    }
+    for (const s of active('harvest')) if (s.harvest.available > 0) return true;
     return false;
   }
 
-  function sellFarmIdx() {
+  // nearest drop zone that accepts something we carry
+  function dropTarget() {
     const p = pl().pos;
-    let best = -1, bd = Infinity;
-    for (let f = 0; f < FARMS.length; f++) {
-      if (!G.stats.farms[f]) continue;
-      const z = FARMS[f].sellZone;
+    const st = pl().stack;
+    let best = null, bd = Infinity;
+    for (const s of active('drop')) {
+      if (!st.has(s.drop.accepts)) continue;
+      const z = s.drop.zone;
       const d = Math.hypot(z.x - p.x, z.z - p.z);
-      if (d < bd) { bd = d; best = f; }
+      if (d < bd) { bd = d; best = s; }
     }
     return best;
   }
 
-  // farms ordered by flower price, most valuable first
-  function farmsByValue() {
-    const list = [];
-    for (let f = 0; f < FARMS.length; f++) if (G.stats.farms[f]) list.push(f);
-    list.sort((a, b) => FLOWERS[FARMS[b].flower].price - FLOWERS[FARMS[a].flower].price);
-    return list;
+  // harvest stations ordered by item value, most valuable first
+  function harvestByValue() {
+    return active('harvest').sort((a, b) => ((getItem(b.harvest.kind) || {}).value || 0) - ((getItem(a.harvest.kind) || {}).value || 0));
   }
+  const tmp = { x: 0, z: 0 };
 
   // ------------------------------------------------------------ state machine
   // act = { kind, key, x, z, arrive, farm, padId, since }
@@ -162,71 +165,65 @@ export function startAutoplay(G) {
     const c = carried();
 
     // 2. sell
-    if (c > 0 && (c >= cap - 0.5 || (c >= cap * 0.6 && bedLowHere()) || (!anyGrown() && c >= 1))) {
-      const f = sellFarmIdx();
-      const z = FARMS[f].sellZone;
-      return { kind: 'sell', key: 'sell:' + f, x: z.x, z: z.z, arrive: 0.5, farm: f };
+    if (c > 0 && (c >= cap - 0.5 || (c >= cap * 0.6 && lowHere()) || (!anyGrown() && c >= 1))) {
+      const s = dropTarget();
+      if (s) {
+        const z = s.drop.zone;
+        return { kind: 'sell', key: 'sell:' + s.id, x: z.x, z: z.z, arrive: 0.5, st: s };
+      }
     }
 
     // 3. cash piles
     const missing = np ? Math.max(0, rem - money) : Infinity;
-    let bestF = -1, bestScore = -1;
-    for (let f = 0; f < FARMS.length; f++) {
-      if (!G.stats.farms[f]) continue;
-      const sh = G.shops.get(f);
-      if (!sh || !sh.active) continue;
-      const cash = sh.cash;
+    let bestS = null, bestScore = -1;
+    for (const s of active('cash')) {
+      const cash = s.cash.amount;
       if (cash < 1) continue;
       const enough = cash >= 0.25 * missing || cash >= missing || (!np);
-      const worth = enough && cash >= 5;
-      if (!worth) continue;
-      const pile = FARMS[f].cashPile;
+      if (!(enough && cash >= 5)) continue;
+      const pile = s.cash.pile;
       const score = cash / (5 + Math.hypot(pile.x - p.x, pile.z - p.z));
-      if (score > bestScore) { bestScore = score; bestF = f; }
+      if (score > bestScore) { bestScore = score; bestS = s; }
     }
-    if (bestF >= 0) {
-      const pile = FARMS[bestF].cashPile;
-      return { kind: 'cash', key: 'cash:' + bestF, x: pile.x, z: pile.z, arrive: 0.6, farm: bestF };
+    if (bestS) {
+      const pile = bestS.cash.pile;
+      return { kind: 'cash', key: 'cash:' + bestS.id, x: pile.x, z: pile.z, arrive: 0.6, st: bestS };
     }
 
-    // 4. cut flowers in the most valuable farm that has something grown
-    const order = farmsByValue();
-    for (const f of order) {
-      const fl = G.fields.get(f);
-      if (!fl || !fl.active) continue;
-      const g = fl.nearestGrown(p.x, p.z);
-      if (g) return { kind: 'cut', key: 'cut:' + f, x: g.x, z: g.z, arrive: 0.15, farm: f };
+    // 4. harvest in the most valuable area that has something grown
+    const order = harvestByValue();
+    for (const s of order) {
+      if (s.harvest.nearest(p.x, p.z, tmp)) return { kind: 'cut', key: 'cut:' + s.id, x: tmp.x, z: tmp.z, arrive: 0.15, st: s };
     }
-    // nothing grown anywhere: wait at the edge of the best bed (or just stay if close)
-    const f = order[0];
-    const b = FARMS[f].bed;
+    if (!order.length) return null;
+    // nothing grown anywhere: wait at the edge of the best area (or just stay if close)
+    const s = order[0];
+    const b = s.harvest.bounds;
     const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
     const inside = p.x > b.minX - 1 && p.x < b.maxX + 1 && p.z > b.minZ - 1 && p.z < b.maxZ + 1;
-    if (inside) return { kind: 'wait', key: 'wait:' + f, x: p.x, z: p.z, arrive: 99, farm: f };
-    return { kind: 'cut', key: 'cutwalk:' + f, x: cx, z: cz, arrive: 0.5, farm: f };
+    if (inside) return { kind: 'wait', key: 'wait:' + s.id, x: p.x, z: p.z, arrive: 99, st: s };
+    return { kind: 'cut', key: 'cutwalk:' + s.id, x: cx, z: cz, arrive: 0.5, st: s };
   }
 
   // is the current action still worth continuing? (finish before switching)
   function stillValid() {
     if (!act) return false;
-    const np = nextPad();
     switch (act.kind) {
       case 'buy': {
         if (state.done[act.padId]) return false;
-        const pad = PADS.find((q) => q.id === act.padId);
-        return pad && (state.money >= remainingCost(pad) || (state.paid[act.padId] || 0) > 0 && state.money > 0 && inside(pad.pos, PAD.radius));
+        const pad = G.pads.get(act.padId);
+        return pad && (state.money >= remainingCost(pad) || (state.paid[act.padId] || 0) > 0 && state.money > 0 && inside(pad.pos, PAD_RADIUS));
       }
       case 'sell': {
-        const sh = G.shops.get(act.farm);
-        const c = carried();
-        if (c > 0) return true;
-        // emptied; without cashier keep standing until the counter is sold out
-        if (!G.stats.cashier[act.farm] && sh.stock > 0 && simT - act.since < 90 && inZone(act)) return true;
+        const s = act.st;
+        if (carried() > 0 && pl().stack.has(s.drop.accepts)) return true;
+        // emptied; without a cashier keep standing until the counter is sold out
+        const staff = G.stats.staff[s.id];
+        if (!(staff && staff.cashier) && s.stock > 0 && simT - act.since < 90 && inZone(act)) return true;
         return false;
       }
       case 'cash': {
-        const sh = G.shops.get(act.farm);
-        if (sh.cash >= 1 && (!act.arrivedAt || simT - act.arrivedAt < 1.5)) return true;
+        if (act.st.cash.amount >= 1 && (!act.arrivedAt || simT - act.arrivedAt < 1.5)) return true;
         return false;
       }
       case 'cut':
@@ -258,7 +255,7 @@ export function startAutoplay(G) {
       return;
     }
     // cut→cut across a changing target within the same farm is the same action (keys equal), handled above
-    if (act && act.kind === 'cut' && cand.kind === 'cut' && act.farm === cand.farm) {
+    if (act && act.kind === 'cut' && cand.kind === 'cut' && act.st === cand.st) {
       act.x = cand.x; act.z = cand.z; pendingAct = null;
       return;
     }
@@ -320,7 +317,7 @@ export function startAutoplay(G) {
 
   // ------------------------------------------------------------ hook
   function tick() {
-    if (!G.player || !G.player.stack || !G.shops || !G.fields) return;
+    if (!G.player || !G.player.stack || !G.stations) return;
     simT += STEP;
     steps++;
     if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
