@@ -21,7 +21,7 @@ export const PERKS = [
   { id: 'magnet', title: 'MAGNET', sub: 'CASH FLIES\nTO YOU', icon: 'cash', color: 0xe04f6c, max: 2, add: { magnet: 2.6 } },
   { id: 'feverTime', title: '+4s', sub: 'LONGER FEVER', icon: 'flame', color: 0xff5a2a, max: 3, add: { feverTime: 4 } },
   { id: 'feverFill', title: '+30%', sub: 'FEVER FILLS\nFASTER', icon: 'flame', color: 0xff7a1a, max: 3, mul: { feverFill: 1.30 } },
-  { id: 'luck', title: 'LUCKY', sub: 'MORE DROPS\nBIGGER JACKPOTS', icon: 'star', color: 0xf0b400, max: 3, mul: { luck: 1.25 } },
+  { id: 'luck', title: 'LUCKY', sub: 'MORE EVENTS\n+ JACKPOTS', icon: 'star', color: 0xf0b400, max: 3, mul: { luck: 1.25 } },
   { id: 'orderPay', title: '+35%', sub: 'RUSH ORDER PAY', color: 0x3f8cff, max: 3, mul: { orderPay: 1.35 } },
   // trade-offs: one of each pair at most
   { id: 'mule', title: 'PACK MULE', sub: '+60% STACK\n-8% SPEED', color: 0xb5651d, max: 1, mul: { capacity: 1.6, speed: 0.92 }, not: 'feet' },
