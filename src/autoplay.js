@@ -261,6 +261,11 @@ export function startAutoplay(G) {
       }
       case 'pickup': {
         const pk = act.st.pickup;
+        // the player only takes what open drop zones still have room for: once nothing more
+        // arrives for a moment, move on instead of waiting out the 4 s
+        const c = carried();
+        if (act.lastCarried !== c) { act.lastCarried = c; act.lastGain = simT; }
+        if (act.arrivedAt && simT - Math.max(act.arrivedAt, act.lastGain) > 0.6) return false;
         return pl().stack.room > 0 && pk.available > 0 && (!act.arrivedAt || simT - act.arrivedAt < 4);
       }
       case 'serve': {
