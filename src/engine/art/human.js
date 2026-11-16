@@ -17,6 +17,7 @@
 import * as THREE from 'three';
 import { getModel } from './assets.js';
 import { litMaterial } from './material.js';
+import { Parts } from './parts.js';
 
 export const HUMAN_HEIGHT = 1.9;
 const KITS = /^(animatedmen|animatedwomen)\//;
@@ -29,6 +30,26 @@ function humanMaterial() {
   return _mat;
 }
 
+// --------------------------------------------------------------------- hats
+// Hats for this rig are baked into the character's own skinned geometry (bound to the head bone),
+// so a crew in helmets costs no extra draw calls. Unit scale: sits on a 0.2 m wide head; origin = top of the skull.
+const HAT_COLORS = { hardhat: 0xffc928, 'hardhat-white': 0xf4f6f8, 'hardhat-orange': 0xff8a2a, 'hardhat-blue': 0x2f7fe0 };
+const hatGeos = new Map();
+/** true if `kind` is a hat this rig bakes in */
+export function isHumanHat(kind) { return kind in HAT_COLORS; }
+function hatGeometry(kind) {
+  let g = hatGeos.get(kind);
+  if (g) return g;
+  const c = HAT_COLORS[kind];
+  const b = new Parts();
+  b.sph(c, 0.135, [0, -0.045, -0.005], [1, 0.8, 1.12], null, 12, 7);
+  b.cyl(c, 0.158, 0.158, 0.02, [0, -0.07, 0.03], [0.1, 0, 0], 12, [1, 1, 1.22]);
+  b.box(c, 0.035, 0.03, 0.2, [0, 0.062, -0.005]);
+  g = b.merged();
+  hatGeos.set(kind, g);
+  return g;
+}
+
 // ------------------------------------------------------------ merged geometry
 const geoCache = new Map();
 const _c = new THREE.Color();
@@ -36,13 +57,18 @@ function paletteKey(colors) {
   if (!colors) return '';
   return Object.keys(colors).sort().map((k) => k + ':' + colors[k]).join(',');
 }
-/** One skinned vertex-colour geometry from the model's per-material skinned meshes (shared, cached per palette). */
-function mergedGeometry(id, meshes, colors) {
-  const key = id + '|' + paletteKey(colors);
+/**
+ * One skinned vertex-colour geometry from the model's per-material skinned meshes (shared, cached per palette
+ * and hat). `hat` = { geo, bone (index of the head bone), matrix (hat frame -> the mesh's bind space) } or null.
+ */
+function mergedGeometry(id, meshes, colors, hatKey, hat) {
+  const key = id + '|' + paletteKey(colors) + '|' + (hatKey || '');
   let g = geoCache.get(key);
   if (g) return g;
   let total = 0, idx = 0;
   for (const m of meshes) { total += m.geometry.attributes.position.count; idx += m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count; }
+  const hatN = hat ? hat.geo.attributes.position.count : 0;
+  total += hatN; idx += hatN;
   const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), col = new Float32Array(total * 3);
   const sI = new Uint16Array(total * 4), sW = new Float32Array(total * 4);
   const index = total > 65535 ? new Uint32Array(idx) : new Uint16Array(idx);
@@ -66,6 +92,21 @@ function mergedGeometry(id, meshes, colors) {
     if (gi) for (let i = 0; i < gi.count; i++) index[ii++] = gi.getX(i) + v;
     else for (let i = 0; i < n; i++) index[ii++] = v + i;
     v += n;
+  }
+  if (hat) {
+    // the hat: rigid on the head bone
+    const A = hat.geo.attributes, nm = new THREE.Matrix3().getNormalMatrix(hat.matrix);
+    for (let i = 0; i < hatN; i++) {
+      const o = v + i;
+      _v.fromBufferAttribute(A.position, i).applyMatrix4(hat.matrix);
+      pos[o * 3] = _v.x; pos[o * 3 + 1] = _v.y; pos[o * 3 + 2] = _v.z;
+      _v.fromBufferAttribute(A.normal, i).applyMatrix3(nm).normalize();
+      nor[o * 3] = _v.x; nor[o * 3 + 1] = _v.y; nor[o * 3 + 2] = _v.z;
+      col[o * 3] = A.color.getX(i); col[o * 3 + 1] = A.color.getY(i); col[o * 3 + 2] = A.color.getZ(i);
+      sI[o * 4] = hat.bone; sW[o * 4] = 1;
+      index[ii++] = o;
+    }
+    v += hatN;
   }
   g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -124,18 +165,8 @@ export function makeHuman(look = {}) {
   const holder = model.children[0];
   if (L.wide && L.wide !== 1) { holder.scale.x *= L.wide; holder.scale.z *= L.wide; holder.position.x *= L.wide; holder.position.z *= L.wide; }
 
-  // one skinned mesh instead of one per material slot
   const meshes = [];
   inst.traverse((o) => { if (o.isSkinnedMesh) meshes.push(o); });
-  if (meshes.length) {
-    const first = meshes[0];
-    first.geometry = mergedGeometry(L.model, meshes, L.colors || null);
-    first.material = humanMaterial();
-    first.castShadow = L.shadow !== false; first.receiveShadow = false;   // look.shadow: false = blob shadow only (crowds)
-    first.frustumCulled = false;
-    for (let i = 1; i < meshes.length; i++) if (meshes[i].parent) meshes[i].parent.remove(meshes[i]);
-  }
-
   const bones = {};
   inst.traverse((o) => { if (o.isBone) bones[o.name] = o; });
 
@@ -174,6 +205,31 @@ export function makeHuman(look = {}) {
   ud.back = anchor(bones.Torso, 0, 0.12 * k, -0.2 * k);
   ud.front = anchor(bones.Torso, 0, 0.1 * k, 0.24 * k);
   ud.tool = null;
+
+  // one skinned mesh instead of one per material slot, with the hat baked in
+  if (meshes.length) {
+    const first = meshes[0];
+    let hat = null;
+    const hatKey = L.hat && isHumanHat(L.hat) && bones.Head ? L.hat + '@' + (L.hatScale || 1) : '';
+    if (hatKey && !geoCache.has(L.model + '|' + paletteKey(L.colors || null) + '|' + hatKey)) {
+      const sk = first.skeleton, bi = sk.bones.indexOf(bones.Head);
+      if (bi >= 0) {
+        // hat frame (world units, level, at the top of the skull) -> head bone space -> the mesh's bind space
+        ud.head.updateMatrix();
+        const m = new THREE.Matrix4().copy(first.bindMatrix).invert()
+          .multiply(new THREE.Matrix4().copy(sk.boneInverses[bi]).invert())
+          .multiply(ud.head.matrix)
+          .multiply(new THREE.Matrix4().makeScale(1.08 * (L.hatScale || 1) * (L.scale || 1), 1.08 * (L.hatScale || 1) * (L.scale || 1), 1.08 * (L.hatScale || 1) * (L.scale || 1)));
+        hat = { geo: hatGeometry(L.hat), bone: bi, matrix: m };
+      }
+    }
+    first.geometry = mergedGeometry(L.model, meshes, L.colors || null, hatKey, hat);
+    first.material = humanMaterial();
+    first.castShadow = L.shadow !== false; first.receiveShadow = false;   // look.shadow: false = blob shadow only (crowds)
+    first.frustumCulled = false;
+    for (let i = 1; i < meshes.length; i++) if (meshes[i].parent) meshes[i].parent.remove(meshes[i]);
+    ud.hatBaked = !!hatKey;
+  }
 
   // which side of the body (in character space, +X or -X) the .L arm is on
   let sx = 1;

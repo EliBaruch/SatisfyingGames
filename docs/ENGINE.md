@@ -334,6 +334,7 @@ Built-in effects:
 | `stage` | `stage: n` | `stats.stage = max(stats.stage, n)`: the world grew a stage; scenes react in `G.pads.onDone(padId, fn)` |
 | `multi` | `effects: [effect, ...]` | folds and applies each sub-effect (open + hire + stat in one pad). A second or later hire in the list is recorded under `'<padId>:<index>'` |
 | `win` | - | `won = true`; live: emits `'win'` |
+| `worlds` | - | repeatable: opens the world select (the last world's gate, where there is no next world) |
 | `travel` | `world` (default: next world) | repeatable: never marked done; live: `G.travel(world)` |
 
 Perks are applied after the pads: `speed *= product(speedMul)`, `capacity += sum(capacityAdd)`.

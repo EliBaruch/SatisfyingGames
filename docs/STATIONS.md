@@ -358,7 +358,7 @@ otherwise the front item waits and the rest queue up behind it, so a jam is visi
 `floor(length / gap) + 1`. A floor belt blocks the player along its body: route it along walls, or set
 `overhead: true` for a high belt on posts that the player walks under. It draws its own frame, legs and a running
 rubber surface (`placeholder: false` to draw your own). Readable: `running`, `count`, `capacity`, `fill`, `delivered`,
-`pointAt(s, out)`. **Save:** `{ items: [kind, ...] }`, front first.
+`pointAt(s, out)`. Items on a belt cast no shadow-map shadow. **Save:** `{ items: [kind, ...] }`, front first.
 
 ### `line` and `lot`: a vehicle assembly line and its parking lot
 
@@ -396,6 +396,9 @@ plays the `'work'` pose while the station is `running`. Decorative, like the cas
 one `multi` pad.
 
 ### Smaller additions
+
+- `converter`: `manual: false` for a machine that is fed only by a belt or another machine: it has no drop zone
+  (the player, haulers, hints and the bot ignore it) and exposes its input as `receive` instead.
 
 - `pile`: `supply.rateStat: 'oreRate'` multiplies how fast deliveries come (a pad can raise it).
 - `source`: `stubAligned: true` keeps the stubs on the grid's orientation and size, so square stubs join into one

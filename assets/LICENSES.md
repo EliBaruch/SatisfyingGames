@@ -6,7 +6,7 @@ https://creativecommons.org/publicdomain/zero/1.0/
 Credit is not required, but we gladly give it:
 
 - **Kenney** (https://kenney.nl) - Car Kit, City Kit Industrial, Factory Kit, Nature Kit.
-- **Quaternius** (https://quaternius.com) - Animated Men Pack, Animated Robot Pack, Animated Women Pack.
+- **Quaternius** (https://quaternius.com) - Animated Men Pack, Animated Women Pack.
 
 The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-glb` and `codepawl/quaternius-glb`
 (web tier: meshopt-compressed geometry, WebP textures). Geometry and textures are unmodified.
@@ -15,42 +15,37 @@ The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-g
 
 | Kit | Author | Models | Source |
 |---|---|---|---|
-| Animated Men Pack (`animatedmen`) | Quaternius | 6 | https://quaternius.com/packs/animatedmen.html |
-| Animated Robot Pack (`animatedrobot`) | Quaternius | 1 | https://quaternius.com/packs/animatedrobot.html |
-| Animated Women Pack (`animatedwomen`) | Quaternius | 5 | https://quaternius.com/packs/animatedwomen.html |
-| Car Kit (`car-kit`) | Kenney | 24 | https://kenney.nl/assets/car-kit |
-| City Kit Industrial (`city-kit-industrial`) | Kenney | 23 | https://kenney.nl/assets/city-kit-industrial |
-| Factory Kit (`factory-kit`) | Kenney | 78 | https://kenney.nl/assets/factory-kit |
-| Nature Kit (`nature-kit`) | Kenney | 7 | https://kenney.nl/assets/nature-kit |
+| Animated Men Pack (`animatedmen`) | Quaternius | 3 | https://quaternius.com/packs/animatedmen.html |
+| Animated Women Pack (`animatedwomen`) | Quaternius | 3 | https://quaternius.com/packs/animatedwomen.html |
+| Car Kit (`car-kit`) | Kenney | 9 | https://kenney.nl/assets/car-kit |
+| City Kit Industrial (`city-kit-industrial`) | Kenney | 15 | https://kenney.nl/assets/city-kit-industrial |
+| Factory Kit (`factory-kit`) | Kenney | 17 | https://kenney.nl/assets/factory-kit |
+| Nature Kit (`nature-kit`) | Kenney | 5 | https://kenney.nl/assets/nature-kit |
 
 ## Files
 
 ### Animated Men Pack - Quaternius - CC0 1.0
 
-`Male_Casual`, `Male_LongSleeve`, `Male_Shirt`, `Smooth_Male_Casual`, `Smooth_Male_LongSleeve`, `Smooth_Male_Shirt`
-
-### Animated Robot Pack - Quaternius - CC0 1.0
-
-`Robot`
+`Male_Casual`, `Male_LongSleeve`, `Male_Shirt`
 
 ### Animated Women Pack - Quaternius - CC0 1.0
 
-`Female_Alternative`, `Female_Casual`, `Female_TankTop`, `Smooth_Female_Casual`, `Smooth_Female_TankTop`
+`Female_Alternative`, `Female_Casual`, `Female_TankTop`
 
 ### Car Kit - Kenney - CC0 1.0
 
-`box`, `cone`, `debris-bolt`, `debris-bumper`, `debris-door`, `debris-drivetrain-axle`, `debris-drivetrain`, `debris-nut`, `debris-plate-a`, `debris-plate-b`, `debris-tire`, `delivery-flat`, `delivery`, `hatchback-sports`, `sedan-sports`, `sedan`, `suv-luxury`, `suv`, `tractor-shovel`, `truck-flat`, `truck`, `van`, `wheel-default`, `wheel-truck`
+`cone`, `delivery`, `hatchback-sports`, `sedan`, `suv`, `tractor-shovel`, `truck`, `van`, `wheel-default`
 
 ### City Kit Industrial - Kenney - CC0 1.0
 
-`building-a`, `building-b`, `building-c`, `building-d`, `building-e`, `building-f`, `building-h`, `building-k`, `building-l`, `building-q`, `chimney-basic`, `chimney-large`, `chimney-medium`, `detail-tank-large`, `detail-tank`, `shipping-container-a`, `shipping-container-b`, `shipping-container-c`, `solar-panel-flat`, `solar-panel-landscape-group`, `solar-panel-landscape`, `water-tower`, `windmill`
+`building-a`, `building-c`, `building-e`, `building-h`, `building-l`, `chimney-large`, `chimney-medium`, `detail-tank-large`, `detail-tank`, `shipping-container-a`, `shipping-container-b`, `shipping-container-c`, `solar-panel-landscape-group`, `water-tower`, `windmill`
 
 ### Factory Kit - Kenney - CC0 1.0
 
-`box-large`, `box-long`, `box-small`, `box-wide`, `button-floor-square`, `catwalk-corner`, `catwalk-stairs`, `catwalk-straight`, `cog-a`, `cog-b`, `cog-e`, `cone`, `conveyor-bars-stripe`, `conveyor-bars`, `conveyor-corner`, `conveyor-long-stripe-sides`, `conveyor-long`, `conveyor-sides`, `conveyor-stripe-corner`, `conveyor-stripe-sides`, `conveyor-stripe`, `conveyor`, `crane-lift`, `crane-magnet`, `crane`, `door-wide-closed`, `door-wide-half`, `door-wide-open`, `floor-large`, `floor`, `hopper-high-round`, `hopper-high-square`, `hopper-round`, `hopper-square`, `indicator-special-area`, `indicator-special-arrow`, `indicator-special-lines`, `lever-single`, `machine-bed`, `machine-connection-pipe`, `machine-fortified`, `machine-window-bar`, `machine-window`, `machine`, `pipe-glass-large-long`, `pipe-large-bend`, `pipe-large-curve`, `pipe-large-long`, `pipe-large-valve`, `pipe-large`, `piston-round`, `piston-square`, `robot-arm-a`, `robot-arm-b`, `scanner-high`, `scanner-low`, `screen-flat`, `screen-hanging-wide`, `screen-panel-wide`, `screen-small`, `screen-wide`, `structure-corner-inner`, `structure-corner-outer`, `structure-doorway-wide`, `structure-doorway`, `structure-high`, `structure-medium`, `structure-short`, `structure-tall`, `structure-wall`, `structure-window-wide`, `structure-window`, `structure-yellow-high`, `structure-yellow-medium`, `structure-yellow-tall`, `top-large`, `warning-orange`, `warning-traffic`
+`box-large`, `box-small`, `box-wide`, `cog-a`, `cog-b`, `hopper-round`, `hopper-square`, `machine-fortified`, `machine-window-bar`, `machine-window`, `pipe-large-long`, `pipe-large-valve`, `robot-arm-a`, `screen-panel-wide`, `screen-small`, `screen-wide`, `warning-orange`
 
 ### Nature Kit - Kenney - CC0 1.0
 
-`grass`, `plant_bushDetailed`, `plant_bush`, `rock_largeA`, `rock_smallA`, `tree_default`, `tree_oak`
+`plant_bushDetailed`, `plant_bush`, `rock_smallA`, `tree_default`, `tree_oak`
 
 _Generated by `tools/fetch-assets.mjs` from `assets/manifest.json`. Do not edit by hand._

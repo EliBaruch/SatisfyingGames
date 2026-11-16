@@ -65,7 +65,7 @@ const TEX = {
   concrete: () => canvasTex(512, 512, (ctx, S) => {
     const R = rng(23);
     ctx.fillStyle = '#b9bec5'; ctx.fillRect(0, 0, S, S);
-    blotches(ctx, S, R, 14, ['#c6cbd2', '#aeb4bc', '#beb9b0'], 90, 220, 0.22);
+    blotches(ctx, S, R, 10, ['#c3c8cf', '#b1b7bf', '#bdb9b1'], 110, 240, 0.13);
     speckle(ctx, S, R, 700, ['#a0a6ae', '#cfd4da', '#959ba3'], 0.5, 1.3, 0.35);
     ctx.lineCap = 'round';
     for (let i = 0; i < 10; i++) {
@@ -340,12 +340,26 @@ export function createScene(G) {
 
   // floors and markings per stage
   const stage = [null];
-  const hazardMat = () => { const t = tex('hazard').clone(); t.needsUpdate = true; return t; };
-  function hazardStrip(x0, x1, z0, z1, y = 0.014) {
-    const w = x1 - x0, d = z1 - z0;
-    const t = hazardMat(); t.repeat.set(Math.max(1, w / 0.8), Math.max(1, d / 0.8));
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), litMaterial({ map: t }));
-    m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); m.receiveShadow = true;
+  // hazard-striped floor strips: collected per stage and drawn as one mesh each (u, v in world units)
+  const hazRects = [null, [], [], [], [], []];
+  const haz = (s, x0, x1, z0, z1) => { hazRects[s].push([x0, x1, z0, z1]); };
+  let hazMaterial = null;
+  function hazardMesh(rects, y = 0.014) {
+    const pos = [], uv = [], idx = [];
+    for (const [x0, x1, z0, z1] of rects) {
+      const b0 = pos.length / 3;
+      pos.push(x0, y, z0, x1, y, z0, x0, y, z1, x1, y, z1);
+      uv.push(x0 / 0.8, z0 / 0.8, x1 / 0.8, z0 / 0.8, x0 / 0.8, z1 / 0.8, x1 / 0.8, z1 / 0.8);
+      idx.push(b0, b0 + 2, b0 + 1, b0 + 1, b0 + 2, b0 + 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    if (!hazMaterial) hazMaterial = litMaterial({ map: tex('hazard') });
+    const m = new THREE.Mesh(g, hazMaterial);
+    m.receiveShadow = true;
     return m;
   }
   const LINE_Y = 0.011;
@@ -372,7 +386,7 @@ export function createScene(G) {
     lane(p, 6.2, -0.8, 6.2, 8.6, 0.12, 0xffffff);
     const lines = solid(p, { ao: false, cast: false });
     stage[1].group.add(lines);
-    stage[1].group.add(hazardStrip(8.9, 12.3, -6.9, -6.3));
+    haz(1, 8.9, 12.3, -6.9, -6.3);
     const d = new Parts();
     // shipping bay: pallet, bollards
     d.box(C.wood, 3.1, 0.1, 1.9, [10.6, 0.05, -5.3]);
@@ -395,7 +409,7 @@ export function createScene(G) {
     // the sweeper's parking bay outside
     addDecor(2, solid(d, { gloss: 0.18 }));
     stage[2].group.add(ground('concrete', -8.4, -2, 10.6, 15.2, 4, 0.006));
-    stage[2].group.add(hazardStrip(-8.4, -2, 10.3, 10.6));
+    haz(2, -8.4, -2, 10.3, 10.6);
   }
 
   // ---- stage 3: the auto line hall
@@ -405,8 +419,8 @@ export function createScene(G) {
     lane(p, 15.0, 12.4, 32.4, 12.4, 0.12, 0xffffff);
     lane(p, 15.0, 3.6, 32.4, 3.6, 0.12, 0xffffff);
     stage[3].group.add(solid(p, { ao: false, cast: false }));
-    stage[3].group.add(hazardStrip(32.8, 36.0, -6.9, -6.3));
-    stage[3].group.add(hazardStrip(15.6, 19.6, 14.2, 14.5));
+    haz(3, 32.8, 36.0, -6.9, -6.3);
+    haz(3, 15.6, 19.6, 14.2, 14.5);
     const d = new Parts();
     // ore bay: a steel bin around the ore and a hopper feeding the belt
     d.box(C.steel, 3.2, 0.9, 0.14, [17.6, 0.45, 18.3]);
@@ -439,7 +453,7 @@ export function createScene(G) {
       p.box(0xffffff, 0.14, 0.012, 3.0, [x, LINE_Y, z]);
     }
     g4.add(solid(p, { ao: false, cast: false }));
-    g4.add(hazardStrip(36.0, 36.6, 27.5, 32.5));
+    haz(4, 36.0, 36.6, 27.5, 32.5);
     const d = new Parts();
     // steel bay rack, wheel rack
     d.box(C.steel, 3.4, 0.12, 2.0, [13.6, 0.06, 35.2]);
@@ -470,6 +484,8 @@ export function createScene(G) {
     }
     addDecor(4, solid(lp, { gloss: 0.3 }));
   }
+
+  for (let s = 1; s <= 5; s++) if (hazRects[s].length) stage[s].group.add(hazardMesh(hazRects[s]));
 
   // ============================================================ machines ===
   const machines = {};
@@ -734,10 +750,10 @@ export function createScene(G) {
     }
     for (const b of bubbles) {
       const w = b.w;
-      const on = w.group.visible && (w.state === 'in' || w.state === 'load');
+      const left = Math.max(0, w.stack.capacity - w.loaded);
+      const on = w.group.visible && (w.state === 'in' || w.state === 'load') && left > 0;
       b.sp.visible = on;
       if (!on) continue;
-      const left = Math.max(0, w.stack.capacity - w.loaded);
       if (left !== b.shown) { b.shown = left; drawBubble(b.ctx, left); b.tx.needsUpdate = true; }
       b.sp.position.set(w.x, 4.3 + Math.sin(G.time * 3 + w.x) * 0.08, w.z);
     }

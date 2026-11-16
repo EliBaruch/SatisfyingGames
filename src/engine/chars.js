@@ -101,7 +101,7 @@ export function makeCharacter(look) {
     return o;
   }
   const c = art.makeCharacter(L);
-  if (L.hat && c.userData.head) {
+  if (L.hat && c.userData.head && !c.userData.hatBaked) {     // (the human rig bakes its helmets into the body mesh)
     const hat = buildHat(L.hat).clone();
     const human = c.userData.rig === 'human';   // human rig: the head anchor is the top of the skull, in world units
     hat.position.y = L.hatY ?? (human ? 0 : L.hat === 'cap' ? 0.4 : 0.42);

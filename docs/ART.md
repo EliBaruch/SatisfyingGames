@@ -207,8 +207,10 @@ looks: { player: { model: 'animatedmen/Male_Casual', colors: { Shirt: 0xff7a1a, 
   sweeping, picking).
 - The stack is carried **in the hands, in front**, and turns with the body: `userData.carry = { offset, billboard: false }`
   is read by the player and the list-binding hauler. Set `world.player.perColumn` high so it stays one column.
-- Anchors `userData.head` (top of the skull), `.hands`, `.front`, `.back` are level frames in world units; hats
-  `'hardhat' | 'hardhat-white' | 'hardhat-orange'` (chars.js) are sized for this rig.
+- Anchors `userData.head` (top of the skull), `.hands`, `.front`, `.back` are level frames in world units. Hats
+  `'hardhat' | 'hardhat-white' | 'hardhat-orange' | 'hardhat-blue'` are baked into the body's own skinned geometry
+  (bound to the head bone), so a helmeted crew costs no extra draw calls.
+- `shadow: false` on a look: no shadow-map shadow, blob shadow only (use it for crews).
 - Cost: about 2 k triangles and one draw call per pass; keep 25-30 in view like the mini characters.
 
 ### Gloss (`material.js`)
