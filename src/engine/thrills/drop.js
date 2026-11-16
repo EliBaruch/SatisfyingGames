@@ -186,6 +186,7 @@ export function createDrop(K) {
       }
     } else if (E.phase === 3) {
       beam.material.opacity = 0.13 + 0.05 * Math.sin(E.t * 5);
+      if (!gates.active) { E.phase = 4; E.t = 0; }       // the gates went away without a callback: wrap up
     } else if (E.phase === 4) {
       beam.material.opacity = Math.max(0, 0.16 * (1 - E.t / 0.4));
       if (E.t > 0.6 && !gates.active) done();

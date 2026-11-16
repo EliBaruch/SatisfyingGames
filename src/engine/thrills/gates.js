@@ -8,6 +8,7 @@
 // ttl <= 0 keeps them until one is taken.
 import * as THREE from 'three';
 import { fmtMoney } from '../config.js';
+import { roundRect } from '../decals.js';      // not ctx.roundRect: older browsers lack it
 import { mergeGroup } from './util.js';
 
 const S2 = Math.SQRT1_2;
@@ -43,10 +44,10 @@ const ICONS = {
   cash(ctx, cx, cy) {
     const w = 96, h = 58;
     ctx.fillStyle = '#2e9e44';
-    ctx.beginPath(); ctx.roundRect(cx - w / 2, cy - h / 2, w, h, 10); ctx.fill();
+    roundRect(ctx, cx - w / 2, cy - h / 2, w, h, 10); ctx.fill();
     ctx.lineWidth = 5; ctx.strokeStyle = '#17602a'; ctx.stroke();
     ctx.fillStyle = '#5fd06d';
-    ctx.beginPath(); ctx.roundRect(cx - w / 2 + 8, cy - h / 2 + 8, w - 16, h - 16, 5); ctx.fill();
+    roundRect(ctx, cx - w / 2 + 8, cy - h / 2 + 8, w - 16, h - 16, 5); ctx.fill();
     ctx.fillStyle = '#c8f7c9';
     ctx.beginPath(); ctx.arc(cx, cy, 13, 0, Math.PI * 2); ctx.fill();
   },
@@ -112,7 +113,7 @@ function drawLabel(ctx, o) {
     const ps = fit(ctx, text, TEX_W - 70, 46);
     const tw = ctx.measureText(text).width, pw = tw + 44, px = TEX_W / 2 - pw / 2, py = TEX_H - 62;
     ctx.fillStyle = 'rgba(16, 24, 44, 0.9)';
-    ctx.beginPath(); ctx.roundRect(px, py, pw, 54, 27); ctx.fill();
+    roundRect(ctx, px, py, pw, 54, 27); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = '#ffe14d'; ctx.stroke();
     ctx.font = `700 ${ps}px ${FONT}`;
     ctx.fillStyle = '#ffe14d';
@@ -185,7 +186,7 @@ export function createGates(G) {
       g.frameMat.emissive.copy(tmpColor.setHex(g.color)).multiplyScalar(0.35);
       g.panelMat.color.setHex(g.color);
       g.ringMat.color.setHex(g.color);
-      drawLabel(g.ctx, op);
+      try { drawLabel(g.ctx, op); } catch (err) { console.error('[thrills] gate label failed:', err); }
       g.tex.needsUpdate = true;
       g.group.position.set(g.x, 0, g.z);
       g.group.scale.set(S, 0.001, S);

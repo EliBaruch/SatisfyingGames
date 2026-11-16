@@ -60,6 +60,7 @@ const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 function loadState(raw) {
   const s = isObj(raw) ? raw : {};
   const count = isObj(s.count) ? s.count : {};
+  const won = isObj(s.won) ? s.won : {};
   return {
     v: 1,
     seed: isNum(s.seed) ? s.seed | 0 : (Math.random() * 0x7fffffff) | 0,
@@ -69,6 +70,10 @@ function loadState(raw) {
     next: isNum(s.next) ? Math.max(0, Math.min(600, s.next)) : -1,
     fever: isNum(s.fever) ? Math.max(0, Math.min(1, s.fever)) : 0,
     last: typeof s.last === 'string' ? s.last : '',
+    turbo: isNum(s.turbo) ? Math.max(0, Math.min(120, s.turbo)) : 0,          // seconds of boost / fever left
+    crew: isNum(s.crew) ? Math.max(0, Math.min(120, s.crew)) : 0,
+    feverLeft: isNum(s.feverLeft) ? Math.max(0, Math.min(60, s.feverLeft)) : 0,
+    won: { order: won.order | 0, pig: won.pig | 0, coins: won.coins | 0 },   // events finished (count = started)
     tips: isObj(s.tips) ? s.tips : {},
     count: {
       drop: count.drop | 0, order: count.order | 0, pig: count.pig | 0, coins: count.coins | 0, deal: count.deal | 0,
@@ -97,8 +102,8 @@ export function createThrills(G) {
   // ------------------------------------------------------------------ stats overlay
   // G.stats is rebuilt from the pads; perks, boosts and fever are laid over it here.
   const base = { speed: 1, capacity: 1, priceMult: 1 };
-  const B = { turbo: 0, crew: 0 };            // seconds left
-  const F = { on: false, left: 0, charge: st.fever, idle: 99, trail: 0, saleT: 0 };
+  const B = { turbo: st.turbo, crew: st.crew };            // seconds left
+  const F = { on: st.feverLeft > 0, left: st.feverLeft, charge: st.feverLeft > 0 ? 1 : st.fever, idle: 99, trail: 0, saleT: 0 };
   function write() {
     const s = G.stats;
     s.speed = base.speed * totals.speed * (B.turbo > 0 ? T.turboSpeed : F.on ? T.feverSpeed : 1);      // boosts do not stack
@@ -217,7 +222,7 @@ export function createThrills(G) {
     /** work the player just did; w = how much of the meter it is worth on top of the steady fill */
     work(w) { F.idle = 0; if (!F.on && w > 0) F.charge = Math.min(1, F.charge + w); },
     start() {
-      if (F.on) { F.left = Math.max(F.left, T.feverTime + totals.feverTime); return; }
+      if (F.on) { const full = T.feverTime + totals.feverTime; F.left = Math.min(full * 2, F.left + full); return; }
       F.on = true;
       F.left = T.feverTime + totals.feverTime;
       F.charge = 1;
@@ -252,7 +257,7 @@ export function createThrills(G) {
         G.fx.burst(_p, TRAIL);
       }
       if (F.left <= 0) endFever();
-      ui.setFever(F.on ? F.left / (T.feverTime + totals.feverTime) : 0, F.on, F.left);
+      ui.setFever(F.on ? Math.min(1, F.left / (T.feverTime + totals.feverTime)) : 0, F.on, F.left);
       return;
     }
     F.idle += dt;
@@ -310,6 +315,8 @@ export function createThrills(G) {
     G, T, st, ui, spots, gates, rnd, unit, nice, pay, addStar, boost, fever, totals, toast, tip, play, hasCrew, hasHarvest, gateScale,
     grantPerk,
     get rate() { return M.rate; },
+    /** an order filled, a pig caught, a coin trail cleared */
+    won(name) { st.won[name] = (st.won[name] | 0) + 1; },
   };
   const drop = createDrop(K);
   const orders = createOrders(K);
@@ -325,7 +332,7 @@ export function createThrills(G) {
     next: st.next >= 0 ? st.next : 6,
     cur: null, curName: '',
     lastMove: 99,          // seconds since the player last moved (nothing starts on the title screen)
-    perkWait: 0, perkFar: 0,
+    perkWait: 0, perkFar: 0, perkFails: 0,
     saveT: 0,
   };
   G.events.on('unlock', (e) => {
@@ -358,6 +365,7 @@ export function createThrills(G) {
     const ev = EVENTS[name];
     if (!ev || !ev.start()) return false;
     D.cur = ev; D.curName = name;
+    D.next = gap();           // saved from now on, so a reload during the event does not skip the wait
     st.last = name;
     st.count[name]++;
     ui.show(true);
@@ -439,6 +447,8 @@ export function createThrills(G) {
       M.lastEarned = e;
       st.next = D.next;
       st.fever = F.on ? 0 : F.charge;
+      st.feverLeft = F.on ? F.left : 0;
+      st.turbo = B.turbo; st.crew = B.crew;
     }
     const pl = G.player;
     if (pl) D.lastMove = pl.speed01 > 0.15 ? 0 : D.lastMove + dt;
@@ -458,14 +468,19 @@ export function createThrills(G) {
       D.cur.update(dt);
       if (!D.cur.active) { D.cur = null; D.curName = ''; D.next = gap(); }
     } else if (D.started && D.lastMove < 8) {
-      if ((st.stars >= T.starsPerPerk || (st.pending && st.pending.length)) && !perkOpen && !gates.active) {
+      const wantPerk = (st.stars >= T.starsPerPerk || (st.pending && st.pending.length)) && !perkOpen && !gates.active;
+      if (wantPerk && D.perkFails < 3) {
         D.perkWait -= dt;
-        if (D.perkWait <= 0 && !openPerkGates()) D.perkWait = 3;
+        if (D.perkWait <= 0) {
+          if (openPerkGates()) D.perkFails = 0;
+          else { D.perkWait = 3; D.perkFails++; }          // no room here: after a few tries the events go on
+        }
       } else if (!perkOpen) {
         D.next -= dt;
         if (D.next <= 0) {
           const name = pickEvent();
           if (!name || !startEvent(name)) D.next = 8;      // no room right now: try again shortly
+          D.perkFails = 0;                                  // and the perk gates get another go after it
         }
       }
     }
@@ -512,7 +527,7 @@ export function createThrills(G) {
     trigger(name) {
       D.started = true;
       ui.show(true);
-      if (name === 'perk') { if (st.stars < T.starsPerPerk) st.stars = T.starsPerPerk; return openPerkGates(); }
+      if (name === 'perk') { if (D.cur || gates.active) return false; if (st.stars < T.starsPerPerk) st.stars = T.starsPerPerk; return openPerkGates(); }
       if (name === 'fever') { fever.start(); return true; }
       if (D.cur) return false;
       return startEvent(name);

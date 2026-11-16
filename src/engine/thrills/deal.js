@@ -53,7 +53,6 @@ export function createDeal(K) {
     if (money < Math.min(opts[0].price, opts[1].price)) return false;    // nothing affordable: no point teasing
     const gs = K.gateScale();
     if (!spots.find(spot, rnd, { half: 2.9 * gs, minD: 4.5 })) return false;
-    E.active = true; E.t = 0; E.done = false;
     gates.open({
       x: spot.x, z: spot.z, ttl: TTL, scale: gs, options: opts,
       canPick(i, o) {
@@ -69,6 +68,7 @@ export function createDeal(K) {
       onPick: buy,
       onExpire() { E.done = true; E.t = 0; },
     });
+    E.active = true; E.t = 0; E.done = false;
     K.toast('FLASH SALE!');
     K.tip('deal', 'Run through a gate to buy it, or keep your cash', 6);
     K.play('order');
@@ -78,6 +78,7 @@ export function createDeal(K) {
   function update(dt) {
     if (!E.active) return;
     E.t += dt;
+    if (!E.done && !gates.active) { E.done = true; E.t = 0; }       // the gates went away without a callback
     if (E.done && E.t > 0.6 && !gates.active) E.active = false;
   }
 

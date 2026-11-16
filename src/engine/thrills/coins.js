@@ -82,6 +82,7 @@ export function createCoins(K) {
       const pl = G.player;
       K.pay(K.nice(K.unit() * 0.7), pl ? pl.pos : null, 'ALL COINS');
       K.addStar(1);
+      K.won('coins');
       K.play('orderDone');
       K.fever.work(0.1);
       if (G.fx && pl) { P.set(pl.pos.x, 0.4, pl.pos.z); G.fx.confetti(P, 70); }
@@ -93,7 +94,7 @@ export function createCoins(K) {
     if (!E.active) return;
     if (E.endT > 0) {
       E.endT -= dt;
-      if (E.endT <= 0) { E.active = false; mesh.visible = false; }
+      if (E.endT <= 0) { E.active = false; mesh.visible = false; return; }
     }
     E.t += dt;
     const pl = G.player;
@@ -126,7 +127,7 @@ export function createCoins(K) {
       mesh.setMatrixAt(i, m);
     }
     mesh.instanceMatrix.needsUpdate = true;
-    if (E.endT <= 0 && E.t >= TTL) finish(false);
+    if (E.active && E.endT <= 0 && E.t >= TTL) finish(false);
   }
 
   return {

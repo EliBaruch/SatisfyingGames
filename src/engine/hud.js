@@ -474,12 +474,13 @@ export function createHud(G) {
     }
     // what happened on the way (engine/thrills)
     if (winRunRow) {
-      const c = G.thrills && G.thrills.state ? G.thrills.state.count : null;
+      const ts = G.thrills && G.thrills.state ? G.thrills.state : null;
       const parts = [];
-      if (c) {
+      if (ts) {
+        const c = ts.count || {}, w = ts.won || {};       // perks picked; orders filled, pigs caught (not just seen)
         if (c.perk > 0) parts.push(`${c.perk} perk${c.perk > 1 ? 's' : ''}`);
-        if (c.order > 0) parts.push(`${c.order} rush order${c.order > 1 ? 's' : ''}`);
-        if (c.pig > 0) parts.push(`${c.pig} pigg${c.pig > 1 ? 'ies' : 'y'}`);
+        if (w.order > 0) parts.push(`${w.order} rush order${w.order > 1 ? 's' : ''}`);
+        if (w.pig > 0) parts.push(`${w.pig} pigg${w.pig > 1 ? 'ies' : 'y'}`);
         if (c.jackpot > 0) parts.push(`${c.jackpot} jackpot${c.jackpot > 1 ? 's' : ''}`);
       }
       winRunRow.hidden = !parts.length;

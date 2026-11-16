@@ -415,7 +415,8 @@ Key `bloomrush.save.v2`:
   levels: { flower: { money, earned, playTime, won, done: {padId: true}, paid: {padId: n},
                       player: {x, z}, carried: ['rose', ...], stations: { 'shop-roses': { stock, value, cash } },
                       workers: { cutter0a: { items: ['rose', ...], x, z, face } },
-                      thrills: { stars, perks: { sprint: 2 }, pending, next, fever, seed, count, tips } } } }
+                      thrills: { stars, perks: { sprint: 2 }, pending, next, fever, feverLeft, turbo, crew,
+                                 seed, count, won, tips } } } }
 ```
 
 Only the current world's level is sanitised (unknown pads, stations and item kinds dropped,
@@ -589,6 +590,8 @@ player). Timed speed boosts do not stack: the faster one counts.
 
 Tuning lives in `TUNE` (`index.js`); a world overrides any of it with `thrills: { gap: [40, 60], events: { pig: 0 } }`
 or turns the layer off with `thrills: { off: true }`. State is `levels.<world>.thrills`; it is validated on load.
+Running boosts and a running fever are saved with their time left; an event in progress is not (it simply ends),
+and the wait for the next one starts when an event starts, so a reload cannot skip it.
 
 Testing: `G.thrills.trigger('drop' | 'order' | 'coins' | 'pig' | 'deal' | 'perk' | 'fever')` starts one now;
 `G.thrills.state` (stars, perks, counts), `G.thrills.target()` (where the current event wants the player; the test

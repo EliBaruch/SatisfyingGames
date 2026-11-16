@@ -43,7 +43,10 @@ export function createPlayer(G) {
     capacity: G.stats.capacity,
     perColumn: P.perColumn,
   });
-  for (let i = 0; i < S.carried.length && i < stack.capacity; i++) stack.push(S.carried[i]);
+  // everything that was carried comes back, even beyond the capacity (a perk may have shrunk it since)
+  if (S.carried.length > stack.capacity) stack.setCapacity(S.carried.length);
+  for (let i = 0; i < S.carried.length; i++) stack.push(S.carried[i]);
+  stack.setCapacity(G.stats.capacity);
   stack.onLand = () => { if (G.audio && G.audio.play) G.audio.play('stack'); };
 
   const player = {

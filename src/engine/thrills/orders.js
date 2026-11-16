@@ -89,6 +89,7 @@ export function createOrders(K) {
     K.pay(amount, pl ? pl.pos : null, O.late ? 'ORDER' : 'RUSH ORDER');
     if (!O.late) K.addStar(1);
     K.fever.work(0.1);
+    K.won('order');
     K.play('orderDone');
     if (G.fx && pl) { G.fx.confetti({ x: pl.pos.x, y: 0.4, z: pl.pos.z }, 60); G.fx.ring(pl.pos, { color: 0x7dff8a, radius: 3.4, life: 0.6 }); }
     ui.orderEnd(true, O.late ? 'ORDER DONE' : 'ORDER DONE! +1 STAR');

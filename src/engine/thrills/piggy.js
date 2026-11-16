@@ -88,6 +88,7 @@ export function createPiggy(K) {
     if (d < CATCH) {
       K.pay(K.nice(K.unit() * T.pigPay), { x: E.x, z: E.z }, 'GOTCHA');
       K.addStar(1, E.x, E.z);
+      K.won('pig');
       K.toast('GOTCHA!');
       K.play('jackpot');
       K.fever.work(0.12);
