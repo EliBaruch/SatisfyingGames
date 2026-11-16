@@ -40,7 +40,7 @@ const BOUNDS = [
   { minX: -19, maxX: 35.2, minZ: -8.3, maxZ: 36.2 },
   { minX: -19, maxX: 35.2, minZ: -8.3, maxZ: 36.2 },
 ];
-const ZOOM = [1, 1, 1.14, 1.32, 1.55, 1.8];
+const ZOOM = [1, 1, 1.18, 1.42, 1.72, 2.0];
 const LINE = { from: { x: 7.5, z: 30 }, to: { x: 30.5, z: 30 } };
 const LOT = { x0: 40.5, z0: 23.5, dx: 4.6, dz: 3.4, cols: 2, rows: 4, yaw: Math.PI };
 
@@ -137,7 +137,7 @@ export default {
   name: 'Volt Works',
   modules: ['../../engine/stations/belt.js', '../../engine/stations/carline.js', '../../engine/stations/solid.js', '../../engine/workers/operator.js'],
 
-  camera: { type: 'perspective', fov: 30, viewPortrait: 16.5, viewLandscape: 13.5, fog: { color: 0xcfe6f5, start: 34, end: 170 } },
+  camera: { type: 'perspective', fov: 30, viewPortrait: 14.5, viewLandscape: 12, fog: { color: 0xcfe6f5, start: 34, end: 170 } },
   lighting: { background: 0xcfe6f5, shadow: { extent: 24, mapSize: 2048 } },
 
   assets: [
@@ -154,7 +154,7 @@ export default {
   ],
 
   looks: {
-    player: worker('animatedmen/Male_Casual', 0xff7a1a, NAVY, 'hardhat', true),
+    player: { ...worker('animatedmen/Male_Casual', 0xff7a1a, NAVY, 'hardhat', true), scale: 1.06, wide: 1.16 },
     hauler: worker('animatedwomen/Female_Casual', BLUE, BLUE, 'hardhat-white'),
     helperB: worker('animatedmen/Male_LongSleeve', BLUE, BLUE, 'hardhat-white'),
     helperC: worker('animatedwomen/Female_TankTop', BLUE, NAVY, 'hardhat-white'),

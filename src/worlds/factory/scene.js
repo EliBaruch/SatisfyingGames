@@ -64,17 +64,17 @@ const TEX = {
   }, { repeat: true }),
   concrete: () => canvasTex(512, 512, (ctx, S) => {
     const R = rng(23);
-    ctx.fillStyle = '#b9bec5'; ctx.fillRect(0, 0, S, S);
-    blotches(ctx, S, R, 10, ['#c3c8cf', '#b1b7bf', '#bdb9b1'], 110, 240, 0.13);
-    speckle(ctx, S, R, 700, ['#a0a6ae', '#cfd4da', '#959ba3'], 0.5, 1.3, 0.35);
+    ctx.fillStyle = '#c2bdb1'; ctx.fillRect(0, 0, S, S);
+    blotches(ctx, S, R, 10, ['#cbc6ba', '#b8b3a8', '#c6bfae'], 110, 240, 0.13);
+    speckle(ctx, S, R, 700, ['#a9a498', '#d6d1c6', '#9d988d'], 0.5, 1.3, 0.35);
     ctx.lineCap = 'round';
     for (let i = 0; i < 10; i++) {
       const x = R() * S, y = R() * S, l = 60 + R() * 160, a = R() * TAU;
       ctx.strokeStyle = '#7d838b'; ctx.globalAlpha = 0.05 + R() * 0.05; ctx.lineWidth = 5 + R() * 9;
       wrap(S, (dx, dy) => { ctx.beginPath(); ctx.moveTo(x + dx, y + dy); ctx.quadraticCurveTo(x + dx + Math.cos(a) * l * 0.5 + 20, y + dy + Math.sin(a) * l * 0.5, x + dx + Math.cos(a) * l, y + dy + Math.sin(a) * l); ctx.stroke(); });
     }
-    ctx.globalAlpha = 0.6; ctx.strokeStyle = '#8b9199'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, S, S);
-    ctx.globalAlpha = 0.5; ctx.strokeStyle = '#d6dae0'; ctx.lineWidth = 2; ctx.strokeRect(3.5, 3.5, S - 7, S - 7);
+    ctx.globalAlpha = 0.6; ctx.strokeStyle = '#968f82'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, S, S);
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = '#ddd8cc'; ctx.lineWidth = 2; ctx.strokeRect(3.5, 3.5, S - 7, S - 7);
     ctx.globalAlpha = 1;
   }, { repeat: true }),
   asphalt: () => canvasTex(512, 512, (ctx, S) => {
@@ -329,7 +329,7 @@ export function createScene(G) {
     const post = new Parts();
     const sx = s === 1 ? 6 : (h.maxX - 2) / 2 + 1, sw = s === 1 ? 6.4 : 8.0;
     for (const d of [-0.35, 0.35]) post.box(C.dark, 0.14, 1.2, 0.14, [sx + d * sw, WH + 0.5, h.maxZ + 0.2]);
-    g.add(solid(post, { ao: false }));
+    g.add(solid(post, { ao: false, cast: false }));
     const dress = new Parts();
     DRESS[s](dress);
     g.add(solid(dress, { gloss: 0.18, cast: false }));
@@ -362,6 +362,12 @@ export function createScene(G) {
     m.receiveShadow = true;
     return m;
   }
+  // painted floor bays under the work areas (thin, walk-over): they give each area its colour
+  const BAY = { blue: 0x8fb4e6, warm: 0xf0c878, mint: 0x8fd9b0, grey: 0x9aa6b6 };
+  const bay = (p, c, x0, x1, z0, z1) => {
+    p.rbox(0xffffff, x1 - x0 + 0.24, 0.008, z1 - z0 + 0.24, 0.004, [(x0 + x1) / 2, 0.006, (z0 + z1) / 2]);
+    p.rbox(c, x1 - x0, 0.01, z1 - z0, 0.004, [(x0 + x1) / 2, 0.009, (z0 + z1) / 2]);
+  };
   const LINE_Y = 0.011;
   const lane = (p, x0, z0, x1, z1, w = 0.16, c = C.yellow) => {
     if (Math.abs(x1 - x0) > Math.abs(z1 - z0)) p.box(c, Math.abs(x1 - x0), 0.012, w, [(x0 + x1) / 2, LINE_Y, (z0 + z1) / 2]);
@@ -383,7 +389,9 @@ export function createScene(G) {
     // walkway lines and a hazard edge at the open front
     lane(p, -1.6, -6.6, 13.6, -6.6, 0.2);
     lane(p, -1.6, -6.6, -1.6, 8.6, 0.2);
-    lane(p, 6.2, -0.8, 6.2, 8.6, 0.12, 0xffffff);
+    bay(p, BAY.blue, -0.4, 3.6, 3.4, 6.6);          // cell maker
+    bay(p, BAY.warm, 8.9, 12.4, 3.0, 6.9);          // bench
+    bay(p, BAY.mint, 8.7, 12.5, -6.2, -3.9);        // shipping
     const lines = solid(p, { ao: false, cast: false });
     stage[1].group.add(lines);
     haz(1, 8.9, 12.3, -6.9, -6.3);
@@ -402,7 +410,8 @@ export function createScene(G) {
   {
     const p = new Parts();
     lane(p, -1.6, 8.6, -1.6, 20.6, 0.2);
-    lane(p, 6.2, 8.6, 6.2, 20.6, 0.12, 0xffffff);
+    bay(p, BAY.blue, -0.4, 3.6, 11.4, 14.6);
+    bay(p, BAY.warm, 8.9, 12.4, 11.0, 14.9);
     stage[2].group.add(solid(p, { ao: false, cast: false }));
     const d = new Parts();
     for (const [x, z] of [[-1.2, 9.6], [-1.2, 16.4]]) d.model('car-kit/cone', { pos: [x, 0, z], height: 0.7 });
@@ -416,8 +425,9 @@ export function createScene(G) {
   {
     const p = new Parts();
     lane(p, 14.4, -6.6, 35.6, -6.6, 0.2);
-    lane(p, 15.0, 12.4, 32.4, 12.4, 0.12, 0xffffff);
-    lane(p, 15.0, 3.6, 32.4, 3.6, 0.12, 0xffffff);
+    bay(p, BAY.blue, 15.6, 32.6, 14.7, 18.3);       // auto line 1
+    bay(p, BAY.blue, 15.6, 32.6, 6.4, 10.0);        // auto line 2 (later)
+    bay(p, BAY.mint, 32.9, 35.6, -6.2, -3.4);       // truck bay
     stage[3].group.add(solid(p, { ao: false, cast: false }));
     haz(3, 32.8, 36.0, -6.9, -6.3);
     haz(3, 15.6, 19.6, 14.2, 14.5);
@@ -445,7 +455,8 @@ export function createScene(G) {
     lane(p, -1.6, 20.6, -1.6, 36.6, 0.2);
     lane(p, 6.4, 27.9, 31.6, 27.9, 0.2);
     lane(p, 6.4, 32.1, 31.6, 32.1, 0.2);
-    lane(p, 16.4, 22.4, 31.0, 22.4, 0.12, 0xffffff);
+    bay(p, BAY.warm, 3.8, 15.6, 32.9, 36.4);        // press and steel
+    bay(p, BAY.grey, -1.2, 5.2, 23.0, 31.6);        // wheels and the parts bay
     // parking bays
     const L = LAY.lot;
     for (let c = 0; c <= L.cols; c++) for (let r = 0; r < L.rows; r++) {
@@ -510,7 +521,7 @@ export function createScene(G) {
     p.cyl(C.yellow, 0.05, 0.05, 0.7, [0.95, 1.45, 0.45], [0, 0, 0.5], 8);       // lamp arm
     p.cone(C.yellow, 0.2, 0.24, [0.72, 1.72, 0.45], [0, 0, Math.PI], 12);
     p.model('factory-kit/box-small', { pos: [0.5, 0.46, 0], height: 0.45 });
-    return solid(p, { gloss: 0.2 });
+    return solid(p, { gloss: 0.2, cast: false });
   }
   const furnish = (id, mesh, x, z, yaw = 0, extra = null) => {
     place(mesh, x, 0, z, yaw);
@@ -762,6 +773,30 @@ export function createScene(G) {
   // stock on the floor and in bays casts no shadow-map shadow (hundreds of items; they sit low)
   for (const st of G.stations.list) {
     for (const store of [st.input, st.output, st.store]) if (store && store.meshes) for (const m of store.meshes) m.castShadow = false;
+  }
+
+  // "+N" pops over the stack while sweeping the yard
+  {
+    const x0 = Y.x0 - 1.6, x1 = Y.x0 + (Y.cols - 1) * Y.dx + 1.6, z0 = Y.z0 - 1.6, z1 = Y.z0 + (Y.rows - 1) * Y.dz + 1.6;
+    const v = new THREE.Vector3();
+    const opts = { color: '#ffffff', size: 0.55, life: 0.7, maxW: 0.22 };
+    let last = -1, acc = 0, wait = 0;
+    animated.push((dt) => {
+      const pl = G.player;
+      if (!pl || !pl.stack) return;
+      const n = pl.stack.count + pl.stack.incoming;
+      if (last < 0) last = n;
+      const p = pl.pos;
+      if (n > last && p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1) acc += n - last;
+      last = n;
+      wait += dt;
+      if (acc > 0 && wait > 0.4) {
+        wait = 0;
+        pl.stack.topWorld(v); v.y += 0.15;
+        if (G.fx && G.fx.popText) G.fx.popText(v, '+' + Math.min(acc, 99), opts);
+        acc = 0;
+      }
+    });
   }
 
   // ============================================================ stages ======

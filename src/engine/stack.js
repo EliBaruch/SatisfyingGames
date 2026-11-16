@@ -35,6 +35,7 @@ const _s = new THREE.Vector3();
  *                    the carrier, so the carrier is never hidden by its own load
  *   billboardOffset  distance of the tower from the carrier in billboard mode (0.5)
  *   columnGap        distance between columns (default: deepest item footprint + 0.05)
+ *   shadow           false: the items cast no shadow-map shadow (crews: many stacks)
  */
 export function createStack(G, opts = {}) {
   const parent = opts.parent || G.scene;
@@ -82,7 +83,7 @@ export function createStack(G, opts = {}) {
   function setupMesh(m) {
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.frustumCulled = false;
-    m.castShadow = true;
+    m.castShadow = opts.shadow !== false;
     m.count = 0;
     root.add(m);
   }

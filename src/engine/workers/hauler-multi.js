@@ -35,6 +35,7 @@ export function createMultiHauler(G, hire, team, live) {
   const stack = createStack(G, {
     parent: group, offset: carry ? carry.offset : { x: 0, y: 0.55, z: -0.42 }, billboard: carry ? !!carry.billboard : true,
     capacity: cfg.capacity, perColumn: (carry && carry.perColumn) || 40, columnGap: (carry && carry.columnGap) || 0, sway: !(carry && carry.sway === false),
+    shadow: !(carry && carry.shadow === false),
   });
   const k = team.length - 1;
   const w = {

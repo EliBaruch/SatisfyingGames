@@ -1,5 +1,24 @@
 # World 4: the Gigafactory — plan
 
+## Status after the build (16 November)
+
+Built and playable end to end as **Volt Works** (`src/worlds/factory/`): five stages, 46 pads, about 29 minutes
+for the test bot. What differs from the plan below:
+
+- **Look upgrade without PBR or post-processing.** Instead of tone mapping, an environment map and bloom, the
+  shared material got a glossy variant (sun highlight plus a cheap studio reflection) for vehicles, machines and
+  items. It keeps one material family and costs almost nothing on phones. Bloom was not added.
+- **No lane graph.** Workers still walk straight lines; the layout keeps their routes clear of machines instead.
+- **No rush orders.** The timed bonus trucks were not built.
+- **Robots.** The Quaternius humanoid robot was dropped (14 draw calls each). Automation is shown with AGV carts,
+  robot arms and conveyors, which are instanced and cheap.
+- **Characters.** Quaternius Animated Men / Women, low-poly variants, recoloured per slot, helmets baked into the mesh.
+- **Additions not in the plan:** a second auto line, a `solid` blocker station, belt-fed machines without a hand
+  inlet, a `worlds` pad that opens the world select, "+N" pops while sweeping, and path-finding for the test bot.
+
+The rest of this file is the plan as approved.
+
+
 ## Context
 
 Bloom Rush has three worlds (Flower Farm → Chicken Farm → Grocery Store) on a shared vanilla-JS + Three.js r187 engine. A parallel session is finalising those. The next stage is a fourth world that is deliberately a level up: a factory that starts with the player working alone at a bench and grows, pad by pad, into an automated battery-and-car gigafactory. Same play feel as the flower and grocery worlds (walk, carry, drop, pay into pads, hire help, frequent small wins), but with taller human-proportioned characters, a much bigger space and better lighting.

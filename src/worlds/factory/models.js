@@ -21,9 +21,9 @@ export const SCRAP = { w: 0.62, d: 0.5, step: 0.25 };
 export function makeScrapGeometry() {
   return once('scrap', () => {
     const b = new Parts();
-    b.oct(0x8d949e, 0.22, [-0.12, 0.14, 0.03], [1.25, 0.62, 1.0], [0.3, 0.6, 0.2]);
-    b.oct(0xb7653a, 0.19, [0.14, 0.13, -0.06], [1.1, 0.66, 1.15], [0.8, 0.1, 0.5]);
-    b.oct(0x6f7782, 0.15, [0.03, 0.13, 0.14], [1.3, 0.62, 0.9], [0.1, 1.2, 0.9]);
+    b.ico(0x8d949e, 0.2, [-0.12, 0.14, 0.03], [1.25, 0.66, 1.0], [0.3, 0.6, 0.2]);
+    b.ico(0xb7653a, 0.17, [0.14, 0.13, -0.06], [1.1, 0.72, 1.15], [0.8, 0.1, 0.5]);
+    b.ico(0x6f7782, 0.13, [0.03, 0.13, 0.14], [1.3, 0.7, 0.9], [0.1, 1.2, 0.9]);
     b.box(0xd98a3c, 0.22, 0.03, 0.14, [-0.08, 0.235, 0.0], [0.15, 0.5, 0.1]);
     b.box(0xc9d0d8, 0.3, 0.06, 0.06, [0.02, 0.21, -0.02], [0.3, 0.4, 0.35]);
     return b.merged();
@@ -141,11 +141,12 @@ export function glossModel(id, opts = {}, gloss = 0.55, shine = 60) {
 
 /** Road vehicles are drawn a third larger than the other worlds' so they sit right next to 1.9 m people. */
 export const CAR_SCALE = 1.35;
-function vehicle(id, { bed, blob, scale = CAR_SCALE } = {}) {
+function vehicle(id, { bed, blob, scale = CAR_SCALE, closed = false } = {}) {
   const g = new THREE.Group();
   g.add(glossModel(id, { scale }));
   const anchor = new THREE.Object3D();
   anchor.position.set(bed[0], bed[1], bed[2]);
+  anchor.visible = !closed;      // a closed body hides its load: do not draw it at all
   g.add(anchor);
   g.userData.bedAnchor = anchor;
   g.userData.wheels = [];
@@ -153,11 +154,11 @@ function vehicle(id, { bed, blob, scale = CAR_SCALE } = {}) {
   return g;
 }
 /** The buyer's van: the load disappears inside. */
-export const makeVan = () => vehicle('car-kit/van', { bed: [0, 0.75, -0.9], blob: [1.5, 2.7] });
+export const makeVan = () => vehicle('car-kit/van', { bed: [0, 0.75, -0.9], blob: [1.5, 2.7], closed: true });
 /** Pickup truck with an open bed. */
 export const makeTruck = () => vehicle('car-kit/truck', { bed: [0, 1.28, -1.45], blob: [1.5, 2.9] });
 /** Box delivery truck: the load disappears inside. */
-export const makeDelivery = () => vehicle('car-kit/delivery', { bed: [0, 0.9, -1.2], blob: [1.5, 3.1] });
+export const makeDelivery = () => vehicle('car-kit/delivery', { bed: [0, 0.9, -1.2], blob: [1.5, 3.1], closed: true });
 
 /** The yard sweeper: a front loader that drives lanes over the scrap (harvester role contract). */
 export function makeSweeper() {
@@ -193,7 +194,7 @@ export function makeAgv() {
   const m = new THREE.Mesh(_agvGeo, getGlossMaterial(0.5, 50));
   m.castShadow = true;
   g.add(m);
-  g.userData.carry = { offset: { x: 0, y: 0.46, z: 0.38 }, billboard: false, perColumn: 12, columnGap: 0.75, sway: false };
+  g.userData.carry = { offset: { x: 0, y: 0.46, z: 0.38 }, billboard: false, perColumn: 12, columnGap: 0.75, sway: false, shadow: false };
   g.userData.blob = { rx: 0.85, rz: 1.15, yaw: true };
   return g;
 }

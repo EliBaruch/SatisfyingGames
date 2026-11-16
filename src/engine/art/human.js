@@ -155,7 +155,7 @@ export function makeHuman(look = {}) {
   ud.rig = 'human';
   ud.blobR = 0.4 * (L.scale || 1);
   // the stack is carried in the hands, in front, and turns with the body
-  ud.carry = { offset: { x: 0, y: 0.62 * H, z: 0.26 * H }, billboard: false };
+  ud.carry = { offset: { x: 0, y: 0.62 * H, z: 0.26 * H }, billboard: false, shadow: L.shadow !== false };
   const mkFree = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); root.add(o); return o; };
   if (!inst) {   // not preloaded: placeholder box, no animation
     ud.hands = { left: mkFree(0.3, 0.9, 0), right: mkFree(-0.3, 0.9, 0) };
