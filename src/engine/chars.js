@@ -78,6 +78,12 @@ function buildHat(kind) {
   } else if (kind === 'cap') {
     b.sph(0xffd23f, 0.26, [0, 0.0, 0], [1, 0.75, 1], null, 16, 8);
     b.rcyl(0xffb21a, 0.15, 0.04, 0.015, [0, 0.0, 0.2], [0.2, 0, 0], 16, [1, 1, 0.8]);
+  } else if (kind === 'hardhat' || kind === 'hardhat-white' || kind === 'hardhat-orange') {
+    // safety helmet sized for the human rig (unit scale: sits on a 0.2 m wide head); origin = top of the skull
+    const c = kind === 'hardhat-white' ? 0xf4f6f8 : kind === 'hardhat-orange' ? 0xff8a2a : 0xffc928;
+    b.sph(c, 0.135, [0, -0.045, -0.005], [1, 0.8, 1.12], null, 18, 10);
+    b.rcyl(c, 0.158, 0.02, 0.008, [0, -0.07, 0.03], [0.1, 0, 0], 20, [1, 1, 1.22]);
+    b.rbox(c, 0.035, 0.03, 0.2, 0.012, [0, 0.062, -0.005]);
   }
   const m = meshOf(b.merged());
   hatCache.set(kind, m);
@@ -89,11 +95,12 @@ export function makeCharacter(look) {
   const c = art.makeCharacter(L);
   if (L.hat && c.userData.head) {
     const hat = buildHat(L.hat).clone();
-    hat.position.y = L.hatY ?? (L.hat === 'cap' ? 0.4 : 0.42);
-    hat.scale.setScalar(L.hatScale ?? (L.hat === "cap" ? 1.4 : 1.5));
+    const human = c.userData.rig === 'human';   // human rig: the head anchor is the top of the skull, in world units
+    hat.position.y = L.hatY ?? (human ? 0 : L.hat === 'cap' ? 0.4 : 0.42);
+    hat.scale.setScalar(L.hatScale ?? (human ? (L.scale || 1) * 1.08 : L.hat === "cap" ? 1.4 : 1.5));
     c.userData.head.add(hat);
   }
-  if (blobs) blobs.attach(c, 0.42 * (c.userData.look.scale || 1));
+  if (blobs) blobs.attach(c, c.userData.blobR || 0.42 * (c.userData.look.scale || 1));
   return c;
 }
 

@@ -94,7 +94,7 @@ for (const it of def.items) registerItem(it);
 if (!loaded.dev) save.level = def.id;
 
 // ------------------------------------------------------------------ G
-const view = createView(document.getElementById('game'));
+const view = createView(document.getElementById('game'), def.camera);
 const G = {
   THREE,
   scene: view.scene, camera: view.camera, renderer: view.renderer, view,

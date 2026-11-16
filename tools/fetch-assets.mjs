@@ -38,6 +38,10 @@ const KITS = {
   cutemonsters: ['Cute Animated Monsters Pack', 'Quaternius', 'https://quaternius.com/packs/cutemonsters.html'],
   ultimatecrops: ['Ultimate Crops Pack', 'Quaternius', 'https://quaternius.com/packs/ultimatecrops.html'],
   simplenature: ['Simple Nature Pack', 'Quaternius', 'https://quaternius.com/packs/simplenature.html'],
+  'city-kit-industrial': ['City Kit Industrial', 'Kenney', 'https://kenney.nl/assets/city-kit-industrial'],
+  animatedmen: ['Animated Men Pack', 'Quaternius', 'https://quaternius.com/packs/animatedmen.html'],
+  animatedwomen: ['Animated Women Pack', 'Quaternius', 'https://quaternius.com/packs/animatedwomen.html'],
+  animatedrobot: ['Animated Robot Pack', 'Quaternius', 'https://quaternius.com/packs/animatedrobot.html'],
 };
 
 const args = process.argv.slice(2);

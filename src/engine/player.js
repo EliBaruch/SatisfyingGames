@@ -35,10 +35,11 @@ export function createPlayer(G) {
   group.position.copy(pos);
   group.rotation.y = yaw;
 
+  const carry = group.userData.carry;   // set by rigs that carry differently (human rig: in the hands, in front)
   const stack = createStack(G, {
     parent: group,
-    offset: { x: 0, y: 0.55, z: -0.42 },
-    billboard: true,
+    offset: carry ? carry.offset : { x: 0, y: 0.55, z: -0.42 },
+    billboard: carry ? !!carry.billboard : true,
     capacity: G.stats.capacity,
     perColumn: P.perColumn,
   });

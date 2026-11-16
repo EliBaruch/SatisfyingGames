@@ -22,6 +22,10 @@ export const LOOK = {
   gain: { value: 1.0 },          // brightness multiplier on albedo
   rim: { value: 0.16 },           // strength of the soft rim
   rimColor: { value: new THREE.Color(0xdff2ff) },
+  // gloss variant only (litMaterial({ gloss })): colours of the fake studio environment it reflects
+  envSky: { value: new THREE.Color(0xbfe0ff) },
+  envHorizon: { value: new THREE.Color(0xffffff) },
+  envGround: { value: new THREE.Color(0x8a8f99) },
 };
 
 const PARS_LAMBERT = /* glsl */`
@@ -36,6 +40,11 @@ void RE_Direct_Lambert( const in IncidentLight directLight, const in vec3 geomet
 	float wrapped = saturate( ( dotNL + uWrap ) / ( 1.0 + uWrap ) );
 	vec3 irradiance = wrapped * directLight.color;
 	reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+	#ifdef USE_GLOSS
+	vec3 glossH = normalize( directLight.direction + geometryViewDir );
+	float glossS = pow( saturate( dot( geometryNormal, glossH ) ), uShine );
+	reflectedLight.directSpecular += directLight.color * ( glossS * uGloss * 0.45 * saturate( dotNL * 4.0 ) );
+	#endif
 }
 void RE_IndirectDiffuse_Lambert( const in vec3 irradiance, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, const in LambertMaterial material, inout ReflectedLight reflectedLight ) {
 	reflectedLight.indirectDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );
@@ -58,6 +67,19 @@ const RIM = /* glsl */`
 	float rimT = pow( 1.0 - saturate( normal.z ), 2.2 );
 	outgoingLight += rimT * uRim * uRimColor * ( 0.35 + 0.65 * diffuseColor.rgb );
 }
+#ifdef USE_GLOSS
+{
+	// a cheap studio reflection: sky / bright horizon band / floor, picked by the reflected view ray
+	vec3 gv = normalize( vViewPosition );
+	vec3 gr = reflect( -gv, normal );
+	vec3 gw = normalize( ( vec4( gr, 0.0 ) * viewMatrix ).xyz );
+	vec3 gsky = mix( uEnvHorizon, uEnvSky, smoothstep( 0.0, 0.7, gw.y ) );
+	vec3 genv = mix( uEnvGround, gsky, smoothstep( -0.15, 0.08, gw.y ) );
+	genv += uEnvHorizon * ( 0.7 * smoothstep( 0.5, 0.68, gw.y ) * ( 1.0 - smoothstep( 0.8, 0.94, gw.y ) ) );
+	float gf = pow( 1.0 - saturate( dot( normal, gv ) ), 3.0 );
+	outgoingLight += genv * uGloss * ( 0.09 + 0.75 * gf ) + reflectedLight.directSpecular;
+}
+#endif
 `;
 
 function patchLook(shader) {
@@ -67,7 +89,11 @@ function patchLook(shader) {
   shader.uniforms.uGain = LOOK.gain;
   shader.uniforms.uRim = LOOK.rim;
   shader.uniforms.uRimColor = LOOK.rimColor;
+  shader.uniforms.uEnvSky = LOOK.envSky;
+  shader.uniforms.uEnvHorizon = LOOK.envHorizon;
+  shader.uniforms.uEnvGround = LOOK.envGround;
   shader.fragmentShader = 'uniform float uSat;\nuniform float uGamma;\nuniform float uGain;\nuniform float uRim;\nuniform vec3 uRimColor;\n' +
+    '#ifdef USE_GLOSS\nuniform float uGloss;\nuniform float uShine;\nuniform vec3 uEnvSky;\nuniform vec3 uEnvHorizon;\nuniform vec3 uEnvGround;\n#endif\n' +
     shader.fragmentShader
       .replace('#include <lights_lambert_pars_fragment>', PARS_LAMBERT)
       .replace('#include <color_fragment>', '#include <color_fragment>\n' + GRADE)
@@ -80,10 +106,30 @@ function patchLook(shader) {
  * which cache; this always creates a new material.
  */
 export function litMaterial(params = {}) {
-  const m = new THREE.MeshLambertMaterial(params);
-  m.onBeforeCompile = patchLook;
-  m.customProgramCacheKey = () => 'bloom-look-v1';
+  const { gloss, shine, ...rest } = params;
+  const m = new THREE.MeshLambertMaterial(rest);
+  if (gloss > 0) {
+    // glossy variant (paint, metal, plastic): sun highlight + a fake studio reflection. Own program, own uniforms.
+    const uGloss = { value: gloss }, uShine = { value: shine || 48 };
+    m.defines = { USE_GLOSS: '' };
+    m.userData.gloss = uGloss;
+    m.userData.shine = uShine;
+    m.onBeforeCompile = (shader) => { patchLook(shader); shader.uniforms.uGloss = uGloss; shader.uniforms.uShine = uShine; };
+    m.customProgramCacheKey = () => 'bloom-look-gloss-v1';
+  } else {
+    m.onBeforeCompile = patchLook;
+    m.customProgramCacheKey = () => 'bloom-look-v1';
+  }
   m.shadowSide = THREE.BackSide; // casters render back faces: clean, acne-free shadows on closed shapes
+  return m;
+}
+
+const _gloss = new Map();
+/** Vertex-colour lit material with gloss (cached per gloss / shine): for merged or instanced vehicles, machines, metal. */
+export function getGlossMaterial(gloss = 0.5, shine = 48) {
+  const key = gloss.toFixed(2) + '|' + shine;
+  let m = _gloss.get(key);
+  if (!m) { m = litMaterial({ vertexColors: true, gloss, shine }); m.name = 'gloss-vertex-colour-' + key; _gloss.set(key, m); }
   return m;
 }
 
@@ -111,7 +157,7 @@ export function toLit(src, opts = {}) {
   const color = src.color ? src.color : new THREE.Color(0xffffff);
   const transparent = !!src.transparent && src.opacity < 1;
   const side = opts.double ? THREE.DoubleSide : THREE.FrontSide;
-  const key = [map ? map.uuid : '-', color.getHexString(), opts.recolor || '', side, transparent ? src.opacity.toFixed(3) : 1, src.vertexColors ? 1 : 0].join('|');
+  const key = [map ? map.uuid : '-', color.getHexString(), opts.recolor || '', side, transparent ? src.opacity.toFixed(3) : 1, src.vertexColors ? 1 : 0, opts.gloss || 0].join('|');
   let m = _litCache.get(key);
   if (m) return m;
   if (map) {
@@ -126,6 +172,7 @@ export function toLit(src, opts = {}) {
   m = litMaterial({
     map, color: col, side, vertexColors: !!src.vertexColors,
     transparent, opacity: transparent ? src.opacity : 1, depthWrite: !transparent,
+    ...(opts.gloss > 0 ? { gloss: opts.gloss, shine: opts.shine } : null),
   });
   m.name = src.name || (map ? 'lit-map' : 'lit-colour');
   m.userData.isBloomLit = true;

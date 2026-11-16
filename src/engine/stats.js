@@ -28,6 +28,10 @@ export function computeStats(def, done, meta) {
     perks: { speedMul: 1, capacityAdd: 0 },
   };
   for (const st of def.stations || []) if (st.open) s.open[st.id] = true;
+  // world.hires: helpers that are there from the start (no pad), e.g. a van that buys from day one.
+  // Each is a hire effect with an `id`; the worker saves under that id like a pad's worker.
+  const hire0 = getPadEffect('hire');
+  if (hire0 && hire0.fold) for (const h of def.hires || []) if (h && h.id && h.role) hire0.fold(s, { type: 'hire', ...h }, { id: h.id }, def);
   for (const pad of def.pads || []) {
     if (!done[pad.id] || !pad.effect) continue;
     const h = getPadEffect(pad.effect.type);

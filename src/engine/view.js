@@ -1,10 +1,19 @@
 // Renderer, scene, orthographic isometric camera that follows the player (with glides
 // to far-away unlocks), resize handling and adaptive pixel ratio.
+//
+// world.camera (all optional, see config.js CAMERA for the defaults):
+//   viewPortrait, viewLandscape, offset, lerp
+//   type: 'perspective'     a narrow-angle perspective camera looking along the same direction as
+//                           the orthographic one (same input mapping). `fov` (degrees, default 30).
+//                           viewPortrait / viewLandscape = world units visible vertically at the focus.
+//   zoom: 1                 starting zoom factor on the view size (> 1 = further out)
+//   fog: { color, start, end }   distance fog measured from the focus point outward (perspective only)
+// view.setZoom(z, dur) eases the zoom factor (both camera types); view.zoom reads it.
 import * as THREE from 'three';
 import { CAMERA } from './config.js';
 import { configureRenderer } from './art/material.js';
 
-export function createView(canvas) {
+export function createView(canvas, camDef) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   // Render resolution adapts to the device: start at up to 2x and step down if the
   // frame rate cannot hold (see adaptQuality below).
@@ -16,22 +25,42 @@ export function createView(canvas) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9fdcff);
-  const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
+  const persp = !!(camDef && camDef.type === 'perspective');
+  const camera = persp ? new THREE.PerspectiveCamera(camDef.fov || 30, 1, 1, 400) : new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
   const cam = { ...CAMERA };
+  const Z = { cur: 1, from: 1, to: 1, t: 0, dur: 0 };   // zoom factor on the view size
+  const DIR = new THREE.Vector3();
+  let fog = null;
 
   function resize() {
     const w = window.innerWidth || 1, h = window.innerHeight || 1;
     renderer.setSize(w, h, false);
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
-    const aspect = w / h;
-    const view = aspect < 1 ? cam.viewPortrait : cam.viewLandscape;
-    camera.top = view / 2;
-    camera.bottom = -view / 2;
-    camera.left = (-view * aspect) / 2;
-    camera.right = (view * aspect) / 2;
+    applyProjection();
+  }
+  /** camera projection for the current window size and zoom (no canvas resize) */
+  function applyProjection() {
+    const aspect = (window.innerWidth || 1) / (window.innerHeight || 1);
+    const view = (aspect < 1 ? cam.viewPortrait : cam.viewLandscape) * Z.cur;
+    if (persp) {
+      // keep `view` world units visible vertically at the focus point: move the camera along its offset direction
+      const dist = (view / 2) / Math.tan((camera.fov * Math.PI) / 360);
+      DIR.set(cam.offset.x, cam.offset.y, cam.offset.z).normalize();
+      OFF.copy(DIR).multiplyScalar(dist);
+      camera.aspect = aspect;
+      camera.near = Math.max(1, dist * 0.25);
+      camera.far = dist + 220;
+      if (fog) { fog.near = dist + fog.userData.start; fog.far = dist + fog.userData.end; }
+    } else {
+      camera.top = view / 2;
+      camera.bottom = -view / 2;
+      camera.left = (-view * aspect) / 2;
+      camera.right = (view * aspect) / 2;
+    }
     camera.updateProjectionMatrix();
   }
+  const OFF = new THREE.Vector3(cam.offset.x, cam.offset.y, cam.offset.z);
   resize();
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 120));
@@ -39,11 +68,17 @@ export function createView(canvas) {
   // ------------------------------------------------------------------ follow
   const focus = new THREE.Vector3();
   const camTarget = new THREE.Vector3();
-  const OFF = new THREE.Vector3(cam.offset.x, cam.offset.y, cam.offset.z);
   const glide = { t: 0, dur: 0, x: 0, z: 0 };
   let G = null;
 
   function updateCamera(realDt) {
+    if (Z.dur > 0) {
+      Z.t += realDt;
+      const u = Math.min(1, Z.t / Z.dur);
+      Z.cur = Z.from + (Z.to - Z.from) * (u * u * (3 - 2 * u));
+      if (u >= 1) Z.dur = 0;
+      applyProjection();
+    }
     const pl = G && G.player;
     if (pl) camTarget.set(pl.pos.x, 0, pl.pos.z);
     if (glide.dur > 0) {
@@ -91,11 +126,29 @@ export function createView(canvas) {
     bind(g) {
       G = g;
       const w = G.world.camera;
-      if (w) { Object.assign(cam, w); if (w.offset) OFF.set(w.offset.x, w.offset.y, w.offset.z); resize(); }
+      if (w) {
+        Object.assign(cam, w);
+        if (w.offset) OFF.set(w.offset.x, w.offset.y, w.offset.z);
+        if (w.zoom > 0) Z.cur = Z.from = Z.to = w.zoom;
+        if (persp && w.fog) {
+          fog = new THREE.Fog(w.fog.color ?? 0xffffff, 1, 1000);
+          fog.userData = { start: w.fog.start ?? 20, end: w.fog.end ?? 120 };
+          scene.fog = fog;
+        }
+        resize();
+      }
       if (G.state && G.state.player) focus.set(G.state.player.x, 0, G.state.player.z);
     },
     /** glide the camera to (x, z) and back over `dur` seconds */
     glideTo(x, z, dur = 1.6) { glide.t = 0; glide.dur = dur; glide.x = x; glide.z = z; },
+    /** ease the zoom factor on the view size to `z` over `dur` seconds (0 = at once) */
+    setZoom(z, dur = 1.5) {
+      if (!(z > 0)) return;
+      if (dur > 0) { Z.from = Z.cur; Z.to = z; Z.t = 0; Z.dur = dur; } else { Z.cur = Z.from = Z.to = z; Z.dur = 0; applyProjection(); }
+    },
+    get zoom() { return Z.cur; },
+    /** world units visible vertically at the focus point right now */
+    get viewSize() { const a = (window.innerWidth || 1) / (window.innerHeight || 1); return (a < 1 ? cam.viewPortrait : cam.viewLandscape) * Z.cur; },
     resize,
     frame(realDt) {
       updateCamera(realDt);

@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { preload, getModel, KIT_SCALE } from './assets.js';
 import { Parts, meshOf } from './parts.js';
+import { isHumanModel, makeHuman, animateHuman } from './human.js';
 
 export const CHARACTER_HEIGHT = 1.65;          // nominal standing height of a standard character (scale 1)
 const SCALE = KIT_SCALE['mini-characters'];
@@ -120,6 +121,7 @@ const HAND_X = 0.25; // distance of the hand centre from the shoulder pivot, in 
  * If the model has not been preloaded you get a placeholder box and animateCharacter does nothing.
  */
 export function makeCharacter(look = {}) {
+  if (isHumanModel(look.model)) return makeHuman(look);   // human-proportioned rig (art/human.js)
   const L = { model: 'male-a', tool: null, scale: 1, ...look };
   const id = fullId(L.model);
   const root = new THREE.Group();
@@ -208,6 +210,7 @@ export function animateCharacter(char, dt, opts) {
   const ud = char.userData;
   const A = ud.anim;
   if (!A || ud.lod) return;
+  if (A.human) { animateHuman(char, dt, opts); return; }
   A.acc += dt;
   const t = now();
   if (t - A.last < ANIM.minInterval && A.acc < 0.25) return;

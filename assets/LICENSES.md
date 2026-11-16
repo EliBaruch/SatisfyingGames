@@ -5,8 +5,8 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 Credit is not required, but we gladly give it:
 
-- **Kenney** (https://kenney.nl) - Car Kit, Cube Pets, Factory Kit, Food Kit, Mini Characters, Mini Forest, Mini Shop, Nature Kit.
-- **Quaternius** (https://quaternius.com) - Farm Buildings Pack, Simple Nature Pack, Ultimate Crops Pack.
+- **Kenney** (https://kenney.nl) - Car Kit, City Kit Industrial, Factory Kit, Nature Kit.
+- **Quaternius** (https://quaternius.com) - Animated Men Pack, Animated Robot Pack, Animated Women Pack.
 
 The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-glb` and `codepawl/quaternius-glb`
 (web tier: meshopt-compressed geometry, WebP textures). Geometry and textures are unmodified.
@@ -15,62 +15,42 @@ The files were obtained from the Hugging Face dataset mirrors `codepawl/kenney-g
 
 | Kit | Author | Models | Source |
 |---|---|---|---|
-| Car Kit (`car-kit`) | Kenney | 7 | https://kenney.nl/assets/car-kit |
-| Cube Pets (`cube-pets`) | Kenney | 3 | https://kenney.nl/assets/cube-pets |
-| Factory Kit (`factory-kit`) | Kenney | 20 | https://kenney.nl/assets/factory-kit |
-| Farm Buildings Pack (`farmbuildings`) | Quaternius | 7 | https://quaternius.com/packs/farmbuildings.html |
-| Food Kit (`food-kit`) | Kenney | 21 | https://kenney.nl/assets/food-kit |
-| Mini Characters (`mini-characters`) | Kenney | 20 | https://kenney.nl/assets/mini-characters |
-| Mini Forest (`mini-forest`) | Kenney | 6 | https://kenney.nl/assets/mini-forest |
-| Mini Shop (`mini-shop`) | Kenney | 20 | https://kenney.nl/assets/mini-shop |
-| Nature Kit (`nature-kit`) | Kenney | 30 | https://kenney.nl/assets/nature-kit |
-| Simple Nature Pack (`simplenature`) | Quaternius | 2 | https://quaternius.com/packs/simplenature.html |
-| Ultimate Crops Pack (`ultimatecrops`) | Quaternius | 7 | https://quaternius.com/packs/ultimatecrops.html |
+| Animated Men Pack (`animatedmen`) | Quaternius | 6 | https://quaternius.com/packs/animatedmen.html |
+| Animated Robot Pack (`animatedrobot`) | Quaternius | 1 | https://quaternius.com/packs/animatedrobot.html |
+| Animated Women Pack (`animatedwomen`) | Quaternius | 5 | https://quaternius.com/packs/animatedwomen.html |
+| Car Kit (`car-kit`) | Kenney | 24 | https://kenney.nl/assets/car-kit |
+| City Kit Industrial (`city-kit-industrial`) | Kenney | 23 | https://kenney.nl/assets/city-kit-industrial |
+| Factory Kit (`factory-kit`) | Kenney | 78 | https://kenney.nl/assets/factory-kit |
+| Nature Kit (`nature-kit`) | Kenney | 7 | https://kenney.nl/assets/nature-kit |
 
 ## Files
 
+### Animated Men Pack - Quaternius - CC0 1.0
+
+`Male_Casual`, `Male_LongSleeve`, `Male_Shirt`, `Smooth_Male_Casual`, `Smooth_Male_LongSleeve`, `Smooth_Male_Shirt`
+
+### Animated Robot Pack - Quaternius - CC0 1.0
+
+`Robot`
+
+### Animated Women Pack - Quaternius - CC0 1.0
+
+`Female_Alternative`, `Female_Casual`, `Female_TankTop`, `Smooth_Female_Casual`, `Smooth_Female_TankTop`
+
 ### Car Kit - Kenney - CC0 1.0
 
-`box`, `delivery-flat`, `delivery`, `tractor`, `truck`, `van`, `wheel-tractor-back`
+`box`, `cone`, `debris-bolt`, `debris-bumper`, `debris-door`, `debris-drivetrain-axle`, `debris-drivetrain`, `debris-nut`, `debris-plate-a`, `debris-plate-b`, `debris-tire`, `delivery-flat`, `delivery`, `hatchback-sports`, `sedan-sports`, `sedan`, `suv-luxury`, `suv`, `tractor-shovel`, `truck-flat`, `truck`, `van`, `wheel-default`, `wheel-truck`
 
-### Cube Pets - Kenney - CC0 1.0
+### City Kit Industrial - Kenney - CC0 1.0
 
-`animal-chick`, `animal-cow`, `animal-pig`
+`building-a`, `building-b`, `building-c`, `building-d`, `building-e`, `building-f`, `building-h`, `building-k`, `building-l`, `building-q`, `chimney-basic`, `chimney-large`, `chimney-medium`, `detail-tank-large`, `detail-tank`, `shipping-container-a`, `shipping-container-b`, `shipping-container-c`, `solar-panel-flat`, `solar-panel-landscape-group`, `solar-panel-landscape`, `water-tower`, `windmill`
 
 ### Factory Kit - Kenney - CC0 1.0
 
-`box-large`, `box-long`, `box-small`, `box-wide`, `button-floor-round`, `conveyor-corner`, `conveyor-long`, `conveyor-sides`, `conveyor-stripe`, `conveyor`, `door-wide-open`, `hopper-round`, `indicator-special-area`, `indicator-special-arrow`, `machine-window`, `machine`, `pipe-large-curve`, `pipe-large`, `screen-small`, `screen-wide`
-
-### Farm Buildings Pack - Quaternius - CC0 1.0
-
-`Barn`, `ChickenCoop`, `Fence2`, `Fence`, `OpenBarn`, `Silo`, `Windmill`
-
-### Food Kit - Kenney - CC0 1.0
-
-`apple`, `bag`, `barrel`, `bottle-oil`, `bread`, `broccoli`, `can`, `carton-small`, `carton`, `cheese`, `corn`, `croissant`, `donut`, `egg-cup`, `egg`, `loaf-baguette`, `loaf`, `orange`, `paprika`, `pear`, `soda-can`
-
-### Mini Characters - Kenney - CC0 1.0
-
-`character-alien`, `character-female-a`, `character-female-b`, `character-female-c`, `character-female-d`, `character-female-e`, `character-female-f`, `character-knight`, `character-male-a`, `character-male-b`, `character-male-c`, `character-male-d`, `character-male-e`, `character-male-f`, `character-male-g`, `character-raider`, `character-robot`, `character-soldier`, `character-worker`, `character-zombie`
-
-### Mini Forest - Kenney - CC0 1.0
-
-`fence`, `patch-dirt`, `patch-grass`, `stones`, `tree-high`, `tree`
-
-### Mini Shop - Kenney - CC0 1.0
-
-`cash-register`, `character-employee`, `column`, `display-bread`, `display-cans`, `display-flowers`, `display-fruit`, `floor-wood`, `floor`, `freezer`, `freezers-standing`, `hand-truck`, `shelf-bags`, `shelf-boxes`, `shelf-end`, `shopping-basket`, `shopping-cart`, `wall-corner`, `wall-window`, `wall`
+`box-large`, `box-long`, `box-small`, `box-wide`, `button-floor-square`, `catwalk-corner`, `catwalk-stairs`, `catwalk-straight`, `cog-a`, `cog-b`, `cog-e`, `cone`, `conveyor-bars-stripe`, `conveyor-bars`, `conveyor-corner`, `conveyor-long-stripe-sides`, `conveyor-long`, `conveyor-sides`, `conveyor-stripe-corner`, `conveyor-stripe-sides`, `conveyor-stripe`, `conveyor`, `crane-lift`, `crane-magnet`, `crane`, `door-wide-closed`, `door-wide-half`, `door-wide-open`, `floor-large`, `floor`, `hopper-high-round`, `hopper-high-square`, `hopper-round`, `hopper-square`, `indicator-special-area`, `indicator-special-arrow`, `indicator-special-lines`, `lever-single`, `machine-bed`, `machine-connection-pipe`, `machine-fortified`, `machine-window-bar`, `machine-window`, `machine`, `pipe-glass-large-long`, `pipe-large-bend`, `pipe-large-curve`, `pipe-large-long`, `pipe-large-valve`, `pipe-large`, `piston-round`, `piston-square`, `robot-arm-a`, `robot-arm-b`, `scanner-high`, `scanner-low`, `screen-flat`, `screen-hanging-wide`, `screen-panel-wide`, `screen-small`, `screen-wide`, `structure-corner-inner`, `structure-corner-outer`, `structure-doorway-wide`, `structure-doorway`, `structure-high`, `structure-medium`, `structure-short`, `structure-tall`, `structure-wall`, `structure-window-wide`, `structure-window`, `structure-yellow-high`, `structure-yellow-medium`, `structure-yellow-tall`, `top-large`, `warning-orange`, `warning-traffic`
 
 ### Nature Kit - Kenney - CC0 1.0
 
-`crops_cornStageD`, `crops_dirtDoubleRow`, `crops_dirtRow`, `crops_wheatStageA`, `fence_gate`, `fence_planks`, `fence_simple`, `flower_purpleA`, `flower_redA`, `flower_yellowA`, `grass`, `log_stack`, `path_stone`, `plant_bushDetailed`, `plant_bushLarge`, `plant_bush`, `pot_large`, `pot_small`, `rock_largeA`, `rock_largeD`, `rock_smallA`, `rock_smallD`, `rock_tallA`, `tree_default`, `tree_fat`, `tree_oak_fall`, `tree_oak`, `tree_pineTallA`, `tree_small`, `tree_thin`
-
-### Simple Nature Pack - Quaternius - CC0 1.0
-
-`Bush1`, `Tree1`
-
-### Ultimate Crops Pack - Quaternius - CC0 1.0
-
-`BushBerries_3`, `Flower_2`, `Flower_3`, `Flower_4`, `Flowers_Crop`, `Flowers_Harvested`, `Grass_3`
+`grass`, `plant_bushDetailed`, `plant_bush`, `rock_largeA`, `rock_smallA`, `tree_default`, `tree_oak`
 
 _Generated by `tools/fetch-assets.mjs` from `assets/manifest.json`. Do not edit by hand._

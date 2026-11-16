@@ -31,7 +31,11 @@ export function createMultiHauler(G, hire, team, live) {
   const minRoom = Math.max(1, cfg.minRoom || 1);
   const look = typeof cfg.look === 'string' ? (chars.LOOKS[cfg.look] || chars.LOOKS.cutter) : cfg.look;
   const group = chars.makeCharacter(look);
-  const stack = createStack(G, { parent: group, offset: { x: 0, y: 0.55, z: -0.42 }, billboard: true, capacity: cfg.capacity, perColumn: 40 });
+  const carry = group.userData.carry;   // rigs / vehicles that carry differently say where (chars.js)
+  const stack = createStack(G, {
+    parent: group, offset: carry ? carry.offset : { x: 0, y: 0.55, z: -0.42 }, billboard: carry ? !!carry.billboard : true,
+    capacity: cfg.capacity, perColumn: (carry && carry.perColumn) || 40, columnGap: (carry && carry.columnGap) || 0, sway: !(carry && carry.sway === false),
+  });
   const k = team.length - 1;
   const w = {
     group, stack, k,
