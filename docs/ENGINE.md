@@ -354,6 +354,38 @@ registerPadEffect('feedBoost', {
 });
 ```
 
+### Reveals: making a big purchase feel big
+
+A pad with `reveal` gets a short cinematic when it is bought (`src/engine/reveal.js`): play stops, the HUD
+fades, letterbox bars and a title card slide in, the camera travels to the new thing, it builds in while
+the player watches, the world runs for a moment so it can be seen working, and the camera returns. A tap
+skips it. `?noreveal` turns reveals off.
+
+```js
+reveal: true,                                 // one shot at pad.focus: everything the pad brings pops in there
+reveal: {
+  title, sub,                                 // title card (title defaults to pad.toast / label)
+  zoom: 0.85,                                 // factor on the current zoom (< 1 = closer)
+  run: 1.3,                                   // seconds the world runs at the end, camera still there
+  shots: [
+    { at: [x, z], show: ['stationId', 'scene'], hold: 0.9, zoom },   // go there, pop those in, wait
+    { belt: 'beltId', dur: 2.2, show: [...], hold: 0.4 },            // pan along a belt while it is laid down
+  ],
+}
+```
+
+`show` takes station ids (everything the station and its scenery pop in when it opens), `'scene'` (pop-ins
+from pad hooks, e.g. a new hall), `'*'` (all that is left) and `'pads'` (the next price pads; they always
+come last, when the camera is back). Anything no shot shows appears when the reveal ends.
+
+How it works: `G.pads` calls `G.reveal.begin(pad)` before it applies the purchase and `start(pad)` after.
+In between, `G.fx.popIn(obj)` and `G.fx.defer(fn)` record their calls with `G.fx.owner` (set by
+`G.stations` around each activation) instead of running them. So scenery only has to appear through
+`popIn`, or wrap other live changes in `G.fx.defer(() => ...)`, to take part. During a reveal the main
+loop runs only pads, scenery, fx and hud (frozen), then stations and workers too (the "run" phase); the
+player has no control until it ends. `G.view.setCine({x, z}, zoom)` is the camera override it uses.
+The clock is the simulation's, so tests that call `G.step` directly play reveals at the same pace.
+
 ## 8. Hints
 
 Every 0.25 s (`engine/hints.js`): (1) carrying >= 60% of capacity (or full, or the harvest area

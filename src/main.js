@@ -20,6 +20,7 @@ import { createPlayer } from './engine/player.js';
 import { createWorkers } from './engine/workers/index.js';
 import { createHints } from './engine/hints.js';
 import { createLevel } from './engine/level.js';
+import { createReveal } from './engine/reveal.js';
 
 const params = new URLSearchParams(location.search);
 const save = loadSave();
@@ -112,7 +113,7 @@ const G = {
   addMoney(n) { if (!(n > 0)) return; G.state.money += n; G.state.earned += n; save.meta.totalEarned += n; },
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
-  scenery: null, player: null, workers: null, hints: null, level: null,
+  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -259,17 +260,27 @@ G.events.on('reset', () => {
 });
 
 G.level = createLevel(G);
+G.reveal = createReveal(G);                     // cinematics for pads with `reveal`
+if (params.has('noreveal')) G.noReveal = true;
 saveNow();   // persists a migrated / sanitised save right away
 
 // ------------------------------------------------------------------ loop
 const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
+// during a reveal (engine/reveal.js): first everything stands still while the new thing builds in,
+// then the world runs again without the player until the camera is back
+const CINE_FROZEN = ['pads', 'scenery', 'fx', 'hud'];
+const CINE_RUN = ['stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
 const errCount = {};
 function step(dt) {
   G.time += dt;
-  G.state.playTime += dt;
-  save.meta.playTime += dt;
-  for (let i = 0; i < UPDATE_ORDER.length; i++) {
-    const name = UPDATE_ORDER[i];
+  let order = UPDATE_ORDER;
+  if (G.reveal) {
+    try { G.reveal.update(dt); } catch (err) { console.error('[loop] reveal.update failed:', err); try { G.reveal.skip(); } catch (e) { /* ignore */ } }
+    if (G.reveal.active) order = G.reveal.frozen ? CINE_FROZEN : CINE_RUN;
+  }
+  if (order !== CINE_FROZEN) { G.state.playTime += dt; save.meta.playTime += dt; }
+  for (let i = 0; i < order.length; i++) {
+    const name = order[i];
     const m = G[name];
     if (!m || !m.update) continue;
     try {

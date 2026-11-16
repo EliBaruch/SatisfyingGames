@@ -106,17 +106,27 @@ function createBelt(G, def) {
 
   // ---- the belt body
   let body = null, top = null, topTex = null;
+  let triD = null;             // body triangles' distance along the path, ascending (the index is in this order)
+  const quadD = [];            // end distance of each quad of the rubber ribbon
+  const CHUNK = 1.15;
   if (def.placeholder !== false) {
     const p = new Parts();
     const FR = 0x8f9bab, DARK = 0x4a525e, LEG = 0x6d7887, POST = 0xf2b632;
     for (let i = 0; i < segLen.length; i++) {
       const l = segLen[i], mx = (pts[i].x + pts[i + 1].x) / 2, mz = (pts[i].z + pts[i + 1].z) / 2, yaw = yaws[i];
       const rot = [0, yaw, 0];
-      p.box(DARK, width + 0.02, 0.14, l + (i < segLen.length - 1 ? width * 0.5 : 0), [mx, baseY - 0.09, mz], rot);       // bed
-      for (const sd of [-1, 1]) {
-        const ox = Math.cos(yaw) * sd * (width / 2 + 0.05), oz = -Math.sin(yaw) * sd * (width / 2 + 0.05);
-        p.box(FR, 0.1, 0.24, l + 0.06, [mx + ox, baseY - 0.02, mz + oz], rot);                                          // side rails
+      // bed and side rails in short pieces, so the belt can be laid down along its line (build.set)
+      const nc = Math.max(1, Math.round(l / CHUNK)), cl = l / nc;
+      for (let c = 0; c < nc; c++) {
+        const u = (c + 0.5) / nc;
+        const cx = pts[i].x + (pts[i + 1].x - pts[i].x) * u, cz = pts[i].z + (pts[i + 1].z - pts[i].z) * u;
+        p.box(DARK, width + 0.02, 0.14, cl + 0.01, [cx, baseY - 0.09, cz], rot);                                        // bed
+        for (const sd of [-1, 1]) {
+          const ox = Math.cos(yaw) * sd * (width / 2 + 0.05), oz = -Math.sin(yaw) * sd * (width / 2 + 0.05);
+          p.box(FR, 0.1, 0.24, cl + (c === 0 || c === nc - 1 ? 0.04 : 0.01), [cx + ox, baseY - 0.02, cz + oz], rot);     // side rails
+        }
       }
+      if (i < segLen.length - 1) p.box(DARK, width + 0.02, 0.14, width + 0.02, [pts[i + 1].x, baseY - 0.09, pts[i + 1].z], rot);   // corner plate
       // legs / posts
       const every = def.overhead ? 4.5 : 2.2;
       const nLeg = Math.max(2, Math.round(l / every) + 1);
@@ -142,6 +152,28 @@ function createBelt(G, def) {
     body = meshOf(p.merged({ ao: def.overhead ? false : { ground: 0.18, groundH: 0.4, noBoxes: true } }), { receive: false });
     body.visible = false;
     G.scene.add(body);
+    // order the triangles by how far along the path they are: a draw range then shows the belt up to a point
+    {
+      const g = body.geometry, pa = g.getAttribute('position'), nt = (pa.count / 3) | 0;
+      const d = new Float32Array(nt), order = new Uint32Array(nt);
+      for (let t = 0; t < nt; t++) {
+        const x = (pa.getX(t * 3) + pa.getX(t * 3 + 1) + pa.getX(t * 3 + 2)) / 3, z = (pa.getZ(t * 3) + pa.getZ(t * 3 + 1) + pa.getZ(t * 3 + 2)) / 3;
+        let best = Infinity, at = 0;
+        for (let i = 0; i < segLen.length; i++) {
+          const ax = pts[i].x, az = pts[i].z, bx = pts[i + 1].x - ax, bz = pts[i + 1].z - az;
+          let u = segLen[i] > 0 ? ((x - ax) * bx + (z - az) * bz) / (segLen[i] * segLen[i]) : 0;
+          u = u < 0 ? 0 : u > 1 ? 1 : u;
+          const ex = x - (ax + bx * u), ez = z - (az + bz * u), dd = ex * ex + ez * ez;
+          if (dd < best - 1e-6) { best = dd; at = cum[i] + u * segLen[i]; }
+        }
+        d[t] = at; order[t] = t;
+      }
+      order.sort((a, b) => d[a] - d[b]);
+      const idx = new (pa.count > 65535 ? Uint32Array : Uint16Array)(nt * 3);
+      triD = new Float32Array(nt);
+      for (let k = 0; k < nt; k++) { const t = order[k]; idx[k * 3] = t * 3; idx[k * 3 + 1] = t * 3 + 1; idx[k * 3 + 2] = t * 3 + 2; triD[k] = d[t]; }
+      g.setIndex(new THREE.BufferAttribute(idx, 1));
+    }
 
     // running rubber: one ribbon with u = distance along the belt, v across
     const pos = [], uv = [], idx = [];
@@ -150,11 +182,16 @@ function createBelt(G, def) {
       const yaw = yaws[i], c = Math.cos(yaw), s = Math.sin(yaw);
       const hx = c * (width / 2 - 0.02), hz = -s * (width / 2 - 0.02);
       const ext = i < segLen.length - 1 ? width * 0.25 : 0;   // tuck under the next segment at corners
-      const ax = pts[i].x, az = pts[i].z, bx = pts[i + 1].x + s * ext, bz = pts[i + 1].z + c * ext;
-      const b0 = pos.length / 3;
-      pos.push(ax - hx, baseY - 0.015 + i * 0.001, az - hz, ax + hx, baseY - 0.015 + i * 0.001, az + hz, bx - hx, baseY - 0.015 + i * 0.001, bz - hz, bx + hx, baseY - 0.015 + i * 0.001, bz + hz);
-      uv.push(cum[i] / tile, 0, cum[i] / tile, 1, (cum[i + 1] + ext) / tile, 0, (cum[i + 1] + ext) / tile, 1);
-      idx.push(b0, b0 + 1, b0 + 2, b0 + 2, b0 + 1, b0 + 3);
+      const L = segLen[i] + ext, nq = Math.max(1, Math.round(segLen[i] / CHUNK)), y = baseY - 0.015 + i * 0.001;
+      for (let k = 0; k < nq; k++) {
+        const d0 = (L * k) / nq, d1 = (L * (k + 1)) / nq;
+        const ax = pts[i].x + s * d0, az = pts[i].z + c * d0, bx = pts[i].x + s * d1, bz = pts[i].z + c * d1;
+        const b0 = pos.length / 3;
+        pos.push(ax - hx, y, az - hz, ax + hx, y, az + hz, bx - hx, y, bz - hz, bx + hx, y, bz + hz);
+        uv.push((cum[i] + d0) / tile, 0, (cum[i] + d0) / tile, 1, (cum[i] + d1) / tile, 0, (cum[i] + d1) / tile, 1);
+        idx.push(b0, b0 + 1, b0 + 2, b0 + 2, b0 + 1, b0 + 3);
+        quadD.push(cum[i] + Math.min(d1, segLen[i]));
+      }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -223,6 +260,24 @@ function createBelt(G, def) {
     get delivered() { return T.delivered; },
     pointAt,
     meshes: { body, top, items: meshes },
+    /**
+     * Lay the belt down along its line: build.set(s) shows the body up to distance s from the start
+     * (s >= length: all of it). Used by reveals (engine/reveal.js); a belt is complete by default.
+     */
+    build: {
+      length,
+      pointAt,
+      set(d) {
+        if (!body || !triD) return;
+        if (!(d < length)) { body.geometry.setDrawRange(0, Infinity); top.geometry.setDrawRange(0, Infinity); return; }
+        let lo = 0, hi = triD.length;
+        while (lo < hi) { const m = (lo + hi) >> 1; if (triD[m] <= d) lo = m + 1; else hi = m; }
+        body.geometry.setDrawRange(0, lo * 3);
+        let q = 0;
+        while (q < quadD.length && quadD[q] <= d + 0.01) q++;
+        top.geometry.setDrawRange(0, q * 6);
+      },
+    },
     activate(live) {
       for (const m of meshes) m.visible = true;
       showAll(G, [body], live);

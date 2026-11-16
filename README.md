@@ -43,6 +43,7 @@ Debug flags (add to the URL):
 - `?worldUrl=<same-origin path to a world.js>` loads a world under development.
 - `?autoplay` runs a test bot that plays the game.
 - `?speed=N` runs the simulation N times faster.
+- `?noreveal` turns off the cinematics that play on big purchases.
 
 `node tools/playtest.js --world=<id>` plays a world to the end headlessly with
 Playwright and prints the unlock timeline.

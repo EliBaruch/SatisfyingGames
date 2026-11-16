@@ -473,6 +473,8 @@ export function createFx(G) {
 
   function popIn(obj, { dur = 0.5, delay = 0 } = {}) {
     if (!obj) return;
+    // a reveal (engine/reveal.js) is collecting what a purchase brings in: keep it hidden for now
+    if (fx.capture) { obj.visible = false; fx.capture.push({ obj, dur, delay, owner: fx.owner }); return; }
     baseScale(obj);
     obj.scale.set(0, 0, 0);
     startTween(obj, 2, dur, delay, 0);
@@ -546,6 +548,12 @@ export function createFx(G) {
     burst(pos, o) { burst(pos, o); syncParticleCount(); },
     confetti(pos, n) { confetti(pos, n); syncParticleCount(); },
     ring, popText, fly, pop, popIn, shake,
+    /** set by engine/reveal.js while a purchase is applied: popIn / defer calls are collected instead of run */
+    capture: null,
+    /** who the next popIn / defer calls belong to (a station id, 'pads'); set by the engine around activations */
+    owner: null,
+    /** run fn now, or hand it to the running reveal so it happens when the camera gets there */
+    defer(fn) { if (fx.capture) fx.capture.push({ fn, owner: fx.owner }); else fn(); },
     /** Debug/testing counters. */
     stats() {
       let flying = 0;

@@ -8,11 +8,11 @@ export function createLevel(G) {
   const def = G.world;
   const finale = def.finale || {};
 
-  G.events.on('unlock', ({ pad, effect } = {}) => {
+  G.events.on('unlock', ({ pad, effect, reveal } = {}) => {
     if (!pad) return;
     const h = effect && getPadEffect(effect.type);
     const text = pad.toast || (h && h.toast ? (typeof h.toast === 'function' ? h.toast(effect, pad) : h.toast) : pad.label + '!');
-    G.hud.toast(text);
+    if (!reveal) G.hud.toast(text);              // a reveal shows its own title card
     G.audio.play(pad.big && (!h || h.sound !== 'hire') ? 'bigUnlock' : (h && h.sound) || 'unlock');
     const p = { x: pad.pos.x, y: 0.2, z: pad.pos.z };
     G.fx.confetti(p, pad.big ? 110 : 60);
@@ -21,7 +21,7 @@ export function createLevel(G) {
     // glide the camera to a far-away new thing
     let f = pad.focus || (h && h.focus ? h.focus(G, effect, pad) : null);
     if (!f) f = pad.pos;
-    if (pad.big && G.player && G.view && Math.hypot(f.x - G.player.pos.x, f.z - G.player.pos.z) > 10) G.view.glideTo(f.x, f.z, 1.6);
+    if (!reveal && pad.big && G.player && G.view && Math.hypot(f.x - G.player.pos.x, f.z - G.player.pos.z) > 10) G.view.glideTo(f.x, f.z, 1.6);
     G.saveNow();
   });
 

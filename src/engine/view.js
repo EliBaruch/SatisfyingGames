@@ -29,6 +29,7 @@ export function createView(canvas, camDef) {
   const camera = persp ? new THREE.PerspectiveCamera(camDef.fov || 30, 1, 1, 400) : new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
   const cam = { ...CAMERA };
   const Z = { cur: 1, from: 1, to: 1, t: 0, dur: 0 };   // zoom factor on the view size
+  const C = { on: false, x: 0, z: 0, mul: 1, to: 1 };    // cinematic focus (engine/reveal.js): a point instead of the player, and a zoom factor
   const DIR = new THREE.Vector3();
   let fog = null;
 
@@ -42,7 +43,7 @@ export function createView(canvas, camDef) {
   /** camera projection for the current window size and zoom (no canvas resize) */
   function applyProjection() {
     const aspect = (window.innerWidth || 1) / (window.innerHeight || 1);
-    const view = (aspect < 1 ? cam.viewPortrait : cam.viewLandscape) * Z.cur;
+    const view = (aspect < 1 ? cam.viewPortrait : cam.viewLandscape) * Z.cur * C.mul;
     if (persp) {
       // keep `view` world units visible vertically at the focus point: move the camera along its offset direction
       const dist = (view / 2) / Math.tan((camera.fov * Math.PI) / 360);
@@ -79,8 +80,10 @@ export function createView(canvas, camDef) {
       if (u >= 1) Z.dur = 0;
       applyProjection();
     }
+    if (Math.abs(C.to - C.mul) > 0.0005) { C.mul += (C.to - C.mul) * (1 - Math.exp(-3.2 * realDt)); applyProjection(); }
     const pl = G && G.player;
     if (pl) camTarget.set(pl.pos.x, 0, pl.pos.z);
+    if (C.on) camTarget.set(C.x, 0, C.z);
     if (glide.dur > 0) {
       glide.t += realDt;
       const u = glide.t / glide.dur;
@@ -92,7 +95,7 @@ export function createView(canvas, camDef) {
         camTarget.z += (glide.z - camTarget.z) * e;
       }
     }
-    const k = 1 - Math.exp(-(glide.dur > 0 ? 4 : cam.lerp) * realDt);
+    const k = 1 - Math.exp(-(C.on ? 7 : glide.dur > 0 ? 4 : cam.lerp) * realDt);
     focus.x += (camTarget.x - focus.x) * k;
     focus.z += (camTarget.z - focus.z) * k;
     const sh = G && G.fx && G.fx.shakeOffset;
@@ -147,6 +150,10 @@ export function createView(canvas, camDef) {
       if (dur > 0) { Z.from = Z.cur; Z.to = z; Z.t = 0; Z.dur = dur; } else { Z.cur = Z.from = Z.to = z; Z.dur = 0; applyProjection(); }
     },
     get zoom() { return Z.cur; },
+    /** cinematic: look at (x, z) instead of the player, with `zoom` as a factor on the current zoom; setCine(null) hands the camera back */
+    setCine(p, zoom = 1) { if (p) { C.on = true; C.x = p.x; C.z = p.z; C.to = zoom > 0 ? zoom : 1; } else { C.on = false; C.to = 1; } },
+    /** the point the camera is looking at right now */
+    get focus() { return focus; },
     /** world units visible vertically at the focus point right now */
     get viewSize() { const a = (window.innerWidth || 1) / (window.innerHeight || 1); return (a < 1 ? cam.viewPortrait : cam.viewLandscape) * Z.cur; },
     resize,
@@ -154,7 +161,7 @@ export function createView(canvas, camDef) {
       updateCamera(realDt);
       if (G) {
         const pl = G.player;
-        if (G.lights && pl) G.lights.follow(pl.pos.x, pl.pos.z);
+        if (G.lights && pl) { if (C.on) G.lights.follow(focus.x, focus.z); else G.lights.follow(pl.pos.x, pl.pos.z); }
         if (G.blobs) G.blobs.update();
       }
       renderer.render(scene, camera);

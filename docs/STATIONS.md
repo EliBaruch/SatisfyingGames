@@ -360,6 +360,9 @@ otherwise the front item waits and the rest queue up behind it, so a jam is visi
 rubber surface (`placeholder: false` to draw your own). Readable: `running`, `count`, `capacity`, `fill`, `delivered`,
 `pointAt(s, out)`. Items on a belt cast no shadow-map shadow. **Save:** `{ items: [kind, ...] }`, front first.
 
+`belt.build.set(d)` shows the body only up to distance `d` from the start (`d >= build.length`: all of it). A reveal
+uses it to lay the belt down along its line while the camera pans (`{ belt: '<id>' }` shot, see docs/ENGINE.md).
+
 ### `line` and `lot`: a vehicle assembly line and its parking lot
 
 ```js

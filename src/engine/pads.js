@@ -270,7 +270,7 @@ export function createPads(G) {
       visibleList.push(p);
       if (!views.has(p.id)) {
         const v = makeView(p, live);
-        if (live && G.fx && G.fx.popIn) G.fx.popIn(v.group, { dur: 0.55, delay: 0.25 + k * 0.15 });
+        if (live && G.fx && G.fx.popIn) { const o = G.fx.owner; G.fx.owner = 'pads'; G.fx.popIn(v.group, { dur: 0.55, delay: 0.25 + k * 0.15 }); G.fx.owner = o; }
         k++;
       }
     }
@@ -312,12 +312,16 @@ export function createPads(G) {
     delete S.paid[pad.id];
     v.removing = 0;
     v.fill.scale.z = PAD.size * (1 - FILL_INSET * 2);
+    // a pad with `reveal` gets a short cinematic: everything it brings in is collected here and
+    // shown when the camera gets there (engine/reveal.js)
+    const cine = !!(pad.reveal && G.reveal && G.reveal.begin(pad));
     if (G.refresh) G.refresh(true);              // stats + stations + workers + player
     refresh(true);
-    G.events.emit('unlock', { pad, effect: pad.effect });
+    G.events.emit('unlock', { pad, effect: pad.effect, reveal: cine });
     const hooks = doneHooks.get(pad.id);
     if (hooks) for (const fn of hooks) { try { fn(true); } catch (err) { console.error(err); } }
     if (h && h.apply) h.apply(G, pad.effect, pad);
+    if (cine) G.reveal.start(pad);
   }
 
   function update(dt) {

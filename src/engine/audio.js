@@ -12,7 +12,7 @@ const COMBO_MAX_DEGREE = 10; // two octaves, then hold
 const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
   egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
-  press: 0.3, weld: 0.2, servo: 0.3, car: 0.5 };
+  press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -179,6 +179,17 @@ const SOUNDS = {
       tone(k, { type: 'triangle', f0: 95, f1: 70, t: i * 0.09, dur: 0.07, vol: 0.1, atk: 0.01, filter: 260, q: 1 });
     }
     noise(k, { type: 'lowpass', f0: 260, dur: 0.18, vol: 0.03, atk: 0.02 });
+  },
+  // a piece of belt or machinery dropping into place (reveals)
+  build(k) {
+    tone(k, { type: 'triangle', f0: 520, f1: 300, dur: 0.05, vol: 0.13, atk: 0.002, filter: 1800 });
+    tone(k, { type: 'sine', f0: 150, f1: 90, dur: 0.07, vol: 0.2, atk: 0.003 });
+    noise(k, { type: 'bandpass', f0: 3200, dur: 0.02, vol: 0.05, q: 2, atk: 0.002 });
+  },
+  // the camera sweeping off to something new
+  whoosh(k) {
+    noise(k, { type: 'bandpass', f0: 300, f1: 2400, dur: 0.5, vol: 0.1, q: 0.8, atk: 0.12 });
+    tone(k, { type: 'sine', f0: 180, f1: 420, dur: 0.45, vol: 0.06, atk: 0.1 });
   },
   crate(k) {
     tone(k, { type: 'sine', f0: 170, f1: 80, dur: 0.11, vol: 0.3, atk: 0.004 });

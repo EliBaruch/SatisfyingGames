@@ -638,7 +638,11 @@ export function createScene(G) {
     arms.push(a);
     return a;
   }
-  const showArm = (a, live, delay = 0) => { a.on = true; a.grow = live ? -delay * 2.2 : 1; };
+  // live: through G.fx.defer, so an arm that arrives with a reveal grows in when the camera is on it
+  const showArm = (a, live, delay = 0) => {
+    const go = () => { a.on = true; a.grow = live ? -delay * 2.2 : 1; };
+    if (live && G.fx && G.fx.defer) G.fx.defer(go); else go();
+  };
   // loader arm at the auto line's shipping bay: swings toward the truck while one is loading
   const vendorsAt = (id) => (G.workers ? G.workers.list.filter((w) => w.role === 'vendor' && w.hire && w.hire.from === id) : []);
   {
@@ -804,19 +808,23 @@ export function createScene(G) {
   function setStage(n, live) {
     n = Math.max(1, Math.min(5, n | 0));
     if (n === cur) return;
-    for (let s = 1; s <= n; s++) {
-      const st = stage[s];
-      if (!st.group.visible) {
-        st.group.visible = true;
-        if (live) st.decor.forEach((o, i) => popIn(o, 0.25 + i * 0.12));
+    // what becomes visible: at once, or (bought with a reveal) when the camera has reached the new hall
+    const showIt = () => {
+      for (let s = 1; s <= n; s++) {
+        const st = stage[s];
+        if (!st.group.visible) {
+          st.group.visible = true;
+          if (live) st.decor.forEach((o, i) => popIn(o, 0.25 + i * 0.12));
+        }
       }
-    }
-    const wi = Math.min(4, n);
-    for (let s = 1; s <= 4; s++) {
-      const on = s === wi;
-      if (on && !wallSets[s].visible && live) popIn(wallSets[s], 0.1);
-      wallSets[s].visible = on;
-    }
+      const wi = Math.min(4, n);
+      for (let s = 1; s <= 4; s++) {
+        const on = s === wi;
+        if (on && !wallSets[s].visible && live) popIn(wallSets[s], 0.1);
+        wallSets[s].visible = on;
+      }
+    };
+    if (live && G.fx && G.fx.defer) G.fx.defer(showIt); else showIt();
     Object.assign(G.world.bounds, LAY.bounds[n]);
     if (G.view && G.view.setZoom) G.view.setZoom(LAY.zoom[n], live ? 2.4 : 0);
     cur = n;

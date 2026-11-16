@@ -62,6 +62,45 @@ const S2 = [[1.5, 9.0], [4.6, 9.0], [12.4, 8.6]];
 const S3 = [[18.6, 0], [22.2, 0], [25.8, 0], [29.4, 0]];
 const S4 = [[18, 24.6], [21.6, 24.6], [25.2, 24.6], [28.8, 24.6]];
 
+// The big purchases get a reveal (engine/reveal.js): play stops, the camera goes to the new thing
+// and it builds in while the player watches. Belts are laid down along their line.
+const REVEAL = {
+  workshop: { sub: 'More room, a second cell maker and a second bench', zoom: 0.95,
+    shots: [{ at: [6, 14], show: ['scene'], hold: 0.9 }, { at: [1.5, 13], show: ['cellmaker2'], hold: 0.5 }, { at: [10.6, 13], show: ['bench2'], hold: 0.7 }] },
+  autoline: { sub: 'Machines and belts build the packs on their own', zoom: 0.8,
+    shots: [
+      { at: [25, 9], show: ['scene'], hold: 0.7, zoom: 1 },
+      { at: [17.6, 16.5], show: ['oredock', 'solid3'], hold: 0.3, zoom: 0.72 },
+      { belt: 'belt-a', dur: 0.7, show: ['cell3'], hold: 0.4 },
+      { belt: 'belt-b', dur: 0.7, show: ['packer3'], hold: 0.4 },
+      { belt: 'belt-c', dur: 2.2, show: ['ship2', 'cash2'], hold: 0.6 },
+      { at: [24.5, 15.5], hold: 0, zoom: 0.85 },                  // back to the machines to watch them start
+    ], run: 2.4 },
+  carhall: { sub: 'Steel, panels, wheels and battery packs become cars', zoom: 0.7,
+    shots: [
+      { at: [17, 29], show: ['scene'], hold: 0.9, zoom: 1 },
+      { at: [9.5, 34], show: ['steeldock', 'press', 'solid4'], hold: 0.5, zoom: 0.62 },
+      { at: [2.5, 27], show: ['wheeldock'], hold: 0.4 },
+      { at: [17, 30], show: ['line1'], hold: 0.9, zoom: 0.9 },
+      { at: [41, 28], show: ['lot1', 'cash3'], hold: 0.8, zoom: 0.9 },
+    ], run: 0.5 },
+  // the belt is laid from the shipping bay to the car line, then the camera goes back to see the packs get on
+  packbelt: { sub: 'Battery packs now ride from shipping to the car line', zoom: 0.76, run: 2.2,
+    shots: [{ at: [33.5, -4.6], hold: 0.35 }, { belt: 'belt-p', dur: 4.6, hold: 0.5 }, { at: [34.2, -3], hold: 0, move: 1.0, zoom: 0.55 }] },
+  auto: { sub: 'Stage 5: time to automate the whole plant', zoom: 1.15, shots: [{ at: [17, 16], show: '*', hold: 1.9 }], run: 0.6 },
+  welders: { sub: 'Robot arms weld and fit every car', zoom: 0.78, shots: [{ at: [19, 30], show: '*', hold: 1.6 }], run: 1.8 },
+  paint: { sub: 'Every car leaves in fresh colour', zoom: 0.62, shots: [{ at: [15, 30], show: '*', hold: 1.3 }], run: 1.8 },
+  autoline2: { sub: 'A second line doubles the battery packs', zoom: 0.55,
+    shots: [
+      { at: [17.6, 8.2], show: ['oredock2', 'solid5'], hold: 0.4 },
+      { belt: 'belt-a2', dur: 0.7, show: ['cell4'], hold: 0.4 },
+      { belt: 'belt-b2', dur: 0.7, show: ['packer4'], hold: 0.4 },
+      { belt: 'belt-c2', dur: 1.8, hold: 0.5 },
+      { at: [24.5, 9], hold: 0, zoom: 0.7 },
+    ], run: 2.4 },
+  solar: { sub: 'The roof now powers the plant', zoom: 1.05, shots: [{ at: [17, 36], show: '*', hold: 1.7 }], run: 0.8 },
+};
+
 // the chain: [id, label, cost, spot, effect, extra]; each pad requires the one before it.
 // The order follows the bottleneck: every pad lifts whatever is holding income back at that point.
 const VAN = { capacity: 12, every: 1, first: 1, kinds: ['pack'] };
@@ -75,7 +114,7 @@ const CHAIN = [
   ['helper3', 'HELPER', 510, S1[2], hire('hauler', ['bench'], ['ship'], { options: { look: 'helperC' } })],
   ['cells1', 'FAST CELLS', 580, S1[0], stat('cellSpeed', { mul: 1.6 })],
   ['price1', 'QUALITY +25%', 650, S1[1], stat('priceMult', { mul: 1.25 })],
-  ['workshop', 'WORKSHOP', 1200, S1[2], multi({ type: 'stage', stage: 2 }, { type: 'open', stations: ['cellmaker2', 'bench2'] }), { big: true, toast: 'WORKSHOP OPEN!', focus: { x: 6, z: 13 } }],
+  ['workshop', 'WORKSHOP', 1200, S1[2], multi({ type: 'stage', stage: 2 }, { type: 'open', stations: ['cellmaker2', 'bench2'] }), { big: true, toast: 'WORKSHOP OPEN!', focus: { x: 6, z: 13 }, reveal: REVEAL.workshop }],
   // ---- stage 2: the workshop
   ['van2', 'SECOND VAN', 540, S2[0], hire('vendor', 'ship', 'cash', { options: { ...VAN, model: makeVan, path: road(7.4) } })],
   ['helper4', 'HELPER', 650, S2[1], hire('hauler', ['yard'], ['cellmaker2', 'cellmaker'])],
@@ -92,7 +131,7 @@ const CHAIN = [
   ['autoline', 'AUTO LINE', 4700, S2[1], multi({ type: 'stage', stage: 3 },
     { type: 'open', stations: ['oredock', 'belt-a', 'cell3', 'belt-b', 'packer3', 'belt-c', 'ship2', 'cash2', 'solid3'] },
     hire('vendor', 'ship2', 'cash2', { options: { ...VAN, first: 6, model: makeDelivery, path: road(34.0) } })),
-    { big: true, toast: 'FIRST ASSEMBLY LINE!', focus: { x: 24, z: 12 } }],
+    { big: true, toast: 'FIRST ASSEMBLY LINE!', focus: { x: 24, z: 12 }, reveal: REVEAL.autoline }],
   // ---- stage 3: the auto line
   ['auto1', 'TURBO LINE', 2800, S3[0], stat('autoSpeed', { mul: 1.6 })],
   ['ore1', 'MORE ORE', 3400, S3[1], stat('oreRate', { mul: 1.6 })],
@@ -103,28 +142,28 @@ const CHAIN = [
   ['price3', 'PREMIUM +35%', 6700, S3[2], stat('priceMult', { mul: 1.35 })],
   ['carhall', 'CAR HALL', 12000, S3[3], multi({ type: 'stage', stage: 4 },
     { type: 'open', stations: ['steeldock', 'press', 'wheeldock', 'line1', 'lot1', 'cash3', 'solid4'] }),
-    { big: true, toast: 'CAR HALL OPEN!', focus: { x: 12, z: 30 } }],
+    { big: true, toast: 'CAR HALL OPEN!', focus: { x: 12, z: 30 }, reveal: REVEAL.carhall }],
   // ---- stage 4: cars
   ['crew2', 'PRESS CREW', 5400, S4[0], multi(hire('hauler', ['steeldock'], ['press'], { options: { look: 'helperB' } }),
     hire('operator', null, 'press', { spot: { x: 7.5, z: 32.6 }, options: { look: 'operator' } })), { toast: 'PRESS CREW HIRED!' }],
   ['crew3', 'PANEL CREW', 5800, S4[1], hire('hauler', ['press'], ['line1'], { options: { look: 'helperC' } }), { toast: 'PANEL CREW HIRED!' }],
   ['crew4', 'WHEEL CREW', 8300, S4[2], hire('hauler', ['wheeldock'], ['line1']), { toast: 'WHEEL CREW HIRED!' }],
-  ['packbelt', 'PACK BELT', 9900, S4[3], { type: 'open', stations: ['belt-p'] }, { big: true, toast: 'OVERHEAD PACK BELT!', focus: { x: 6, z: 32 } }],
+  ['packbelt', 'PACK BELT', 9900, S4[3], { type: 'open', stations: ['belt-p'] }, { big: true, toast: 'OVERHEAD PACK BELT!', focus: { x: 6, z: 32 }, reveal: REVEAL.packbelt }],
   ['line1', 'FASTER LINE', 15000, S4[0], stat('lineSpeed', { mul: 1.4 })],
   ['press1', 'FAST PRESS', 24000, S4[1], stat('pressSpeed', { mul: 1.6 })],
   ['dealers', 'DEALERS', 28000, S4[2], stat('carDemand', { mul: 1.6 })],
   ['price4', 'LUXURY +40%', 31000, S4[3], stat('priceMult', { mul: 1.4 })],
-  ['auto', 'AUTOMATION', 65000, S4[1], { type: 'stage', stage: 5 }, { big: true, toast: 'ROBOTS ARRIVE!', focus: { x: 18, z: 30 } }],
+  ['auto', 'AUTOMATION', 65000, S4[1], { type: 'stage', stage: 5 }, { big: true, toast: 'ROBOTS ARRIVE!', focus: { x: 18, z: 30 }, reveal: REVEAL.auto }],
   // ---- stage 5: automation
   ['agv1', 'AGV', 26000, S4[0], hire('hauler', ['press', 'wheeldock'], ['line1'], { options: { look: 'agv', speed: 7.5, capacity: 24 } }), { toast: 'AGV ONLINE!' }],
-  ['welders', 'ROBOT WELDERS', 30000, S4[2], stat('lineSpeed', { mul: 1.5 }), { big: true, toast: 'ROBOT WELDERS!', focus: { x: 12, z: 30 } }],
+  ['welders', 'ROBOT WELDERS', 30000, S4[2], stat('lineSpeed', { mul: 1.5 }), { big: true, toast: 'ROBOT WELDERS!', focus: { x: 12, z: 30 }, reveal: REVEAL.welders }],
   ['agv2', 'AGV', 40000, S4[3], hire('hauler', ['steeldock'], ['press'], { options: { look: 'agv', speed: 7.5, capacity: 24 } }), { toast: 'AGV ONLINE!' }],
   ['press2', 'MEGA PRESS', 46000, S4[0], multi(stat('pressSpeed', { mul: 1.6 }), stat('steelRate', { mul: 1.8 }), stat('wheelRate', { mul: 1.8 }))],
-  ['paint', 'PAINT SHOP', 52000, S4[1], stat('priceMult', { mul: 1.4 }), { big: true, toast: 'PAINT SHOP!', focus: { x: 15, z: 30 } }],
+  ['paint', 'PAINT SHOP', 52000, S4[1], stat('priceMult', { mul: 1.4 }), { big: true, toast: 'PAINT SHOP!', focus: { x: 15, z: 30 }, reveal: REVEAL.paint }],
   ['carriers', 'CAR CARRIERS', 76000, S4[2], stat('carDemand', { mul: 2 })],
   ['line2', 'HYPER LINE', 80000, S4[3], multi(stat('lineSpeed', { mul: 1.5 }), hire('hauler', ['press', 'wheeldock', 'steeldock'], ['line1', 'press'], { options: { look: 'agv', speed: 7.5, capacity: 24 } }))],
-  ['autoline2', 'AUTO LINE 2', 110000, S4[0], { type: 'open', stations: ['oredock2', 'belt-a2', 'cell4', 'belt-b2', 'packer4', 'belt-c2', 'solid5'] }, { big: true, toast: 'SECOND AUTO LINE!', focus: { x: 25, z: 8 } }],
-  ['solar', 'SOLAR ROOF', 120000, S4[1], stat('priceMult', { mul: 1.3 }), { big: true, toast: 'SOLAR ROOF!', focus: { x: 17, z: 30 } }],
+  ['autoline2', 'AUTO LINE 2', 110000, S4[0], { type: 'open', stations: ['oredock2', 'belt-a2', 'cell4', 'belt-b2', 'packer4', 'belt-c2', 'solid5'] }, { big: true, toast: 'SECOND AUTO LINE!', focus: { x: 25, z: 8 }, reveal: REVEAL.autoline2 }],
+  ['solar', 'SOLAR ROOF', 120000, S4[1], stat('priceMult', { mul: 1.3 }), { big: true, toast: 'SOLAR ROOF!', focus: { x: 17, z: 30 }, reveal: REVEAL.solar }],
   ['giga', 'GIGAFACTORY', 270000, S4[2], { type: 'win' }, { big: true, toast: 'GIGAFACTORY!' }],
 ];
 const pads = CHAIN.map(([id, label, cost, at, effect, extra], i) => pad(id, label, cost, at, i ? [CHAIN[i - 1][0]] : [], effect, extra));

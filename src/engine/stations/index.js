@@ -47,12 +47,15 @@ export function createStations(G) {
 
   function open(st, live) {
     if (st.active) return;
+    const fx = G.fx, prev = fx ? fx.owner : null;
+    if (fx) fx.owner = st.id;          // what pops in now belongs to this station (see engine/reveal.js)
     try { st.activate(live); } catch (err) { console.error(`[stations] activating '${st.id}' failed:`, err); }
     st.active = true;
     activationOrder.push(st.id);
     G.events.emit('open', { station: st, live });
     const hooks = openHooks.get(st.id);
     if (hooks) for (const fn of hooks) { try { fn(live); } catch (err) { console.error(err); } }
+    if (fx) fx.owner = prev;
   }
 
   /** Activate every station G.stats.open names (called at boot and after purchases). */
