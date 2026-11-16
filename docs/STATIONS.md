@@ -398,7 +398,52 @@ hue and replaced per colour. **Save:** line `{ in, cars: [[u, model, colour, sta
 plays the `'work'` pose while the station is `running`. Decorative, like the cashier: pair it with a stat boost in
 one `multi` pad.
 
+### `herd`: creatures to hunt (the frost world)
+
+`modules: ['../../engine/stations/herd.js']`.
+
+```js
+{ id: 'tuskers', type: 'herd', name: 'Meat', item: 'meat', open: false,
+  area: { minX, maxX, minZ, maxZ },    // where they roam; also the harvest bounds
+  count: 10, hp: 3, drops: 3,          // alive at once; hits to bring one down at damage 1; items dropped
+  radius: 0.62,                        // body radius: a hit lands within reach + radius
+  damageStat: 'damage', swingTime: 0.32,
+  speed: 1.2, chase: 2.4, aggro: 6.5,  // wander speed; speed toward the player within `aggro` (0 = never)
+  regrowStat: 'herdRegrow', regrowJitter: 2.5,   // seconds until a fallen creature is replaced
+  spawn: [{ x, z }, ...],              // where replacements walk in from (default: a random edge)
+  model: () => BufferGeometry,         // faces +Z, origin on the ground; one instanced mesh for the herd
+  height: 1.25, scale: [0.9, 1.1], burst: [colours], home: { x, z } }
+```
+
+It is a **harvest area**, so the player, haulers, the hints and the test bot hunt it the way they pick a
+field: `nearest()` is the closest living creature, `available` the number alive. The difference is that
+creatures have health. Every `harvestAt()` call takes `G.stats[damageStat] x STEP / swingTime` from each
+creature in reach, so damage is continuous and any number of callers share a herd without timers. When
+one falls it drops up to `drops` items through the usual `onItem` callback (fewer if the caller's stack
+has less room). A struck creature flashes, is knocked back and shows a health bar. `data.hit` is set on
+the caller's data object when something was struck; the player uses it to keep swinging between kills.
+
+Readable: `alive`, `creatures.nearest(x, z, range) -> index | -1`, `creatures.pos(i, out)`,
+`creatures.alive(i)`, `creatures.strike(i, damage, max, onItem, data)` (for ranged roles). Event
+`'herd:kill' { station, stationId, x, z }` (payload reused). Nothing is saved: a reload brings a full herd.
+
+Player reach can be an upgrade: put `harvestRadius` in `world.stats` and raise it with a `stat` pad;
+the player reads `G.stats.harvestRadius` before `world.player.harvestRadius`.
+
+### `turret` role
+
+`modules: ['../../engine/workers/turret.js']`.
+`{ type: 'hire', role: 'turret', from: '<herd>', to: '<pile or drop station>', spot: { x, z }, options }`.
+A tower at `spot` shoots the nearest living creature of the herd within `range` every `every` seconds for
+`damage`; what falls flies to the `to` station's `receive` (a pile) or `drop`, counted there while in
+flight. It holds fire while `to` is full. Options (`world.workers.turret` < `effect.options`): `every`,
+`range`, `damage`, `damageStat`, `bolt` (colour), `model: () => Object3D` (`userData.head` turns to the
+target, `userData.muzzle` is where the shot leaves, in the head's frame).
+
 ### Smaller additions
+
+- `source`: `grid.jitter` moves every cell up to that far from its grid point (the same way on every load),
+  so a grid reads as a scattered grove.
 
 - `converter`: `manual: false` for a machine that is fed only by a belt or another machine: it has no drop zone
   (the player, haulers, hints and the bot ignore it) and exposes its input as `receive` instead.

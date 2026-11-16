@@ -298,8 +298,15 @@ const FACTORY_CHORDS = [
   { root: 43, notes: [55, 59, 62] },      // G
 ];
 const FACTORY_ARP = [69, 72, 76, 79, 81, 84];
-export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory'];
-export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4 };
+const FROST_CHORDS = [
+  { root: 38, notes: [57, 62, 65] },      // Dm
+  { root: 46, notes: [58, 62, 65] },      // Bb
+  { root: 41, notes: [57, 60, 65] },      // F
+  { root: 36, notes: [55, 60, 64] },      // C
+];
+const FROST_BELLS = [74, 77, 81, 84, 86, 89];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4 };
 
 /** Factory: a steady 120 bpm machine groove: soft kick, off-beat tick, pumping bass, a bright arpeggio. */
 function factoryBar(k, t, chordIdx, rnd) {
@@ -318,6 +325,32 @@ function factoryBar(k, t, chordIdx, rnd) {
     const tt = step * B * 0.5;
     tone(k, { type: 'triangle', f0: midi(FACTORY_ARP[idx]), t: tt, dur: 0.16, vol: 0.016, atk: 0.004, filter: 2600 });
     tone(k, { type: 'sine', f0: midi(FACTORY_ARP[idx] + 12), t: tt, dur: 0.08, vol: 0.004, atk: 0.004 });
+  }
+}
+
+/** Frost: a slow winter march: a low drum on one and three, a soft pad, glassy bells high above. */
+function frostBar(k, t, chordIdx, rnd) {
+  const B = 0.7;
+  const c = FROST_CHORDS[chordIdx % 4];
+  for (const n of c.notes) {
+    tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.5, vol: 0.013, atk: 0.8 });
+    tone(k, { type: 'triangle', f0: midi(n - 12), dur: B * 4 + 0.3, vol: 0.006, atk: 0.9, filter: 700 });
+  }
+  for (const b of [0, 2]) {
+    tone(k, { type: 'sine', f0: 78, f1: 46, t: b * B, dur: 0.24, vol: 0.05, atk: 0.005 });                                  // drum
+    tone(k, { type: 'triangle', f0: midi(c.root), t: b * B, dur: 0.5, vol: 0.03, atk: 0.01, filter: 520 });
+  }
+  noise(k, { type: 'highpass', f0: 5200, t: B, dur: 0.05, vol: 0.008, q: 0.5, atk: 0.003 });
+  noise(k, { type: 'highpass', f0: 5200, t: B * 3, dur: 0.05, vol: 0.008, q: 0.5, atk: 0.003 });
+  let last = -1;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > (step % 2 === 0 ? 0.55 : 0.3)) continue;
+    let idx = (rnd() * FROST_BELLS.length) | 0;
+    if (idx === last) idx = (idx + 2) % FROST_BELLS.length;
+    last = idx;
+    const tt = step * B * 0.5;
+    tone(k, { type: 'sine', f0: midi(FROST_BELLS[idx]), t: tt, dur: 0.7, vol: 0.013, atk: 0.004 });
+    tone(k, { type: 'sine', f0: midi(FROST_BELLS[idx] + 12), t: tt, dur: 0.35, vol: 0.004, atk: 0.004 });
   }
 }
 
@@ -371,6 +404,7 @@ export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world
   if (world === 'chicken') { chickenBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'factory') { factoryBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'frost') { frostBar(k, t, chordIdx, rnd); return k.end; }
   const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {
     tone(k, { type: 'sine', f0: midi(n), dur: MUSIC_BAR + 0.7, vol: 0.022, atk: 0.9 });

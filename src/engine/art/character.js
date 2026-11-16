@@ -31,7 +31,7 @@ function fullId(m) {
 }
 
 /**
- * Looks. A look is { model, tool, scale }: model = one of MODELS, tool = null | 'scythe' | 'bucket' | 'basket',
+ * Looks. A look is { model, tool, scale }: model = one of MODELS, tool = null | 'scythe' | 'axe' | 'bucket' | 'basket',
  * scale = size multiplier (1 = 1.65 tall). Add your own: LOOKS.farmer = { model: 'male-e', tool: 'bucket' }.
  */
 export const LOOKS = {
@@ -82,6 +82,15 @@ function buildTool(kind) {
     bl.torus(0xeef3fb, R, 0.07, [0, -0.64 + R, 0], [0, 0, -Math.PI / 2 - 1.35], [1, 1, 0.42], 1.4, 6, 18);
     g.add(meshOf(bl));
     // blade tilt: blade end forward-down-inward, handle end back-up-outward
+    g.userData.aim = [0.12, -0.55, 0.83];
+  } else if (kind === 'axe') {
+    // a felling axe: grip at the origin, handle along Y, the head at the -Y end with its edge toward -X
+    b.cyl(0xb9793c, 0.04, 0.045, 1.0, [0, -0.12, 0], null, 10);
+    b.sph(0x8a5a2a, 0.06, [0, 0.4, 0], null, null, 10, 8);
+    b.rbox(0x6f7a8c, 0.2, 0.22, 0.1, 0.03, [-0.02, -0.56, 0]);
+    b.rbox(0xe6edf7, 0.2, 0.34, 0.06, 0.025, [-0.17, -0.56, 0]);
+    b.rbox(0xffffff, 0.05, 0.38, 0.035, 0.015, [-0.28, -0.56, 0]);
+    g.add(meshOf(b));
     g.userData.aim = [0.12, -0.55, 0.83];
   } else if (kind === 'bucket') {
     b.cyl(0xe8eef6, 0.2, 0.15, 0.26, [0, -0.2, 0.0], null, 20);

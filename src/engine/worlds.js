@@ -12,6 +12,7 @@ export const WORLDS = [
   { id: 'chicken', name: 'Chicken Farm', order: 2, unlockedBy: 'flower' },
   { id: 'grocery', name: 'Grocery Store', order: 3, unlockedBy: 'chicken' },
   { id: 'factory', name: 'Volt Works', order: 4, unlockedBy: 'grocery' },
+  { id: 'frost', name: 'Frostpine Camp', order: 5, unlockedBy: 'factory' },
 ];
 
 export function worldInfo(id) { return WORLDS.find((w) => w.id === id) || null; }

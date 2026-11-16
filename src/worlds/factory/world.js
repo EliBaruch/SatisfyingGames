@@ -167,7 +167,7 @@ const CHAIN = [
   ['giga', 'GIGAFACTORY', 270000, S4[2], { type: 'win' }, { big: true, toast: 'GIGAFACTORY!' }],
 ];
 const pads = CHAIN.map(([id, label, cost, at, effect, extra], i) => pad(id, label, cost, at, i ? [CHAIN[i - 1][0]] : [], effect, extra));
-pads.push(pad('travel', 'WORLD SELECT', 0, S4[1], ['giga'], { type: 'worlds' }, { priceText: 'GO' }));
+pads.push(pad('travel', 'NEXT WORLD', 0, S4[1], ['giga'], { type: 'travel', world: 'frost' }, { priceText: 'GO' }));
 
 const item = (id, name, value, geometry, D) => ({ id, name, value, geometry, step: D.step, footprint: { w: D.w, d: D.d }, material: itemGloss });
 
@@ -346,10 +346,10 @@ export default {
     drop: 'Bring it to {name}',
     cash: 'Grab your cash!',
     buy: 'Buy: {label}',
-    travel: 'Visit your other worlds!',
+    travel: 'Next: Frostpine Camp!',
   },
 
-  finale: { pad: 'giga', focus: { x: 17, z: 15, w: 34, d: 40 } },
+  finale: { pad: 'giga', focus: { x: 17, z: 15, w: 34, d: 40 }, next: 'frost' },
 
   // the test bot delivers what it carries before gathering more (production is a chain here)
   autoplay: { chain: true },

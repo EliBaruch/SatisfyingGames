@@ -23,7 +23,7 @@ src/engine/
   transfer.js                 flyToStack / flyToDrop / inZone: allocation-free item moves
   player.js                   movement + generic loop over station capabilities
   stations/index.js           G.stations (built-ins: source.js, shop.js; pile, converter, trough, shelf,
-                              checkout, cashpile: see docs/STATIONS.md)
+                              checkout, cashpile; opt-in: belt, carline, solid, herd: see docs/STATIONS.md)
   workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
   geom.js                     re-exports Parts / mergeParts / meshOf / getSharedMaterial from the art kit; geo, rng
@@ -127,6 +127,7 @@ Optional top-level keys used by the factory world (`src/worlds/factory/world.js`
 | `cars: { models, colors, scale, primer, max }` | the vehicle pool of the `line` / `lot` stations (docs/STATIONS.md). |
 | `autoplay: { chain: true }` | the test bot delivers what it carries before gathering more and feeds the newest stations first (worlds whose production is a chain). |
 | `player.perColumn` | items per column of the carried stack (the human rig carries one tall column in front: set it high). |
+| `stats.harvestRadius` | the player's reach as a stat (wins over `player.harvestRadius`), so a `stat` pad can raise it (the frost world's axes). |
 
 Rules: string ids everywhere; positions are `{x, z}` (pads may use `at: [x, z]`); a world starts
 with zero money; pads form a chain through `requires` (a pad shows once all of them are bought).
@@ -461,8 +462,8 @@ Characters: only through `src/engine/chars.js` (`makeCharacter(look)`, `animateC
 { moving, speed, carrying, action })`, `LOOKS`, `randomCustomerLook()`, `makeTractor()`, `lodCharacter(G, char)`,
 `onScreen(G, x, y, z)`, `addBlob(obj, r)`). They are the art kit's animated pack characters (docs/ART.md section 3):
 feet at the origin, faces +Z, ~1.65 tall; actions `'swing' | 'wave'` (`'pickup'` is ignored); `char.userData.hands.left /
-.right`, `.front`, `.back`, `.head` are anchors for held items. A look is `{ model, tool: null | 'scythe' | 'bucket' |
-'basket', scale, hat?: 'straw' | 'cap' }`, a `LOOKS` key, or a model name (`'female-b'`). `world.looks` overrides
+.right`, `.front`, `.back`, `.head` are anchors for held items. A look is `{ model, tool: null | 'scythe' | 'axe' | 'bucket' |
+'basket', scale, hat?: 'straw' | 'cap' | 'fur' }`, a `LOOKS` key, or a model name (`'female-b'`). `world.looks` overrides
 `LOOKS.player` / `hauler` / `cashier` (any extra key becomes a named look) and `looks.customers` (list of looks or
 model names) narrows the customer pool. `makeCharacter` attaches a blob shadow automatically. Skinned meshes are never
 frustum-culled: workers call `lodCharacter` (hidden + not animated outside the view), shop customers are hidden when
