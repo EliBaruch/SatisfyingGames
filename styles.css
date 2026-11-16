@@ -990,3 +990,10 @@ body.cine .thrill-glow { opacity: 0 !important; }
   .whatsnew { margin-top: 12px; }
   .start .tagline { display: none; }
 }
+
+/* landscape phones: the order card and the tip sit in the top-right corner, clear of the middle */
+@media (orientation: landscape) and (max-height: 560px) {
+  .thrill-order { position: absolute; top: 0; right: calc(env(safe-area-inset-right, 0px) + 14px); max-width: 44vw; }
+  .thrill-tip { position: absolute; top: 42px; right: calc(env(safe-area-inset-right, 0px) + 14px); max-width: 30vw; border-radius: 14px; text-align: right; }
+  .thrill-boosts { position: absolute; top: 4px; left: calc(env(safe-area-inset-left, 0px) + 14px); }
+}
