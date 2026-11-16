@@ -335,6 +335,74 @@ usually the vendor truck. The player collects it like any other pile. **Save:** 
 Like every pile made with `kit.createCashPile` (checkouts too), it draws at most 36 bill bundles and
 casts no shadow.
 
+## 6b. Opt-in station types and roles (the factory world)
+
+These are not imported by the engine. A world lists the files in `modules`:
+`['../../engine/stations/belt.js', '../../engine/stations/carline.js', '../../engine/stations/solid.js', '../../engine/workers/operator.js']`.
+
+### `belt`: a conveyor
+
+```js
+{ id: 'belt-b', type: 'belt', open: false,
+  path: [[26, 16.5], [28.8, 16.5]],   // centre line, start -> end (2+ points; corners allowed)
+  kinds: ['cell'],                    // what it may carry
+  to: 'packer3',                      // receiver: its `receive` (pile) or `drop` (machine input, shelf, line)
+  from: 'oredock',                    // optional: pull from this station's pickup. Without it the belt is fed
+                                      //   through its own `receive`: a converter with outputTo: '<this belt>'
+  speed: 2.6, speedStat: 'beltSpeed', gap: 0.5, interval: 0,
+  overhead: false, y: 0.62, width: 0.95, placeholder: true, blockers: true }
+```
+
+Items ride one behind the other (`gap` apart) and hand over at the end when the receiver has room for that kind;
+otherwise the front item waits and the rest queue up behind it, so a jam is visible. Capacity is
+`floor(length / gap) + 1`. A floor belt blocks the player along its body: route it along walls, or set
+`overhead: true` for a high belt on posts that the player walks under. It draws its own frame, legs and a running
+rubber surface (`placeholder: false` to draw your own). Readable: `running`, `count`, `capacity`, `fill`, `delivered`,
+`pointAt(s, out)`. **Save:** `{ items: [kind, ...] }`, front first.
+
+### `line` and `lot`: a vehicle assembly line and its parking lot
+
+```js
+// world.cars = { models: ['car-kit/sedan', 'car-kit/suv'], colors: [0xe4474f, ...], scale: 1.35, max: 40 }
+{ id: 'line1', type: 'line', open: false,
+  recipe: { in: { panel: 3, pack: 2, wheel: 4 }, time: 20 },   // parts per vehicle; seconds end to end
+  speedStat: 'lineSpeed', path: { from: { x, z }, to: { x, z } }, stages: 4,
+  show: { primer: 0, paint: 1, wheels: 3 },   // stage at which the body appears / is painted / gets wheels
+  inputCap: 3,                                // bay capacity in vehicles' worth of parts
+  dropZone: { x, z, r }, workerSpot, bay: { layout }, lot: 'lot1', label: 'PARTS' },
+{ id: 'lot1', type: 'lot', open: false, grid: { x0, z0, dx, dz, cols, rows, yaw } | slots: [{ x, z, yaw }],
+  exit: [{ x, z }, ...], cash: 'cash3', value: 700, sellEvery: 5, first: 3, rateStat: 'carDemand', speed: 7 },
+```
+
+Vehicles are never items: nobody carries one. The line takes parts through a normal drop zone (so the player,
+haulers, AGVs and belts can all feed it), consumes one recipe when a vehicle starts, and moves vehicles along the
+track; each reaches stage `k` at `(k + 0.5) / stages` with sparks, a sound and `'line:stage' { stationId, stage, x, z }`.
+At the end a vehicle drives to a free slot of the lot; with the lot full the line waits (`blocked`). The lot sells
+the longest-parked vehicle every `sellEvery / G.stats[rateStat]` seconds: it drives out along `exit` and
+`value x priceMult` is paid onto the `cash` station (`'sale'` event). All vehicles are drawn by one shared pool:
+one instanced mesh per model and paint colour, body and wheels separately, so a bare body in primer, a painted
+body and a finished car are the same model at three stages. The paint is found as the model's dominant saturated
+hue and replaced per colour. **Save:** line `{ in, cars: [[u, model, colour, stage]], made }`, lot `{ cars, t, sold }`.
+
+### `solid`: scenery that blocks the player
+
+`{ id, type: 'solid', open, blockers: [{ x, z, hx, hz } | { x, z, r }] }`. No capabilities: only blockers while open
+(a bin, a rack). Open it from the pad that reveals the scenery.
+
+### `operator` role
+
+`{ type: 'hire', role: 'operator', to: 'bench', spot: { x, z }, options: { look } }`: stands at the machine and
+plays the `'work'` pose while the station is `running`. Decorative, like the cashier: pair it with a stat boost in
+one `multi` pad.
+
+### Smaller additions
+
+- `pile`: `supply.rateStat: 'oreRate'` multiplies how fast deliveries come (a pad can raise it).
+- `source`: `stubAligned: true` keeps the stubs on the grid's orientation and size, so square stubs join into one
+  cleared surface (the scrap yard).
+- `hauler` with a vehicle look: `options: { look: 'agv' }` where `looks.agv = { make: makeAgv }` gives a rigid cart
+  instead of a character. It follows the same list-binding rules.
+
 ## 7. Hints
 
 Some changes to `engine/hints.js` let these stations drive the goal line. The rules, in order:

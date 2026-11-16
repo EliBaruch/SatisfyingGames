@@ -92,6 +92,14 @@ function buildHat(kind) {
 
 export function makeCharacter(look) {
   const L = resolveLook(look);
+  if (typeof L.make === 'function') {
+    // a look may bring its own body: a rigid vehicle doing a character's job (an AGV hauling).
+    // The Object3D carries userData.carry { offset, billboard, perColumn, columnGap, sway } for its load.
+    const o = L.make(L);
+    o.userData.look = L;
+    if (blobs) blobs.attach(o, o.userData.blob || 0.6);
+    return o;
+  }
   const c = art.makeCharacter(L);
   if (L.hat && c.userData.head) {
     const hat = buildHat(L.hat).clone();
@@ -115,10 +123,14 @@ export function charactersFor(world) {
   add(W.cashier && W.cashier.look, 'cashier');
   const looks = world.looks || {};
   for (const k of Object.keys(looks)) if (k !== 'customers') add(looks[k], k);
-  for (const p of world.pads || []) {
-    const o = p.effect && p.effect.options;
-    if (o && o.look) add(o.look);
-  }
+  const effLooks = (e) => {
+    if (!e) return;
+    if (e.options && e.options.look) add(e.options.look);
+    if (e.look) add(e.look);
+    for (const sub of e.effects || []) effLooks(sub);
+  };
+  for (const p of world.pads || []) effLooks(p.effect);
+  for (const h of world.hires || []) effLooks(h);
   const cust = looks.customers && looks.customers.length ? looks.customers : null;
   if (cust) for (const c of cust) add(c); else for (const m of DEFAULT_CUSTOMERS) names.add(m);
   return [...names];

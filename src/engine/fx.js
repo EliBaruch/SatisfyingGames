@@ -295,10 +295,12 @@ export function createFx(G) {
     s.material.map = e.tex;
     let h = e.tex.image.height * TEXT_UNITS_PER_PX * size;
     const cam = G.camera;
-    if (cam && cam.isOrthographicCamera && maxW > 0) {
-      const viewW = (cam.right - cam.left) / (cam.zoom || 1);
+    if (cam && maxW > 0) {
+      // widest allowed text: a fraction of the view width (perspective: the width at the camera's focus distance)
+      const viewW = cam.isOrthographicCamera ? (cam.right - cam.left) / (cam.zoom || 1)
+        : (G.view && G.view.viewSize ? G.view.viewSize * cam.aspect * 0.8 : 0);
       const limit = (viewW * maxW) / 1.15;
-      if (h * e.aspect > limit) h = limit / e.aspect;
+      if (viewW > 0 && h * e.aspect > limit) h = limit / e.aspect;
     }
     d.on = true; d.age = 0; d.life = Math.max(0.1, life);
     d.baseY = pos.y + 0.6; d.h = h; d.w = h * e.aspect; d.key = e.key;

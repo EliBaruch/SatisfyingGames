@@ -3,7 +3,7 @@
 // public contract (makeCharacter / animateCharacter / userData anchors), reached through
 // character.js, which sends a look whose model is one of these packs here.
 //
-//   look = { model: 'animatedmen/Male_Casual', scale: 1, colors: { Shirt: 0x2f6fd0, Pants: 0x2f6fd0 }, wide: 1.1 }
+//   look = { model: 'animatedmen/Male_Casual', scale: 1, colors: { Shirt: 0x2f6fd0, Pants: 0x2f6fd0 }, wide: 1.1, shadow: true }
 //
 // What is different from the mini characters:
 //   * about 7 heads tall, ~1.9 m at scale 1 (HUMAN_HEIGHT), slim. `look.wide` thickens the body a
@@ -131,7 +131,7 @@ export function makeHuman(look = {}) {
     const first = meshes[0];
     first.geometry = mergedGeometry(L.model, meshes, L.colors || null);
     first.material = humanMaterial();
-    first.castShadow = true; first.receiveShadow = false;
+    first.castShadow = L.shadow !== false; first.receiveShadow = false;   // look.shadow: false = blob shadow only (crowds)
     first.frustumCulled = false;
     for (let i = 1; i < meshes.length; i++) if (meshes[i].parent) meshes[i].parent.remove(meshes[i]);
   }

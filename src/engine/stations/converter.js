@@ -14,6 +14,8 @@
 //   machine: { w: 2.2, d: 1.8, h: 1.6, yaw: 0 },   // placeholder size (also the blocker)
 //   output: { capacity: 30, layout: {...}, zone: { x, z, r } , label },  // built-in output pile
 //   outputTo: 'stationId',        // instead: hand products to that station's receive / drop
+//   manual: true,                 // false: fed only by a belt or another machine: no drop zone for the
+//                                 //   player and haulers (the input is exposed as `receive` instead)
 //   placeholder: true, markers: true, labels: { input: 'EGGS', output: 'TAKE' },
 //   blockers: true | false | [...],
 // }
@@ -99,7 +101,8 @@ function createConverter(G, def) {
     body.add(bar);
   }
   const labels = def.labels || {};
-  const markers = def.markers === false ? [] : [zoneMarker(G, dropZone, labels.input || 'DROP')];
+  const manual = def.manual !== false;
+  const markers = def.markers === false || !manual ? [] : [zoneMarker(G, dropZone, labels.input || 'DROP')];
   if (outZone && def.markers !== false) markers.push(zoneMarker(G, outZone, labels.output || 'TAKE'));
 
   // blockers: the machine body
@@ -183,7 +186,7 @@ function createConverter(G, def) {
     input: inStore,
     output: outStore,
     machine: { x: mx, z: mz, w: M.w, d: M.d, h: M.h, yaw: M.yaw, mouth, spout },
-    drop: {
+    drop: manual ? {
       zone: dropZone,
       face: pos,
       workerSpot: ptOf(def.workerSpot, dropZone.x, dropZone.z),
@@ -191,7 +194,8 @@ function createConverter(G, def) {
       ...recv,
       /** 0..1 fill of the input bay (no `need`: a machine never drives the urgent-need hint) */
       get fill() { return (inStore.count + inStore.pending) / inputCap; },
-    },
+    } : null,
+    receive: manual ? undefined : recv,
     pickup: outStore ? pickupCap(outStore, outZone, { interval: O.interval, action: O.action, idleHint: O.idleHint }) : null,
     /** 0..1 progress of the running cycle */
     get progress() { return S.running ? Math.min(1, S.prog) : 0; },

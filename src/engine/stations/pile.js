@@ -10,6 +10,7 @@
 //   start: 12 | { milk: 4, bread: 4 },         // starting stock (first boot only; then the save)
 //   infinite: false,                           // true: never runs out (a silo); take() always succeeds
 //   supply: { every: 6, amount: 6, item | items | mix: { milk: 2, bread: 1 }, first: 1, stagger: 0.08 },
+//           rateStat: 'oreRate' (optional G.stats key multiplying how fast deliveries come)
 //   layout: { x, z, y, yaw, cols, rows, dx, dz, layerH, maxDrawn },   // default: centred on x, z
 //   pallet: true,                              // code-built pallet under the stock (placeholder)
 //   zone: { x, z, r: 1.6 },                    // pickup zone (default: in front of the stock)
@@ -96,7 +97,7 @@ export function createPile(G, def) {
       if (!station.active) return;
       if (supply && !store.infinite) {
         const every = supply.every ?? 6;
-        T.t += dt;
+        T.t += supply.rateStat ? dt * (G.stats[supply.rateStat] || 1) : dt;   // rateStat: a G.stats key that speeds deliveries up
         if (T.t >= every) {
           T.t -= every;
           if (T.t > every) T.t = 0;

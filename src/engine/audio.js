@@ -11,7 +11,8 @@ const PENTA = [0, 2, 4, 7, 9];
 const COMBO_MAX_DEGREE = 10; // two octaves, then hold
 const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
-  egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4 };
+  egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
+  press: 0.3, weld: 0.2, servo: 0.3, car: 0.5 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -220,6 +221,26 @@ const SOUNDS = {
   step(k) {
     noise(k, { type: 'lowpass', f0: 600, dur: 0.035, vol: 0.05, atk: 0.003 });
   },
+  // factory world
+  press(k) {     // a stamping press coming down
+    tone(k, { type: 'sine', f0: 120, f1: 38, dur: 0.22, vol: 0.4, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 420, dur: 0.09, vol: 0.14, atk: 0.002 });
+    tone(k, { type: 'triangle', f0: 1900, f1: 1500, t: 0.02, dur: 0.07, vol: 0.03 });
+  },
+  weld(k) {      // a short welding crackle
+    for (let i = 0; i < 4; i++) noise(k, { type: 'highpass', f0: 3800 + i * 500, t: i * 0.035, dur: 0.03, vol: 0.06, q: 0.7, atk: 0.002 });
+    tone(k, { type: 'sawtooth', f0: 220, f1: 180, dur: 0.16, vol: 0.03, filter: 900 });
+  },
+  servo(k) {     // a robot arm moving
+    tone(k, { type: 'triangle', f0: 320, f1: 620, dur: 0.14, vol: 0.05, atk: 0.02, filter: 1600 });
+    tone(k, { type: 'triangle', f0: 620, f1: 360, t: 0.14, dur: 0.12, vol: 0.04, atk: 0.01, filter: 1600 });
+  },
+  car(k) {       // a finished car rolling off: two-tone horn
+    tone(k, { type: 'triangle', f0: 392, dur: 0.14, vol: 0.12, atk: 0.01, filter: 2000 });
+    tone(k, { type: 'triangle', f0: 494, dur: 0.14, vol: 0.1, atk: 0.01, filter: 2000 });
+    tone(k, { type: 'triangle', f0: 392, t: 0.2, dur: 0.22, vol: 0.12, atk: 0.01, filter: 2000 });
+    tone(k, { type: 'triangle', f0: 494, t: 0.2, dur: 0.22, vol: 0.1, atk: 0.01, filter: 2000 });
+  },
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);
@@ -259,8 +280,35 @@ const GROCERY_CHORDS = [
   { root: 43, notes: [53, 59, 62, 65] },
 ];
 const GROCERY_MELODY = [72, 74, 76, 79, 81];
-export const WORLD_IDS = ['flower', 'chicken', 'grocery'];
-export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4 };
+const FACTORY_CHORDS = [
+  { root: 45, notes: [57, 60, 64] },      // Am
+  { root: 41, notes: [57, 60, 65] },      // F
+  { root: 48, notes: [55, 60, 64] },      // C
+  { root: 43, notes: [55, 59, 62] },      // G
+];
+const FACTORY_ARP = [69, 72, 76, 79, 81, 84];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4 };
+
+/** Factory: a steady 120 bpm machine groove: soft kick, off-beat tick, pumping bass, a bright arpeggio. */
+function factoryBar(k, t, chordIdx, rnd) {
+  const B = 0.5;
+  const c = FACTORY_CHORDS[chordIdx % 4];
+  for (const n of c.notes) tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.3, vol: 0.011, atk: 0.4 });
+  for (let b = 0; b < 4; b++) {
+    tone(k, { type: 'sine', f0: 92, f1: 44, t: b * B, dur: 0.16, vol: 0.05, atk: 0.004 });                                  // kick
+    noise(k, { type: 'highpass', f0: 7000, t: b * B + B * 0.5, dur: 0.03, vol: 0.012, q: 0.6, atk: 0.002 });                  // tick
+    tone(k, { type: 'triangle', f0: midi(c.root), t: b * B + B * 0.5, dur: 0.18, vol: 0.028, atk: 0.006, filter: 600 });     // off-beat bass
+  }
+  let idx = (rnd() * FACTORY_ARP.length) | 0;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > 0.72) continue;
+    idx = (idx + 1 + ((rnd() * 2) | 0)) % FACTORY_ARP.length;
+    const tt = step * B * 0.5;
+    tone(k, { type: 'triangle', f0: midi(FACTORY_ARP[idx]), t: tt, dur: 0.16, vol: 0.016, atk: 0.004, filter: 2600 });
+    tone(k, { type: 'sine', f0: midi(FACTORY_ARP[idx] + 12), t: tt, dur: 0.08, vol: 0.004, atk: 0.004 });
+  }
+}
 
 function chickenBar(k, t, chordIdx, rnd) {
   const B = 0.6;
@@ -311,6 +359,7 @@ export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world
   const k = { ctx, out, t, pitch: 1, volume: 1, end: t };
   if (world === 'chicken') { chickenBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'factory') { factoryBar(k, t, chordIdx, rnd); return k.end; }
   const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {
     tone(k, { type: 'sine', f0: midi(n), dur: MUSIC_BAR + 0.7, vol: 0.022, atk: 0.9 });

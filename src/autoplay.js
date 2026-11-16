@@ -90,11 +90,105 @@ export function startAutoplay(G) {
     return null;
   }
 
+  // ---- chain worlds have long rows of machines and belts: find the way on a grid (A*, 0.6 m cells)
+  const NAV = { cell: 0.6, w: 0, h: 0, x0: 0, z0: 0, blocked: null, n: -1, g: null, from: null, open: null, stamp: null, tick: 0, path: [], key: '', at: 0 };
+  function navBuild() {
+    const b = G.world.bounds, c = NAV.cell;
+    NAV.x0 = b.minX - 1; NAV.z0 = b.minZ - 1;
+    NAV.w = Math.ceil((b.maxX - b.minX + 2) / c); NAV.h = Math.ceil((b.maxZ - b.minZ + 2) / c);
+    const N = NAV.w * NAV.h;
+    NAV.blocked = new Uint8Array(N); NAV.g = new Float32Array(N); NAV.from = new Int32Array(N); NAV.stamp = new Int32Array(N);
+    const R = 0.62;   // player radius + a margin
+    for (let j = 0; j < NAV.h; j++) for (let i = 0; i < NAV.w; i++) {
+      const x = NAV.x0 + (i + 0.5) * c, z = NAV.z0 + (j + 0.5) * c;
+      let hit = x < b.minX || x > b.maxX || z < b.minZ || z > b.maxZ;
+      for (let s = 0; s < stations.length && !hit; s++) {
+        const st = stations[s];
+        if (!st.active || !st.blockers) continue;
+        for (const o of st.blockers) {
+          if (o.r !== undefined) { if (Math.hypot(x - o.x, z - o.z) < o.r + R) { hit = true; break; } }
+          else if (Math.abs(x - o.x) < o.hx + R && Math.abs(z - o.z) < o.hz + R) { hit = true; break; }
+        }
+      }
+      NAV.blocked[j * NAV.w + i] = hit ? 1 : 0;
+    }
+    NAV.n = G.stations.activationOrder.length;
+    NAV.bx = b.maxX; NAV.bz = b.maxZ;
+  }
+  const navCell = (x, z) => { const i = Math.max(0, Math.min(NAV.w - 1, Math.floor((x - NAV.x0) / NAV.cell))), j = Math.max(0, Math.min(NAV.h - 1, Math.floor((z - NAV.z0) / NAV.cell))); return j * NAV.w + i; };
+  function navFree(idx) {
+    // nearest free cell to idx (ring search)
+    if (!NAV.blocked[idx]) return idx;
+    const ci = idx % NAV.w, cj = (idx / NAV.w) | 0;
+    for (let r = 1; r < 14; r++) {
+      let best = -1, bd = Infinity;
+      for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+        if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
+        const i = ci + di, j = cj + dj;
+        if (i < 0 || j < 0 || i >= NAV.w || j >= NAV.h || NAV.blocked[j * NAV.w + i]) continue;
+        const d = di * di + dj * dj;
+        if (d < bd) { bd = d; best = j * NAV.w + i; }
+      }
+      if (best >= 0) return best;
+    }
+    return idx;
+  }
+  function navClear(ax, az, bx, bz) {
+    const d = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(d / (NAV.cell * 0.5)));
+    for (let k = 0; k <= n; k++) if (NAV.blocked[navCell(ax + (bx - ax) * k / n, az + (bz - az) * k / n)]) return false;
+    return true;
+  }
+  /** next point to walk to on the way to (tx, tz), or null to go straight */
+  function navNext(px, pz, tx, tz) {
+    const b = G.world.bounds;
+    if (NAV.n !== G.stations.activationOrder.length || NAV.bx !== b.maxX || NAV.bz !== b.maxZ) navBuild();
+    if (navClear(px, pz, tx, tz)) return null;
+    const key = Math.round(tx * 2) + ',' + Math.round(tz * 2);
+    if (key !== NAV.key || simT - NAV.at > 0.7 || !NAV.path.length) {
+      NAV.key = key; NAV.at = simT; NAV.path.length = 0;
+      const W = NAV.w, start = navFree(navCell(px, pz)), goal = navFree(navCell(tx, tz));
+      const tick = ++NAV.tick, open = [start];
+      NAV.g[start] = 0; NAV.from[start] = -1; NAV.stamp[start] = tick;
+      const gi = goal % W, gj = (goal / W) | 0;
+      const hOf = (c) => Math.hypot((c % W) - gi, ((c / W) | 0) - gj);
+      let found = false, guard = 20000;
+      while (open.length && guard-- > 0) {
+        let bi = 0, bf = Infinity;
+        for (let k = 0; k < open.length; k++) { const f = NAV.g[open[k]] + hOf(open[k]); if (f < bf) { bf = f; bi = k; } }
+        const cur = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+        if (cur === goal) { found = true; break; }
+        const ci = cur % W, cj = (cur / W) | 0;
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+          if (!di && !dj) continue;
+          const i = ci + di, j = cj + dj;
+          if (i < 0 || j < 0 || i >= W || j >= NAV.h) continue;
+          const nb = j * W + i;
+          if (NAV.blocked[nb]) continue;
+          if (di && dj && (NAV.blocked[cj * W + i] || NAV.blocked[j * W + ci])) continue;   // no corner cutting
+          const ng = NAV.g[cur] + (di && dj ? 1.414 : 1);
+          if (NAV.stamp[nb] === tick && ng >= NAV.g[nb]) continue;
+          const fresh = NAV.stamp[nb] !== tick;
+          NAV.g[nb] = ng; NAV.from[nb] = cur; NAV.stamp[nb] = tick;
+          if (fresh) open.push(nb); else if (open.indexOf(nb) < 0) open.push(nb);
+        }
+      }
+      if (found) for (let c = goal; c >= 0 && c !== start; c = NAV.from[c]) NAV.path.push(c);
+    }
+    // walk to the furthest path cell that is in a straight clear line from here
+    const P = NAV.path;
+    for (let k = 0; k < P.length; k++) {
+      const x = NAV.x0 + ((P[k] % NAV.w) + 0.5) * NAV.cell, z = NAV.z0 + (((P[k] / NAV.w) | 0) + 0.5) * NAV.cell;
+      if (navClear(px, pz, x, z)) return { x, z };
+    }
+    if (P.length) { const c = P[P.length - 1]; return { x: NAV.x0 + ((c % NAV.w) + 0.5) * NAV.cell, z: NAV.z0 + (((c / NAV.w) | 0) + 0.5) * NAV.cell }; }
+    return null;
+  }
+
   function walkInput(tx, tz, arrive) {
     const p = pl().pos;
     const fd = Math.hypot(tx - p.x, tz - p.z);
     if (fd < arrive) return { x: 0, y: 0, d: fd };
-    const wp = waypoint(p.x, p.z, tx, tz);
+    const wp = CHAIN ? navNext(p.x, p.z, tx, tz) : waypoint(p.x, p.z, tx, tz);
     let gx = tx, gz = tz, m0 = 1.5;
     if (wp) { gx = wp.x; gz = wp.z; m0 = 20; }
     const dx = gx - p.x, dz = gz - p.z;
@@ -150,7 +244,98 @@ export function startAutoplay(G) {
   let nextSample = SAMPLE_EVERY;
   let lastEarned = state.earned;
 
+  // ---- chained production (world.autoplay = { chain: true }): scrap -> cells -> packs -> ...
+  // Deliver what is carried before gathering more, and prefer picking up the most processed goods.
+  const CHAIN = !!(G.world.autoplay && G.world.autoplay.chain);
+  const roomOf = (d, kind) => (d.drop.roomFor ? d.drop.roomFor(kind) : d.drop.room());
+  // newer stations matter more: a station's priority is its place in the order the stations opened
+  const prio = (s) => { const i = G.stations.activationOrder.indexOf(s.id); return i < 0 ? 0 : i; };
+  const kindsCarried = () => { const seen = {}; const it = pl().stack.items; for (let i = 0; i < it.length; i++) seen[it[i]] = (seen[it[i]] || 0) + 1; return seen; };
+  /** how many carried items station d would take right now */
+  function deliverable(d, carriedKinds) {
+    let n = 0;
+    for (const k in carriedKinds) {
+      if (!d.drop.accepts(k)) continue;
+      const r = roomOf(d, k);
+      if (r > 0) n += Math.min(r, carriedKinds[k]);
+    }
+    return n;
+  }
+  function chainDrop() {
+    // the drop zone that takes the most of what is carried; the newer station on a tie, then the nearest
+    const p = pl().pos, ck = kindsCarried();
+    let best = null, bs = -Infinity;
+    for (const s of active('drop')) {
+      const n = deliverable(s, ck);
+      if (n <= 0) continue;
+      const z = s.drop.zone, d = Math.hypot(z.x - p.x, z.z - p.z);
+      const score = n * 2 + prio(s) * 0.5 - d * 0.15;
+      if (score > bs) { best = s; bs = score; }
+    }
+    return best;
+  }
+  function chainPickup(minAvail) {
+    // a pickup holding goods some other open drop zone has room for: feed the newest station first, then the nearest
+    const p = pl().pos;
+    let best = null, bs = -Infinity;
+    for (const s of active('pickup')) {
+      const pk = s.pickup;
+      if (!(pk.available >= minAvail)) continue;
+      let val = -1;
+      for (const d of active('drop')) {
+        if (d === s) continue;
+        for (const it of G.world.items) {
+          if (!d.drop.accepts(it.id) || !(pk.count ? pk.count(it.id) > 0 : pk.has && pk.has((k) => k === it.id))) continue;
+          if (roomOf(d, it.id) <= 0) continue;
+          val = Math.max(val, prio(d));
+        }
+      }
+      if (val < 0) continue;
+      const z = pk.zone;
+      const score = val * 3 + Math.min(pk.available, G.stats.capacity) * 0.3 - Math.hypot(z.x - p.x, z.z - p.z) * 0.5;
+      if (score > bs) { bs = score; best = s; }
+    }
+    if (!best) return null;
+    const z = best.pickup.zone;
+    return { kind: 'pickup', key: 'pickup:' + best.id, x: z.x, z: z.z, arrive: Math.min(0.6, z.r * 0.5), st: best };
+  }
+  function chooseChain() {
+    const p = pl().pos;
+    const money = state.money;
+    const np = nextPad();
+    const rem = np ? remainingCost(np) : Infinity;
+    if (np && money >= rem) return { kind: 'buy', key: 'buy:' + np.id, x: np.pos.x, z: np.pos.z, arrive: 0.25, padId: np.id };
+    const cap = G.stats.capacity, c = carried();
+    // cash worth a detour
+    const missing = np ? Math.max(0, rem - money) : Infinity;
+    let bestS = null, bestScore = -1;
+    for (const s of active('cash')) {
+      const cash = s.cash.amount;
+      if (cash < 5 || !(cash >= 0.2 * missing || !np)) continue;
+      const pile = s.cash.pile;
+      const score = cash / (5 + Math.hypot(pile.x - p.x, pile.z - p.z));
+      if (score > bestScore) { bestScore = score; bestS = s; }
+    }
+    if (bestS) { const pile = bestS.cash.pile; return { kind: 'cash', key: 'cash:' + bestS.id, x: pile.x, z: pile.z, arrive: 0.6, st: bestS }; }
+    // carrying: deliver, unless still filling up in a harvest area
+    if (c > 0) {
+      const s = chainDrop();
+      const filling = c < cap - 0.5 && anyGrown() && act && act.kind === 'cut';
+      if (s && !filling) { const z = s.drop.zone; return { kind: 'sell', key: 'sell:' + s.id, x: z.x, z: z.z, arrive: 0.5, st: s }; }
+    }
+    if (c < cap - 0.5) {
+      const pk = chainPickup(c > 0 ? 3 : 1);
+      if (pk) return pk;
+      for (const s of harvestByValue()) {
+        if (s.harvest.nearest(p.x, p.z, tmp)) return { kind: 'cut', key: 'cut:' + s.id, x: tmp.x, z: tmp.z, arrive: 0.15, st: s };
+      }
+    }
+    if (c > 0) { const s = chainDrop(); if (s) { const z = s.drop.zone; return { kind: 'sell', key: 'sell:' + s.id, x: z.x, z: z.z, arrive: 0.5, st: s }; } }
+    return null;
+  }
+
   function choose() {
+    if (CHAIN) return chooseChain();
     const p = pl().pos;
     const money = state.money;
     const np = nextPad();
@@ -249,6 +434,7 @@ export function startAutoplay(G) {
       }
       case 'sell': {
         const s = act.st;
+        if (CHAIN) return carried() > 0 && deliverable(s, kindsCarried()) > 0;
         if (carried() > 0 && pl().stack.has(s.drop.accepts) && s.drop.room() > 0) return true;
         // emptied; without a cashier keep standing until the counter is sold out
         const staff = G.stats.staff[s.id];

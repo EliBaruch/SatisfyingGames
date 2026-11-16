@@ -6,6 +6,7 @@
 //   grid: { x0, z0, dx, dz, cols, rows },            // cell (c, r) at (x0 + c*dx, z0 + r*dz); dx/dz may be negative
 //   plant: () => BufferGeometry,                      // growing model, origin at the ground
 //   stub:  () => BufferGeometry,                      // optional: shown while regrowing
+//   stubAligned: false,                               // true: stubs keep the grid's orientation and size (tiles)
 //   plantHeight: 0.95,                                // for the wind sway shader
 //   sway: true,                                       // wind sway (vertex shader, free)
 //   regrowStat: 'regrow',                             // G.stats key holding regrow seconds
@@ -124,8 +125,8 @@ function createSource(G, def) {
     if (!stubs) return;
     if (!on) { stubs.setMatrixAt(i, ZERO); return; }
     _p.set(xs[i], 0, zs[i]);
-    _q.setFromAxisAngle(_up, yaw[i]);
-    _s.set(scl[i], scl[i], scl[i]);
+    if (def.stubAligned) { _q.identity(); _s.set(1, 1, 1); }     // grid-aligned stubs (tiles that join up)
+    else { _q.setFromAxisAngle(_up, yaw[i]); _s.set(scl[i], scl[i], scl[i]); }
     _m.compose(_p, _q, _s);
     stubs.setMatrixAt(i, _m);
   }

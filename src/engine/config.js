@@ -79,11 +79,11 @@ export const HINTS = {
   buy: 'Buy: {label}',
 };
 
-/** 950 -> "950", 1500 -> "1.5K", 400000 -> "400K", 1250000 -> "1.25M" */
+/** 950 -> "950", 1500 -> "1.5K", 400000 -> "400K", 1250000 -> "1.25M", 3.2e9 -> "3.2B", 5e12 -> "5T" */
 export function fmtMoney(n) {
   n = Math.floor(n);
   if (n < 1000) return String(n);
-  const units = [['M', 1e6], ['K', 1e3]];
+  const units = [['T', 1e12], ['B', 1e9], ['M', 1e6], ['K', 1e3]];
   for (const [u, v] of units) {
     if (n >= v) {
       const x = n / v;

@@ -367,6 +367,7 @@ canvas#game {
 .world-card[data-world="flower"] .wc-icon { background: #ff8fb1; }
 .world-card[data-world="chicken"] .wc-icon { background: #ffd166; }
 .world-card[data-world="grocery"] .wc-icon { background: #9be7a8; }
+.world-card[data-world="factory"] .wc-icon { background: #6fa8ff; }
 
 .wc-text {
   display: flex;
@@ -691,3 +692,48 @@ canvas#game {
     margin-bottom: 14px;
   }
 }
+
+/* ------------------------------------------------ world HUD (stage bar, rate chips) --- */
+
+.whud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.whud-stage,
+.whud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(20, 34, 54, 0.78);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.whud-stage.pop { animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+
+.whud-pips { display: inline-flex; gap: 3px; }
+
+.whud-pips i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.whud-pips i.on { background: #ffd23f; box-shadow: 0 0 6px rgba(255, 210, 63, 0.8); }
+
+.whud-chip b { font-size: 14px; color: var(--chip, #7dff8a); font-variant-numeric: tabular-nums; }
+
+.whud-chip span { font-weight: 600; opacity: 0.85; font-size: 10px; }

@@ -1,6 +1,6 @@
 # Bloom Rush
 
-A mobile-first idle arcade tycoon in three worlds. Run around, gather goods,
+A mobile-first idle arcade tycoon in four worlds. Run around, gather goods,
 stack them on your back, sell them, collect the cash and spend it on pads that
 hire workers, buy vehicles, add upgrades and open new areas. Finish a world to
 unlock the next one and carry a small perk with you.
@@ -10,6 +10,9 @@ unlock the next one and carry a small perk with you.
    and sell to the delivery truck.
 3. **Grocery Store**: stock the shelves from the loading docks and serve the
    shoppers at the checkouts.
+4. **Volt Works**: start alone in a garage sweeping up scrap and building battery
+   packs by hand, hire a crew, add conveyor lines and a car assembly line, and
+   automate it into a gigafactory.
 
 ## How to play
 
@@ -35,7 +38,7 @@ Then open http://localhost:8100/ in a browser.
 
 Debug flags (add to the URL):
 
-- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`) if your save has
+- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`, `factory`) if your save has
   unlocked it; add `&unlock=1` to open it anyway (development and tests).
 - `?worldUrl=<same-origin path to a world.js>` loads a world under development.
 - `?autoplay` runs a test bot that plays the game.
@@ -56,8 +59,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
   player.js, stack.js      the player and the item tower on its back
   pads.js, pad-effects.js  purchase pads and what they do
   stations/                station types: source, shop, pile, converter, trough, shelf,
-                           checkout, cashpile (docs/STATIONS.md)
-  workers/                 worker roles: hauler, harvester, cashier, vendor
+                           checkout, cashpile; opt-in: belt, line, lot, solid (docs/STATIONS.md)
+  workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound
   art/                     model loading and caching, shared materials, characters

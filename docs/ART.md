@@ -15,10 +15,11 @@ import { preload, getModel, getGeometry, getMesh, getSharedMaterial,
 
 | file | what |
 |---|---|
-| `material.js` | the look (`getSharedMaterial`, `toLit`, `litMaterial`), `LIGHTING` preset, `configureRenderer`, `createLights` |
+| `material.js` | the look (`getSharedMaterial`, `toLit`, `litMaterial`, gloss variants), `LIGHTING` preset, `configureRenderer`, `createLights` |
 | `assets.js` | GLB loading and cache: `preload`, `getModel`, `getGeometry`, `getMesh`, `listLoaded`, `measure` |
 | `shadows.js` | pooled blob contact shadows |
 | `character.js` | animated Mini Characters, same API as the old code-built ones |
+| `human.js` | human-proportioned characters (second rig, reached through `character.js`) |
 | `parts.js` | `Parts` / `mergeParts` modelling helpers (rounded box, capsule, lathe, baked AO, `Parts.model`) |
 | `props.js` | cash bundle, coin, counter, ground zone decal, ground textures, scenery kit |
 | `bake.js` | low-level geometry merge + AO bake used by the above |
@@ -183,6 +184,46 @@ Measured (headless Chromium, software GL, 390x844 @2x, 40 animated characters in
 Budget: **<= 25 animated characters in view** (50 draw calls, ~45 k tris with shadows) leaves room for the world; 40 is possible but uses most of the draw-call budget; flag far ones `lod`.
 
 ---
+
+## 3b. Human-proportioned characters (`human.js`)
+
+A second rig for worlds that want taller, realistic figures (the factory). Reached through the same
+`makeCharacter` / `animateCharacter`: a look whose `model` is `animatedmen/<Name>` or `animatedwomen/<Name>`
+(Quaternius Animated Men / Women, CC0) uses it.
+
+```js
+looks: { player: { model: 'animatedmen/Male_Casual', colors: { Shirt: 0xff7a1a, Pants: 0x25324a }, hat: 'hardhat', scale: 1, wide: 1.1 } }
+```
+
+- About 7 heads tall, **1.9 at scale 1** (`HUMAN_HEIGHT`), slim; `wide` thickens x/z a little so it reads from the camera.
+- Models: `Male_Casual`, `Male_Shirt`, `Male_LongSleeve`, `Female_Casual`, `Female_TankTop`, `Female_Alternative`
+  (1.8-2.8 k triangles; `Smooth_*` variants are 7-8 k and look the same at game distance). 31 bones.
+- **One draw call each**: the pack ships one mesh per material slot (`Skin`, `Eyes`, `Hair`, `Shirt`, `Pants`, `Socks`,
+  `HairBase`), all flat colours; they are baked into one vertex-colour skinned geometry per palette, so `colors`
+  recolours any slot (overalls, uniforms) at no cost. Geometry is shared by every character with the same model and palette.
+- Clips used: `*_Idle`, `*_Walk`, `*_Run`, blended by `moving` / `speed` like the mini characters.
+- Poses are procedural on top of the clips: arm bones are aimed in character space. `carrying` holds both forearms
+  level in front; `action: 'wave'`; `'work'` (both hands busy at a bench); `'swing'` (bent forward, reaching down:
+  sweeping, picking).
+- The stack is carried **in the hands, in front**, and turns with the body: `userData.carry = { offset, billboard: false }`
+  is read by the player and the list-binding hauler. Set `world.player.perColumn` high so it stays one column.
+- Anchors `userData.head` (top of the skull), `.hands`, `.front`, `.back` are level frames in world units; hats
+  `'hardhat' | 'hardhat-white' | 'hardhat-orange'` (chars.js) are sized for this rig.
+- Cost: about 2 k triangles and one draw call per pass; keep 25-30 in view like the mini characters.
+
+### Gloss (`material.js`)
+
+`litMaterial({ gloss: 0.5, shine: 60, ... })`, `getGlossMaterial(gloss, shine)` (vertex colours, cached) and
+`toLit(src, { gloss })` give the same look with a sun highlight and a cheap studio reflection (sky, a bright horizon
+band, floor, picked by the reflected view ray): paint, metal, plastic. It is a separate program; the default
+materials are unchanged. `LOOK.envSky / envHorizon / envGround` are the reflected colours.
+
+### Parts of a model (`assets.js`)
+
+`getGeometry(id, { ..., nodes: { key: 'body', test: (path) => !/wheel/.test(path) } })` bakes only the meshes whose
+node path passes the test; sizing still uses the whole model, so separate pieces line up (a car body and its
+wheels; a robot arm's base and its upper arm). `nodePosition(id, name, opts)` gives a node's position in the same
+frame (a pivot).
 
 ## 4. Blob contact shadows (`shadows.js`)
 

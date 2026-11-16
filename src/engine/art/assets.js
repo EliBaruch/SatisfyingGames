@@ -454,9 +454,13 @@ function bakeColorFn(mesh, mat, rk) {
 function buildGeometry(e, opts) {
   const acc = newAcc();
   e.scene.updateMatrixWorld(true);
+  const nodes = opts.nodes && typeof opts.nodes.test === 'function' ? opts.nodes : null;
   for (const { src, items } of e.groups.values()) {
     if (src.transparent && src.opacity < 0.35) continue; // skip glass-like panes
-    for (const m of items) pushGeometry(acc, m.geometry, m.matrixWorld, bakeColorFn(m, src, recolorKind(e)), false);
+    for (const m of items) {
+      if (nodes && !nodes.test(nodePath(m))) continue;     // opts.nodes: only part of the model (a car without its wheels)
+      pushGeometry(acc, m.geometry, m.matrixWorld, bakeColorFn(m, src, recolorKind(e)), false);
+    }
   }
   const geo = finishAcc(acc, { color: true, uv: false });
   const fit = resolveFit(e.box, e.kit, opts);
@@ -475,7 +479,29 @@ function buildGeometry(e, opts) {
 }
 
 function geoKey(id, opts) {
-  return [opts.height, opts.width, opts.depth, Array.isArray(opts.fit) ? opts.fit.join(',') : opts.fit, opts.scale, opts.natural ? 1 : 0, opts.rotY, opts.origin, opts.ao ? JSON.stringify(opts.ao) : ''].join('|');
+  return [opts.height, opts.width, opts.depth, Array.isArray(opts.fit) ? opts.fit.join(',') : opts.fit, opts.scale, opts.natural ? 1 : 0, opts.rotY, opts.origin, opts.ao ? JSON.stringify(opts.ao) : '', opts.nodes ? opts.nodes.key || '' : ''].join('|');
+}
+/** names of a mesh's node and its ancestors, root first, joined with '/' ('body/wheel-back') */
+function nodePath(o) {
+  let s = o.name || '';
+  for (let p = o.parent; p; p = p.parent) if (p.name) s = p.name + '/' + s;
+  return s;
+}
+/**
+ * Authored position of a named node of a loaded static model, in the frame getGeometry / getModel use
+ * for the same sizing opts (a pivot to rotate a part about: a robot arm's shoulder). null if unknown.
+ */
+export function nodePosition(id, name, opts = {}) {
+  const e = entries.get(id);
+  if (!e || e.state !== 'ready') return null;
+  let node = null;
+  e.scene.traverse((o) => { if (!node && o.name === name) node = o; });
+  if (!node) return null;
+  e.scene.updateMatrixWorld(true);
+  const fit = resolveFit(e.box, e.kit, opts);
+  const p = new THREE.Vector3().setFromMatrixPosition(node.matrixWorld);
+  if (fit.rotY) p.applyAxisAngle(new THREE.Vector3(0, 1, 0), fit.rotY);
+  return p.add(fit.off).multiplyScalar(fit.s);
 }
 
 /**
@@ -486,7 +512,8 @@ function geoKey(id, opts) {
  *   const m = new THREE.InstancedMesh(getGeometry('food-kit/egg', { height: 0.36 }), getSharedMaterial(), 64);
  *
  * Same size opts as getModel, plus `ao` (true or a bakeAO options object) to darken the base and
- * undersides. The result is cached and shared: never mutate or dispose it. `geometry.userData.size`
+ * undersides, and `nodes: { key, test(path) }` to keep only the meshes whose node path ('body/wheel-back')
+ * passes the test (sizing still uses the whole model, so the pieces line up; `key` names the piece in the cache). The result is cached and shared: never mutate or dispose it. `geometry.userData.size`
  * holds the final size. Triangles with glass-like transparency are skipped.
  * If the model is not loaded yet you get a placeholder box geometry that is filled in place once it loads.
  */

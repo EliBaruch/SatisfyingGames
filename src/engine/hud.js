@@ -23,6 +23,9 @@ const ICON = {
     + '<path d="M15 21c0-10 18-10 18 0" fill="none" stroke="#7a4a17" stroke-width="3" stroke-linecap="round"/>'
     + '<circle cx="19" cy="17" r="4.5" fill="#ff4d4d"/><circle cx="29" cy="16" r="4.5" fill="#ffb020"/>'
     + '<path d="M16 28v8M24 28v8M32 28v8" stroke="#7a4a17" stroke-width="2" opacity=".5"/>',
+  factory: '<path d="M6 41V23l9 6v-6l9 6V13h8v28z" fill="#fff"/><path d="M34 41V9h7v32z" fill="#dfeaff"/>'
+    + '<rect x="10" y="33" width="5" height="5" rx="1" fill="#2f7fe0"/><rect x="19" y="33" width="5" height="5" rx="1" fill="#2f7fe0"/>'
+    + '<path d="M29.5 16l-6 9h4.5l-2 8 7-10h-4.5z" fill="#ffd23f" stroke="#b5803a" stroke-width="1.2" stroke-linejoin="round"/>',
   generic: '<path d="M24 8l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="#fff"/>',
 };
 const LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10.5" rx="3" fill="currentColor"/>'
@@ -129,7 +132,74 @@ export function createHud(G) {
         moneyValue.textContent = text;
       }
     }
+    if (worldHud) worldHud(dt);
   }
+
+  // ---- optional world HUD: a stage bar and production-rate chips (world.hud)
+  //   world.hud = { stages: ['GARAGE', ...], stageStat: 'stage',
+  //                 rates: [{ label: 'PACKS', total: (G) => n so far, show: (G) => bool, color }] }
+  // The stage bar shows G.stats[stageStat] (1-based) of stages.length; a chip shows its total's rate per minute.
+  let worldHud = null;
+  (function setupWorldHud() {
+    const W = G.world.hud;
+    const top = $('topbar');
+    if (!W || !top) return;
+    const row = document.createElement('div');
+    row.className = 'whud';
+    let bar = null, pips = [], name = null, stageShown = -1;
+    if (Array.isArray(W.stages) && W.stages.length) {
+      bar = document.createElement('div');
+      bar.className = 'whud-stage';
+      const dots = document.createElement('span');
+      dots.className = 'whud-pips';
+      pips = W.stages.map(() => { const d = document.createElement('i'); dots.append(d); return d; });
+      name = document.createElement('span');
+      name.className = 'whud-name';
+      bar.append(dots, name);
+      row.append(bar);
+    }
+    const chips = (W.rates || []).map((r) => {
+      const el = document.createElement('div');
+      el.className = 'whud-chip';
+      if (r.color) el.style.setProperty('--chip', r.color);
+      const v = document.createElement('b');
+      v.textContent = '0';
+      const l = document.createElement('span');
+      l.textContent = r.label + ' / MIN';
+      el.append(v, l);
+      el.hidden = true;
+      row.append(el);
+      return { r, el, v, hist: new Float64Array(16), hi: 0, n: 0, t: 0, text: '0', on: false };
+    });
+    top.append(row);
+    const WINDOW = 15;                    // seconds the rate is averaged over (15 samples, one per second)
+    worldHud = (dt) => {
+      if (bar) {
+        const s = Math.max(1, Math.min(W.stages.length, (G.stats && G.stats[W.stageStat || 'stage']) | 0 || 1));
+        if (s !== stageShown) {
+          const first = stageShown < 0;
+          stageShown = s;
+          pips.forEach((d, i) => d.classList.toggle('on', i < s));
+          name.textContent = W.stages[s - 1];
+          if (!first) { bar.classList.remove('pop'); void bar.offsetWidth; bar.classList.add('pop'); }
+        }
+      }
+      for (const c of chips) {
+        const on = !c.r.show || !!c.r.show(G);
+        if (on !== c.on) { c.on = on; c.el.hidden = !on; }
+        if (!on) continue;
+        c.t += dt;
+        if (c.t < 1) continue;
+        c.t -= 1;
+        const total = +c.r.total(G) || 0;
+        c.hist[c.hi] = total; c.hi = (c.hi + 1) % WINDOW; if (c.n < WINDOW) c.n++;
+        const oldest = c.hist[c.n < WINDOW ? 0 : c.hi];
+        const span = Math.max(1, c.n - 1);
+        const text = String(Math.max(0, Math.round(((total - oldest) / span) * 60)));
+        if (text !== c.text) { c.text = text; c.v.textContent = text; }
+      }
+    };
+  }());
 
   // ---- goal line
   let goalText = goalEl.textContent;

@@ -117,6 +117,17 @@ export default {
 };
 ```
 
+Optional top-level keys used by the factory world (`src/worlds/factory/world.js`), all opt-in:
+
+| key | what |
+|---|---|
+| `camera: { type: 'perspective', fov: 30, zoom, fog: { color, start, end } }` | a narrow-angle perspective camera along the same direction as the orthographic one (the input mapping does not change). `viewPortrait` / `viewLandscape` are the world units visible vertically at the focus point. `G.view.setZoom(z, seconds)` eases a zoom factor on the view size (both camera types); `G.view.zoom`, `G.view.viewSize` read it. `fog` distances are measured from the focus point outward. |
+| `hires: [{ id, role, from, to, options }]` | helpers that exist from the start, without a pad (a van that buys from day one). Folded like a bought `hire` pad whose id is `id`. |
+| `hud: { stages: [names], stageStat: 'stage', rates: [{ label, total(G), show(G), color }] }` | a stage bar (`G.stats[stageStat]` of `stages.length`) and production chips showing each `total`'s rate per minute. |
+| `cars: { models, colors, scale, primer, max }` | the vehicle pool of the `line` / `lot` stations (docs/STATIONS.md). |
+| `autoplay: { chain: true }` | the test bot delivers what it carries before gathering more and feeds the newest stations first (worlds whose production is a chain). |
+| `player.perColumn` | items per column of the carried stack (the human rig carries one tall column in front: set it high). |
+
 Rules: string ids everywhere; positions are `{x, z}` (pads may use `at: [x, z]`); a world starts
 with zero money; pads form a chain through `requires` (a pad shows once all of them are bought).
 `world.js` may import its own `models.js` for geometry factories, and may compute positions with
@@ -320,6 +331,8 @@ Built-in effects:
 | `open` | `stations: [ids]` | `open[id] = true` (stations with `open: true` start open) |
 | `hire` | `role, from, to, ...` | `hires.push(...)`, `staff[to or from][role]++` |
 | `stat` | `stat, set | add | mul | max | min` (or `ops: [...]`) | e.g. `{ stat: 'capacity', max: 50 }`, `{ stat: 'speed', mul: 1.25 }`, `{ stat: 'regrow', min: 4 }`, `{ stat: 'priceMult', mul: 1.5 }` |
+| `stage` | `stage: n` | `stats.stage = max(stats.stage, n)`: the world grew a stage; scenes react in `G.pads.onDone(padId, fn)` |
+| `multi` | `effects: [effect, ...]` | folds and applies each sub-effect (open + hire + stat in one pad). A second or later hire in the list is recorded under `'<padId>:<index>'` |
 | `win` | - | `won = true`; live: emits `'win'` |
 | `travel` | `world` (default: next world) | repeatable: never marked done; live: `G.travel(world)` |
 
@@ -404,6 +417,13 @@ Helpers for scenes: `engine/decals.js` (`makeDropDecal('SELL')`, `makeCashDecal(
 (put them at y 0.04), `signTexture`, `canvasTex`, `makeDecal`, `flatPlane`), `engine/geom.js` (`Parts`, `rng`);
 everything else (ground textures, scenery, counters, packs) comes from the art kit, docs/ART.md.
 
+Two character rigs sit behind `chars.js`. The Kenney Mini Characters (above and below) are the default. A look whose
+`model` is `animatedmen/<Name>` or `animatedwomen/<Name>` gets the human rig (`art/human.js`, docs/ART.md section 3b):
+about 1.9 tall, one draw call, `colors: { Shirt, Pants, Hair, Skin, Socks }` recolour its slots, hats `'hardhat' |
+'hardhat-white' | 'hardhat-orange'`, extra actions `'work'` and a bent-forward `'swing'`, and the stack is carried in
+the hands in front (`userData.carry` tells the player and haulers where). A look may also be `{ make: () => Object3D }`:
+a rigid vehicle that does a character's job (the factory's AGV hauler); it sets `userData.carry` and `userData.blob`.
+
 Characters: only through `src/engine/chars.js` (`makeCharacter(look)`, `animateCharacter(char, dt,
 { moving, speed, carrying, action })`, `LOOKS`, `randomCustomerLook()`, `makeTractor()`, `lodCharacter(G, char)`,
 `onScreen(G, x, y, z)`, `addBlob(obj, r)`). They are the art kit's animated pack characters (docs/ART.md section 3):
@@ -483,3 +503,6 @@ await page.addInitScript(() => {
 - `station.update` runs while inactive; return early. `restore()` runs before `activate()`.
 - The `'sale'` payload object is reused; copy what you need.
 - No emoji in canvas or DOM text.
+- **World bounds that grow**: the player keeps a reference to `world.bounds`, so a scene may widen it live
+  (`Object.assign(G.world.bounds, bigger)`). Declare the largest bounds in the definition (saved positions are clamped
+  to it at boot) and narrow it in `createScene`.

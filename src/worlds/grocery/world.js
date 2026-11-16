@@ -141,7 +141,7 @@ export default {
     pad('price3', 'BRANDS +40%', 2100, [15.8, -6.6], ['stocker5'], { type: 'stat', stat: 'priceMult', mul: 1.4 }),
 
     pad('megamart', 'MEGA MART', 3800, [-2.4, -6.2], ['price3'], { type: 'win' }, { big: true, toast: 'GRAND OPENING!' }),
-    pad('travel', 'NEXT WORLD', 0, [-5.6, -6.1], ['megamart'], { type: 'travel', world: 'flower' }, { priceText: 'GO' }),
+    pad('travel', 'NEXT WORLD', 0, [-5.6, -6.1], ['megamart'], { type: 'travel', world: 'factory' }, { priceText: 'GO' }),
   ],
 
   hints: {
@@ -150,13 +150,13 @@ export default {
     serve: 'Serve the customers!',
     cash: 'Grab your cash!',
     buy: 'Buy: {label}',
-    travel: 'Back to the Flower Farm!',
+    travel: 'Next: Volt Works!',
   },
 
   finale: {
     pad: 'megamart',
     focus: { x: 6, z: -3, w: 16, d: 10 },
-    next: 'flower',
+    next: 'factory',
   },
 
   layout: {

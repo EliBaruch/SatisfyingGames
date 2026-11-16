@@ -1,7 +1,7 @@
 // Built-in pad effects: open, hire, stat, win, travel.
 // Each handler folds a bought pad into G.stats (pure) and may have live side effects.
 // Add your own with registerPadEffect (see docs/ENGINE.md "Pad effects").
-import { registerPadEffect, getWorkerRole } from './registry.js';
+import { registerPadEffect, getPadEffect, getWorkerRole } from './registry.js';
 import { applyStatOp } from './stats.js';
 import { nextWorld } from './worlds.js';
 
@@ -53,6 +53,40 @@ registerPadEffect('stat', {
   sound: 'unlock',
 });
 
+// { type: 'stage', stage: 2 }  the world moved on to a bigger stage: G.stats.stage = the highest one bought.
+// Scenes react through G.pads.onDone(padId, fn) (reveal a hall, zoom the camera out, widen world.bounds).
+registerPadEffect('stage', {
+  fold(s, e) { s.stage = Math.max(s.stage || 0, e.stage | 0); },
+  toast: (e, pad) => pad.label + '!',
+  sound: 'bigUnlock',
+});
+
+// { type: 'multi', effects: [ { type: 'open', ... }, { type: 'stat', ... }, { type: 'hire', ... } ] }
+// One pad, several effects. A second or later hire in the list is recorded under '<padId>:<index>'.
+registerPadEffect('multi', {
+  fold(s, e, pad, def) {
+    let hires = 0;
+    (e.effects || []).forEach((sub, i) => {
+      const h = sub && getPadEffect(sub.type);
+      if (!h || !h.fold || h.repeatable) return;
+      const p = sub.type === 'hire' && hires++ > 0 ? { ...pad, id: pad.id + ':' + i } : pad;
+      h.fold(s, sub, p, def);
+    });
+  },
+  apply(G, e, pad) {
+    for (const sub of e.effects || []) { const h = sub && getPadEffect(sub.type); if (h && h.apply && !h.repeatable) h.apply(G, sub, pad); }
+  },
+  focus(G, e, pad) {
+    for (const sub of e.effects || []) { const h = sub && getPadEffect(sub.type); const f = h && h.focus ? h.focus(G, sub, pad) : null; if (f) return f; }
+    return null;
+  },
+  toast(e, pad) {
+    for (const sub of e.effects || []) { const h = sub && getPadEffect(sub.type); if (h && h.toast) return typeof h.toast === 'function' ? h.toast(sub, pad) : h.toast; }
+    return pad.label + '!';
+  },
+  sound: 'unlock',
+});
+
 // { type: 'win' }  the finale. Level flow (engine/level.js) handles the celebration.
 registerPadEffect('win', {
   fold(s) { s.won = true; },
@@ -60,6 +94,15 @@ registerPadEffect('win', {
   focus(G) { const f = G.world.finale; return f && f.focus ? f.focus : null; },
   toast: (e, pad) => pad.label + '!',
   sound: 'bigUnlock',
+});
+
+// { type: 'worlds' }  opens the world select (the last world's gate, where there is no next world to travel to)
+registerPadEffect('worlds', {
+  repeatable: true,
+  fold() {},
+  apply(G) { if (G.hud && G.hud.openWorlds) G.hud.openWorlds(); },
+  toast: () => 'WORLD SELECT',
+  sound: 'unlock',
 });
 
 // { type: 'travel', world: 'chicken' }  (world defaults to the next world in order)
