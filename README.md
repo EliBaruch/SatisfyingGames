@@ -14,6 +14,11 @@ unlock the next one and carry a small perk with you.
    packs by hand, hire a crew, add conveyor lines and a car assembly line, and
    automate it into a gigafactory.
 
+On top of that loop the game keeps throwing things at you: a fever meter that doubles your sales
+when you keep busy, lucky drops with a choice of prizes, rush orders against the clock, coin trails,
+a golden piggy bank to chase, flash sales, and perk gates where you pick one of two permanent perks
+(three stars buy a choice). Finished worlds can be played again to beat your best time.
+
 ## How to play
 
 - Drag anywhere to run (a joystick appears under your finger). On desktop use
@@ -22,6 +27,8 @@ unlock the next one and carry a small perk with you.
   items; stand in a drop zone to hand them in.
 - Walk over cash piles to collect the money, then stand on price pads to buy.
 - The arrow and the goal line at the top always show the next useful step.
+- Prizes and perks are chosen by running through a gate. Nothing ever takes money or progress away:
+  an event you ignore just leaves.
 - Progress is saved in your browser, per world. The world button opens the
   world select; the reset button clears all progress.
 
@@ -44,6 +51,7 @@ Debug flags (add to the URL):
 - `?autoplay` runs a test bot that plays the game.
 - `?speed=N` runs the simulation N times faster.
 - `?noreveal` turns off the cinematics that play on big purchases.
+- `?nothrills` turns off the events, fever and perks (the plain loop).
 
 `node tools/playtest.js --world=<id>` plays a world to the end headlessly with
 Playwright and prints the unlock timeline.
@@ -62,6 +70,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
   stations/                station types: source, shop, pile, converter, trough, shelf,
                            checkout, cashpile; opt-in: belt, line, lot, solid (docs/STATIONS.md)
   workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator
+  thrills/                 fever, lucky drops, rush orders, coin trails, the piggy bank, flash sales,
+                           stars and perk gates (docs/ENGINE.md section 13)
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound
   art/                     model loading and caching, shared materials, characters

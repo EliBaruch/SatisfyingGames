@@ -113,7 +113,7 @@ const G = {
   addMoney(n) { if (!(n > 0)) return; G.state.money += n; G.state.earned += n; save.meta.totalEarned += n; },
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
-  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null,
+  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -126,6 +126,7 @@ if (params.has('speed')) {
 /** Recompute G.stats and bring stations, workers and the player in line (after a purchase or a perk). */
 G.refresh = (live) => {
   G.stats = computeStats(def, G.state.done, save.meta);
+  if (G.thrills) G.thrills.applyStats();     // perks, boosts and fever lie over the pad stats
   if (G.stations) G.stations.sync(live);
   if (G.workers && G.workers.sync) G.workers.sync(live);
   if (G.player && G.player.sync) G.player.sync();
@@ -218,6 +219,15 @@ if (!G.scenery) {
   G.scene.add(ground);
   G.scenery = { update: noop };
 }
+// thrills (engine/thrills): events, fever, perks. Built before the player so its perks count for the
+// saved stack; optional like the other extras (a failure leaves the plain game).
+if (!params.has('nothrills') && !(def.thrills && def.thrills.off)) {
+  try {
+    const { createThrills } = await import('./engine/thrills/index.js');
+    G.thrills = createThrills(G);
+    if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title lists this world's perks
+  } catch (err) { console.error('[boot] thrills failed:', err); G.failed.push('thrills'); G.thrills = null; }
+}
 G.player = createPlayer(G);
 G.workers = createWorkers(G);
 G.workers.sync(false);
@@ -249,6 +259,19 @@ G.travel = (id) => {
   url.searchParams.delete('worldUrl');
   location.href = url.href;
 };
+/** Start world `id` again from nothing (its level state is dropped; perks from finished worlds and best times stay). */
+G.replay = (id) => {
+  if (!worldInfo(id)) return;
+  if (id !== def.id) saveNow();
+  noSave = true;
+  delete save.levels[id];
+  save.level = id;
+  writeSave(save);
+  const url = new URL(location.href);
+  url.searchParams.set('world', id);
+  url.searchParams.delete('worldUrl');
+  location.href = url.href;
+};
 setInterval(saveNow, 2000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 window.addEventListener('pagehide', saveNow);
@@ -265,7 +288,7 @@ if (params.has('noreveal')) G.noReveal = true;
 saveNow();   // persists a migrated / sanitised save right away
 
 // ------------------------------------------------------------------ loop
-const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
+const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'thrills', 'scenery', 'fx', 'hud'];
 // during a reveal (engine/reveal.js): first everything stands still while the new thing builds in,
 // then the world runs again without the player until the camera is back
 const CINE_FROZEN = ['pads', 'scenery', 'fx', 'hud'];
@@ -309,6 +332,7 @@ function frame(now) {
     if (n >= MAX_STEPS) acc = 0;
   }
   G.hints.frame(realDt);
+  if (G.thrills) G.thrills.frame(realDt);
   view.frame(realDt);
   G.frames++;
 }

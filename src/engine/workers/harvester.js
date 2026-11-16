@@ -121,7 +121,7 @@ function createHarvester(G, hire, team, live) {
     const err = wrapAngle(Math.atan2(dx, dz) - t.h);
     const maxTurn = TURN * dt;
     t.h += Math.abs(err) <= maxTurn ? err : (err > 0 ? maxTurn : -maxTurn);
-    let target = cfg.speed * (1 - 0.45 * Math.min(1, Math.abs(err) / 0.9));
+    let target = cfg.speed * (G.stats.workerSpeed || 1) * (1 - 0.45 * Math.min(1, Math.abs(err) / 0.9));
     if (stopAtEnd) target = Math.min(target, 0.8 + d * 1.4);
     const acc = 10 * dt;
     const dv = target - t.spd;

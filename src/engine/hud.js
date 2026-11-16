@@ -30,6 +30,8 @@ const ICON = {
 };
 const LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10.5" rx="3" fill="currentColor"/>'
   + '<path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+const REPLAY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'
+  + '<path d="M4.5 4.5v4h4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#2fb14a"/>'
   + '<path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -60,6 +62,7 @@ export function createHud(G) {
   const tapBtn = startEl ? startEl.querySelector('.tap') : null;
   const cardsEl = $('worlds');
   const perksEl = $('perks');
+  const worldPerksEl = $('world-perks');
   const winEl = $('win');
   const winTime = $('win-time');
   const winEarned = $('win-earned');
@@ -71,6 +74,10 @@ export function createHud(G) {
   const winWorld = $('win-world');
   const winPerk = $('win-perk');
   const winPerkRow = $('win-perk-row');
+  const winBest = $('win-best');
+  const winBestRow = $('win-best-row');
+  const winRun = $('win-run');
+  const winRunRow = $('win-run-row');
   const worldsBtn = $('btn-worlds');
   const muteBtn = $('btn-mute');
   const resetBtn = $('btn-reset');
@@ -80,6 +87,7 @@ export function createHud(G) {
   const worlds = () => (Array.isArray(G.worlds) ? G.worlds : []);
   const finishedMap = () => (G.meta && G.meta.finished) || {};
   const perksMap = () => (G.meta && G.meta.perks) || {};
+  const bestMap = () => (G.meta && G.meta.best) || {};
 
   // ---- money counter
   let target = G.state.money;
@@ -264,6 +272,12 @@ export function createHud(G) {
     const s = perkSummary();
     perksEl.textContent = s ? `Perks: ${s}` : '';
     perksEl.hidden = !s;
+    // the perks picked at the perk gates in the world being played (engine/thrills)
+    if (worldPerksEl) {
+      const mine = G.thrills && G.thrills.perkLines ? G.thrills.perkLines() : [];
+      worldPerksEl.textContent = mine.length ? `This world: ${mine.join(', ')}` : '';
+      worldPerksEl.hidden = !mine.length;
+    }
   }
 
   // ---- world cards
@@ -276,7 +290,8 @@ export function createHud(G) {
       const open = !w.unlockedBy || !!fin[w.unlockedBy];
       const isCur = w.id === G.worldId;
       let state;
-      if (done) state = 'Done';
+      const best = bestMap()[w.id];
+      if (done) state = best > 0 ? `Done, best ${formatTime(best)}` : 'Done';
       else if (isCur) state = 'Playing now';
       else if (open) state = 'Tap to play';
       else state = `Finish ${nameOf(w.unlockedBy)} to unlock`;
@@ -311,7 +326,19 @@ export function createHud(G) {
       else if (!open) mark.innerHTML = LOCK_SVG;
 
       card.append(icon, text, mark);
-      cardsEl.append(card);
+      if (done) {
+        // a finished world can be played again from the start (new events, new perk picks, a time to beat)
+        const row = document.createElement('div');
+        row.className = 'world-row';
+        const again = document.createElement('button');
+        again.type = 'button';
+        again.className = 'wc-replay';
+        again.dataset.replay = w.id;
+        again.setAttribute('aria-label', `Play ${w.name} again from the start`);
+        again.innerHTML = REPLAY_SVG + '<span>AGAIN</span>';
+        row.append(card, again);
+        cardsEl.append(row);
+      } else cardsEl.append(card);
     }
   }
 
@@ -371,13 +398,20 @@ export function createHud(G) {
     startEl.addEventListener('pointerdown', (e) => {
       if (mode !== 'start') return;
       const t = e.target;
-      if (t && t.closest && t.closest('.world-card, .tap')) return; // those handle their own click
+      if (t && t.closest && t.closest('.world-card, .wc-replay, .tap')) return; // those handle their own click
       play();
     });
   }
   if (tapBtn) tapBtn.addEventListener('click', play);
   if (cardsEl) {
     cardsEl.addEventListener('click', (e) => {
+      const again = e.target && e.target.closest ? e.target.closest('.wc-replay') : null;
+      if (again) {
+        if (!ready() || typeof G.replay !== 'function') return;
+        const id = again.dataset.replay;
+        if (id && window.confirm(`Start ${nameOf(id)} again from the beginning?\nYour perks from finished worlds and your best time stay.`)) G.replay(id);
+        return;
+      }
       const card = e.target && e.target.closest ? e.target.closest('.world-card') : null;
       if (!card || card.classList.contains('is-locked') || !ready()) return;
       const id = card.dataset.world;
@@ -411,7 +445,7 @@ export function createHud(G) {
   }
   function showWin(info) {
     if (!winEl) return;
-    const { time, earned, next = null } = info || {};
+    const { time, earned, next = null, best = 0, newBest = false } = info || {};
     const hasNext = !!(next && next.id);
     nextId = hasNext ? next.id : null;
 
@@ -433,6 +467,24 @@ export function createHud(G) {
     const perk = perkText(perkObj);
     if (winPerk) winPerk.textContent = perk;
     if (winPerkRow) winPerkRow.hidden = !perk;
+
+    if (winBestRow) {
+      winBestRow.hidden = !(best > 0);
+      if (winBest) winBest.textContent = best > 0 ? formatTime(best) + (newBest ? '  NEW BEST!' : '') : '';
+    }
+    // what happened on the way (engine/thrills)
+    if (winRunRow) {
+      const c = G.thrills && G.thrills.state ? G.thrills.state.count : null;
+      const parts = [];
+      if (c) {
+        if (c.perk > 0) parts.push(`${c.perk} perk${c.perk > 1 ? 's' : ''}`);
+        if (c.order > 0) parts.push(`${c.order} rush order${c.order > 1 ? 's' : ''}`);
+        if (c.pig > 0) parts.push(`${c.pig} pigg${c.pig > 1 ? 'ies' : 'y'}`);
+        if (c.jackpot > 0) parts.push(`${c.jackpot} jackpot${c.jackpot > 1 ? 's' : ''}`);
+      }
+      winRunRow.hidden = !parts.length;
+      if (winRun) winRun.textContent = parts.join(', ');
+    }
 
     if (winNext) winNext.hidden = !hasNext;
     if (winNextName) winNextName.textContent = hasNext ? (next.name || nameOf(next.id)) : '';
@@ -474,5 +526,5 @@ export function createHud(G) {
     if (window.confirm('Reset all progress?')) G.events.emit('reset', {});
   });
 
-  return { update, setGoal, toast, showWin, hideWin, openWorlds };
+  return { update, setGoal, toast, showWin, hideWin, openWorlds, /** redraw the title's cards and perk lines */ refreshTitle() { renderCards(); renderPerks(); } };
 }

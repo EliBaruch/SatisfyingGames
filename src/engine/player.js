@@ -69,10 +69,13 @@ export function createPlayer(G) {
   const fullTextOpts = { color: '#ff5a5a', size: 1.1, life: 0.8 };
   const cashTextOpts = { color: '#7dff8a', size: 0.58, life: 1.0, maxW: 0.4 };
   const harvestCtx = { i: 0, sound: 'cut' };
+  // what the player does, for whoever listens (engine/thrills): payloads are reused, do not keep them
+  const evTake = { kind: '' }, evDeliver = { kind: '', station: null }, evCash = { amount: 0 };
   const onHarvest = (kind, x, z, ctx) => {
     flyToStack(G, stack, kind, x, 0.55, z, ctx.i * 0.02);
     ctx.i++;
     if (G.audio && G.audio.play) G.audio.play(ctx.sound);
+    evTake.kind = kind; G.events.emit('p:take', evTake);
   };
 
   let lastAction = -10, actionName = null;
@@ -137,7 +140,7 @@ export function createPlayer(G) {
 
   // --------------------------------------------------------------- harvest
   function harvest(dt) {
-    const R = P.harvestRadius;
+    const R = P.harvestRadius * (G.stats.reach || 1);
     let blockedByFull = false;
     for (let s = 0; s < stations.length; s++) {
       const st = stations[s];
@@ -192,6 +195,7 @@ export function createPlayer(G) {
         const kind = stack.popWhere(st.drop.accepts);
         if (kind === null) return;
         flyToDrop(G, stack, st, kind, k * 0.012);
+        evDeliver.kind = kind; evDeliver.station = st; G.events.emit('p:deliver', evDeliver);
       }
     }
   }
@@ -249,6 +253,7 @@ export function createPlayer(G) {
       flyToStack(G, stack, kind, tmpA.x, tmpA.y, tmpA.z, 0);
       lastAction = G.time;
       actionName = pk.action || 'pickup';
+      evTake.kind = kind; G.events.emit('p:take', evTake);
     }
     pickSt = null;
   }
@@ -318,7 +323,7 @@ export function createPlayer(G) {
       const st = stations[s];
       if (!st.active || !st.cash) continue;
       const c = st.cash;
-      if (inZone(c.pile, pos.x, pos.z, 0.6) && (c.amount > 0 || grabSt === st)) { near = st; break; }
+      if (inZone(c.pile, pos.x, pos.z, 0.6 + (G.stats.magnet || 0)) && (c.amount > 0 || grabSt === st)) { near = st; break; }
     }
     if (near !== grabSt) endGrab();
     if (!near) return;
@@ -336,7 +341,7 @@ export function createPlayer(G) {
     if (c.amount > 0) {
       const want = Math.max(1, Math.ceil(grabTotal * dt / SHOP.collectTime));
       const got = c.take(want);
-      if (got > 0) { G.addMoney(got); grabSum += got; }
+      if (got > 0) { G.addMoney(got); grabSum += got; evCash.amount = got; G.events.emit('p:cash', evCash); }
       T.grabBillT += dt;
       while (T.grabBillT >= grabBillEvery && grabBills > 0) {
         T.grabBillT -= grabBillEvery;

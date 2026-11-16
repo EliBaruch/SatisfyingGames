@@ -241,6 +241,7 @@ export function startAutoplay(G) {
   let pauseLeft = 0;
   let steps = 0;
   let simT = 0;
+  let thrillSince = -1, thrillId = '';
   let nextSample = SAMPLE_EVERY;
   let lastEarned = state.earned;
 
@@ -332,6 +333,15 @@ export function startAutoplay(G) {
     }
     if (c > 0) { const s = chainDrop(); if (s) { const z = s.drop.zone; return { kind: 'sell', key: 'sell:' + s.id, x: z.x, z: z.z, arrive: 0.5, st: s }; } }
     return null;
+  }
+
+  // an event that wants the player somewhere (prize gates, the pig): engine/thrills
+  function thrillTarget() {
+    const t = G.thrills && G.thrills.target ? G.thrills.target() : null;
+    if (!t) { thrillSince = -1; return null; }
+    if (thrillSince < 0 || thrillId !== t.id) { thrillSince = simT; thrillId = t.id; }
+    if (simT - thrillSince > 14) return null;            // out of reach: carry on with the job
+    return { kind: 'thrill', key: 'thrill:' + t.id, x: t.x, z: t.z, arrive: 0.2 };
   }
 
   function choose() {
@@ -458,6 +468,7 @@ export function startAutoplay(G) {
         const sv = act.st.serve;
         return !sv.staffed && sv.waiting > 0 && simT - act.since < 15;
       }
+      case 'thrill':
       case 'cut':
       case 'wait':
         return false; // always re-evaluated
@@ -475,7 +486,10 @@ export function startAutoplay(G) {
 
   function decide() {
     let cand;
-    if (stillValid()) {
+    const th = thrillTarget();
+    if (th) {
+      cand = th;   // a prize gate or the pig comes first, like for a player
+    } else if (stillValid()) {
       cand = null; // keep
     } else {
       cand = choose();

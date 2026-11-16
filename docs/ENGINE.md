@@ -26,6 +26,7 @@ src/engine/
                               checkout, cashpile: see docs/STATIONS.md)
   workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
+  thrills/                    events, fever, stars and perks on top of the core loop (section 13)
   geom.js                     re-exports Parts / mergeParts / meshOf / getSharedMaterial from the art kit; geo, rng
   decals.js                   scene helpers: SELL / cash zone decals (art kit zones), signs, canvas textures
   chars.js                    characters and vehicles for the engine and worlds: art-kit characters, looks,
@@ -80,7 +81,8 @@ src/worlds/<id>/models.js     the world's model factories
 | `player` | `pos, vel, stack, speed01, dropStation, pickupStation, action` | after scene (use lazily) |
 | `workers` | `list` | after player |
 | `hints` | `current {kind, text, x, z, target}`, `compute()` | after workers |
-| `refresh(live)`, `saveNow()`, `travel(id)`, `step(dt)` | see sections 7, 9, 11 | ready |
+| `thrills` | events, fever, perks (section 13); `null` with `?nothrills` or `world.thrills.off` | before player |
+| `refresh(live)`, `saveNow()`, `travel(id)`, `replay(id)`, `step(dt)` | see sections 7, 9, 11 | ready |
 
 `window.__game === G`.
 
@@ -338,6 +340,8 @@ Built-in effects:
 | `travel` | `world` (default: next world) | repeatable: never marked done; live: `G.travel(world)` |
 
 Perks are applied after the pads: `speed *= product(speedMul)`, `capacity += sum(capacityAdd)`.
+`G.thrills.applyStats()` then lays this world's gate perks, timed boosts and fever over the result
+(`speed`, `capacity`, `priceMult`, and `workerSpeed`, `reach`, `magnet`: section 13).
 After a purchase: `state.done[id] = true` -> `G.refresh(true)` (stats, then `stations.sync`,
 `workers.sync`, `player.sync`) -> `'unlock' { pad, effect }` -> `onDone` hooks -> `effect.apply`.
 Free pads (`cost: 0`, drawn with `priceText`, default "GO") and pads that appear under the player
@@ -406,10 +410,12 @@ Key `bloomrush.save.v2`:
 
 ```js
 { v: 2, level: 'flower',
-  meta: { perks: { flower: { speedMul: 1.08, capacityAdd: 10 } }, totalEarned, playTime, finished: { flower: true } },
+  meta: { perks: { flower: { speedMul: 1.08, capacityAdd: 10 } }, totalEarned, playTime, finished: { flower: true },
+          best: { flower: 512 } },                       // fastest win per world, seconds of play
   levels: { flower: { money, earned, playTime, won, done: {padId: true}, paid: {padId: n},
                       player: {x, z}, carried: ['rose', ...], stations: { 'shop-roses': { stock, value, cash } },
-                      workers: { cutter0a: { items: ['rose', ...], x, z, face } } } } }
+                      workers: { cutter0a: { items: ['rose', ...], x, z, face } },
+                      thrills: { stars, perks: { sprint: 2 }, pending, next, fever, seed, count, tips } } } }
 ```
 
 Only the current world's level is sanitised (unknown pads, stations and item kinds dropped,
@@ -426,6 +432,10 @@ saved once the card is shown, so a reload mid-celebration shows the card on the 
 The `travel` pad appears (it `requires` the win pad). `G.travel(id)` saves, sets `save.level`
 and reloads with `?world=<id>`. Switching worlds always reloads; nothing is torn down. `'reset'`
 clears the save and reloads the bare path (so it lands in the first world).
+
+Replays: `G.replay(id)` drops that world's level state and reloads into it; `meta` (finished flags, perks from
+finished worlds, best times) stays. The title's world cards show an AGAIN button on finished worlds and the best
+time; the win card shows the best time on a replay and what happened on the way.
 
 ## 10. Scene, characters, HUD hooks
 
@@ -445,7 +455,9 @@ G.pads.onDone('greenhouse', (live) => showGreenhouse(live));  // live=false at b
 ```
 
 Events: `'open' {station, live}`, `'unlock' {pad, effect, repeat?}`, `'sale' {station, stationId, amount}`,
-`'win' {world}`, `'level:won' {world, next}`, `'hud:win-shown' {time, earned, next}`, `'ready'`, `'reset'`.
+`'win' {world}`, `'level:won' {world, next}`, `'hud:win-shown' {time, earned, next}`, `'ready'`, `'reset'`,
+and what the player does: `'p:take' {kind}` (an item harvested or picked up), `'p:deliver' {kind, station}`
+(an item handed in to a drop zone), `'p:cash' {amount}` (money taken from a pile). Those three payloads are reused.
 Helpers for scenes: `engine/decals.js` (`makeDropDecal('SELL')`, `makeCashDecal()` return art-kit zone meshes
 (put them at y 0.04), `signTexture`, `canvasTex`, `makeDecal`, `flatPlane`), `engine/geom.js` (`Parts`, `rng`);
 everything else (ground textures, scenery, counters, packs) comes from the art kit, docs/ART.md.
@@ -492,7 +504,8 @@ HUD hooks for UI work: `G.hud.showWin({time, earned, next})` shows `#win` and, i
 
 - `?world=<id>` play a world if this save has unlocked it; `?world=<id>&unlock=1` play it anyway (dev
   and tests: a fresh save only has `flower` unlocked); `?worldUrl=/dev/<you>/x/world.js` load a world from anywhere on the
-  same origin (does not change `save.level`); `?speed=N` sim speed; `?autoplay` bot.
+  same origin (does not change `save.level`); `?speed=N` sim speed; `?autoplay` bot; `?nothrills` the plain game
+  without section 13 (for comparing timings).
 - `node tools/playtest.js [--world=flower] [--shots=DIR] [--until=padId]` (adds `&unlock=1`) plays a world to the win
   headlessly (page-driven: `G.timeScale = 0` and `G.step(1/60)` in batches) and prints the unlock
   timeline, gaps over 60 s, stuck events and errors.
@@ -539,3 +552,44 @@ await page.addInitScript(() => {
 - **World bounds that grow**: the player keeps a reference to `world.bounds`, so a scene may widen it live
   (`Object.assign(G.world.bounds, bigger)`). Declare the largest bounds in the definition (saved positions are clamped
   to it at boot) and narrow it in `createScene`.
+
+## 13. Thrills: events, fever, stars and perks
+
+`src/engine/thrills/` adds surprises, short goals and choices on top of the collect-sell-buy loop. It is one
+optional module (`G.thrills`, created before the player, updated after the pads, frozen during reveals) and it
+works in every world because it only uses station capabilities, pads and `G.stats`. Nothing in it can take
+anything from the player and nothing opens a dialog: every choice is made by walking.
+
+| thing | what happens | file |
+|---|---|---|
+| fever | a HUD meter fills while the player works (takes, deliveries, cash) and drains when idle; full = 12 s of double sale prices and faster running for the player and the crew | `index.js` |
+| lucky drop | a crate parachutes in near the player and opens into two prize gates (cash or a mystery against a boost, a star or a mystery); run through one | `drop.js` |
+| rush order | "40 / 60 Roses" or "Collect $400" with a clock; on time = full pay and a star, late = half pay, then it leaves | `orders.js` |
+| coin rush | a winding trail of coins; all of them before they fade = bonus and a star | `coins.js` |
+| piggy bank | a golden pig runs from the player, drops coins while chased and tires; catching it pays well and gives a star | `piggy.js` |
+| flash sale | two gates with price tags (a perk outright, or a star / boost); buy one with the money in hand or walk past | `deal.js` |
+| stars and perks | orders, coin trails, pigs, star gates and every `big` pad give a star; three stars open the perk gates: one of two permanent perks for this world (`perks.js`: speed, stack, prices, crew speed, reach, cash magnet, fever, luck, order pay, and trade-offs such as PACK MULE) | `index.js`, `perks.js` |
+| full load | handing in at least 90% of a full stack in one go pays a 12% tip | `index.js` |
+
+Shared pieces: `gates.js` (the two arches; `gates.open({ x, z, ttl, scale, options, onPick, onExpire, canPick })`),
+`spots.js` (a free spot in view that the player can walk to in a straight line: not in a blocker, zone or pad),
+`ui.js` (fever bar, star slots, boost chips, order card, tip line, edge pointer), `util.js` (`mergeGroup`).
+
+The director (`index.js`) runs one event at a time: the first after `firstAt` seconds of play and one bought pad,
+then one every `gap` seconds, picked by the `events` weights (the kind that just ran is less likely). It only counts
+down while the player is moving, so nothing starts on the title screen or for an idle player. An event that finds
+no room (a small or crowded hall) is retried a few seconds later. Rewards are multiples of `unit()` = the largest of
+a floor, 20% of the cheapest visible pad and 12 s of recent income (bonus money is kept out of that income, so
+rewards do not feed on themselves). Randomness comes from a seeded stream kept in the save.
+
+Stats: after every `computeStats`, `applyStats()` remembers the pad-and-perk base and writes
+`speed`, `capacity`, `priceMult` (base x gate perks x boosts x fever) plus `workerSpeed` (read by the hauler and
+harvester roles), `reach` (harvest radius factor) and `magnet` (metres added to cash-pile reach, both read by the
+player). Timed speed boosts do not stack: the faster one counts.
+
+Tuning lives in `TUNE` (`index.js`); a world overrides any of it with `thrills: { gap: [40, 60], events: { pig: 0 } }`
+or turns the layer off with `thrills: { off: true }`. State is `levels.<world>.thrills`; it is validated on load.
+
+Testing: `G.thrills.trigger('drop' | 'order' | 'coins' | 'pig' | 'deal' | 'perk' | 'fever')` starts one now;
+`G.thrills.state` (stars, perks, counts), `G.thrills.target()` (where the current event wants the player; the test
+bot walks there), `G.thrills.tune` (live values). The bot takes gates, coins and pigs like a player would.

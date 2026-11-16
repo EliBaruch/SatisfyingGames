@@ -83,7 +83,7 @@ function createHauler(G, hire, team, live) {
     const inv = 1 / d;
     w.dirX = dx * inv; w.dirZ = dz * inv;
     w.face = turnToward(w.face, Math.atan2(dx, dz), TURN_RATE * dt);
-    const step = Math.min(cfg.speed * dt, d);
+    const step = Math.min(cfg.speed * (G.stats.workerSpeed || 1) * dt, d);
     w.x += w.dirX * step; w.z += w.dirZ * step;
     w.spd = step / dt;
     return d - step;

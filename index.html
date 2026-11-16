@@ -66,8 +66,10 @@
     <div class="start-inner">
       <h1 class="title">Bloom Rush</h1>
       <p class="tagline">Drag to run. Collect. Sell. Grow!</p>
+      <p class="whatsnew">New: lucky drops, fever, rush orders and perks</p>
       <div id="worlds" class="worlds" role="group" aria-label="Worlds"></div>
       <p id="perks" class="perks" hidden></p>
+      <p id="world-perks" class="perks world-perks" hidden></p>
       <button class="tap" type="button">TAP TO PLAY</button>
     </div>
   </div>
@@ -79,6 +81,8 @@
       <dl class="stats">
         <div><dt>Time played</dt><dd id="win-time">0:00</dd></div>
         <div><dt>Total earned</dt><dd id="win-earned">0</dd></div>
+        <div id="win-best-row" hidden><dt>Best time</dt><dd id="win-best">0:00</dd></div>
+        <div id="win-run-row" hidden><dt>This run</dt><dd id="win-run"></dd></div>
         <div id="win-perk-row"><dt>Perk gained</dt><dd id="win-perk">+8% speed, +10 stack</dd></div>
       </dl>
       <button id="win-next" class="big-btn" type="button" hidden>NEXT: <span id="win-next-name"></span></button>

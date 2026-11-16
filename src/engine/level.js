@@ -65,7 +65,13 @@ export function createLevel(G) {
   function showWinCard() {
     if (G.state.won) return;
     G.state.won = true;
-    G.hud.showWin({ time: G.state.playTime, earned: G.state.earned, next: nextInfo() });
+    // best time for this world (replays can beat it)
+    const meta = G.save.meta, t = G.state.playTime;
+    if (!meta.best) meta.best = {};
+    const prev = meta.best[G.worldId];
+    const newBest = prev > 0 && t < prev;
+    if (!(prev > 0) || t < prev) meta.best[G.worldId] = t;
+    G.hud.showWin({ time: t, earned: G.state.earned, next: nextInfo(), best: prev > 0 ? meta.best[G.worldId] : 0, newBest });      // the best row only shows on a replay
     G.events.emit('level:won', { world: G.worldId, next: nextInfo() });
     G.saveNow();
   }
