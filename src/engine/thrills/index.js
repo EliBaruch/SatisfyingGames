@@ -339,6 +339,9 @@ export function createThrills(G) {
     if (!e || !e.pad || e.repeat) return;
     doneCount++;
     if (e.pad.cost > M.maxCost) M.maxCost = e.pad.cost;
+    // a purchase has its own moment (toast, camera glide): nothing else starts on top of it
+    D.perkWait = Math.max(D.perkWait, e.pad.big ? 6 : 3);
+    D.next = Math.max(D.next, e.pad.big ? 6 : 3);
     // every big purchase is a step toward the next perk choice
     if (e.pad.big && e.pad.effect && e.pad.effect.type !== 'win') addStar(1, e.pad.pos.x, e.pad.pos.z);
   });
