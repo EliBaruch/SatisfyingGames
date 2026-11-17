@@ -71,3 +71,6 @@
 
 /* the level banner sits lower than the toast so both can show */
 .lvl-banner { top: 52%; }
+
+/* the toast sits below the HUD stack even on short phones */
+.toast { top: 39%; }
