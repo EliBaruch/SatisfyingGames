@@ -70,6 +70,7 @@ function loadState(raw) {
     next: isNum(s.next) ? Math.max(0, Math.min(600, s.next)) : -1,
     fever: isNum(s.fever) ? Math.max(0, Math.min(1, s.fever)) : 0,
     last: typeof s.last === 'string' ? s.last : '',
+    rate: isNum(s.rate) && s.rate > 0 ? Math.min(1e9, s.rate) : 0,
     turbo: isNum(s.turbo) ? Math.max(0, Math.min(120, s.turbo)) : 0,          // seconds of boost / fever left
     crew: isNum(s.crew) ? Math.max(0, Math.min(120, s.crew)) : 0,
     feverLeft: isNum(s.feverLeft) ? Math.max(0, Math.min(60, s.feverLeft)) : 0,
@@ -123,7 +124,7 @@ export function createThrills(G) {
 
   // ------------------------------------------------------------------ money
   // Bonus money is kept out of the income estimate, so rewards do not feed on themselves.
-  const M = { bonus: 0, lastEarned: G.state.earned, rate: 0, t: 0, maxCost: 0 };
+  const M = { bonus: 0, lastEarned: G.state.earned, rate: st.rate, t: 0, maxCost: 0 };
   const _p = new THREE.Vector3(), _from = new THREE.Vector3();
   const chest = (o) => (G.player ? o.set(G.player.pos.x, 1.2, G.player.pos.z) : o);
   const billOpts = { kind: 'cash', from: _from, to: chest, dur: 0.4, arc: 2.2, delay: 0, onDone: null };
@@ -457,6 +458,7 @@ export function createThrills(G) {
       if (M.rate < 0) M.rate = 0;
       M.lastEarned = e;
       st.next = D.next;
+      st.rate = Math.round(M.rate * 100) / 100;        // recent income per second (the welcome-back bonus uses it)
       st.fever = F.on ? 0 : F.charge;
       st.feverLeft = F.on ? F.left : 0;
       st.turbo = B.turbo; st.crew = B.crew;

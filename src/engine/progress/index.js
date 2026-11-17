@@ -10,6 +10,10 @@
 //             shown on a card under the goal line. Finishing it pays XP and a little cash, and the
 //             next one follows. Rush orders (engine/thrills) share the card's place while they run.
 //
+//   welcome   coming back to a world after a few minutes away pays what the crew "earned" meanwhile
+//             (a quarter of the recent income for the time away, capped at about two upgrades),
+//             once the player starts moving again.
+//
 // State: meta.xp (all worlds) and levels.<world>.mission. Off with ?noprogress.
 // Events it listens to: 'p:deliver', 'p:cash', 'unlock', 'thrill' { kind }, 'run:done', 'win'.
 import { fmtMoney } from '../config.js';
@@ -284,9 +288,38 @@ export function createProgress(G) {
   });
   G.events.on('win', () => addXp(XP.win));
 
+  // ------------------------------------------------------------------ welcome back
+  // Read at boot, before the first save stamps the time again. Wall-clock time: it is about the real
+  // world, not the simulation.
+  let awaySeconds = 0;
+  {
+    const seen = G.state.seenAt;
+    if (isNum(seen) && seen > 0) awaySeconds = Math.max(0, (Date.now() - seen) / 1000);
+  }
+  function crewSize() {
+    const h = G.stats.hires;
+    let n = 0;
+    if (h) for (let i = 0; i < h.length; i++) if (h[i].role !== 'cashier') n++;
+    return n;
+  }
+  function welcomeBack() {
+    const away = awaySeconds;
+    awaySeconds = 0;
+    const rate = G.thrills && G.thrills.state ? G.thrills.state.rate || 0 : 0;
+    if (away < 180 || !(rate > 0) || crewSize() === 0 || G.stats.won) return;
+    const cash = nice(Math.min(rate * Math.min(away, 4 * 3600) * 0.25, unit() * 10));
+    if (!(cash >= 5)) return;
+    payCash(cash, 'CREW EARNED');
+    const mins = Math.round(away / 60);
+    const span = mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min';
+    showBanner('WELCOME BACK!', 'Your crew earned $' + fmtMoney(cash) + ' in ' + span);
+    if (G.audio && G.audio.play) G.audio.play('orderDone');
+  }
+
   // ------------------------------------------------------------------ update
   let slow = 0, decayT = 0;
   function update(dt) {
+    if (awaySeconds > 0 && G.player && G.player.speed01 > 0.2) welcomeBack();
     if (pendingLevels > 0) levelUp();
     slow += dt;
     if (slow >= 0.2) {

@@ -254,6 +254,7 @@ function saveNow() {
   const pl = G.player;
   if (pl && pl.pos) G.state.player = { x: +pl.pos.x.toFixed(3), z: +pl.pos.z.toFixed(3) };
   if (pl && pl.stack) G.state.carried = pl.stack.snapshot ? pl.stack.snapshot() : pl.stack.items.slice();
+  G.state.seenAt = Date.now();          // when this world was last played (the welcome-back bonus)
   G.state.stations = G.stations.serialize({});
   if (G.workers && G.workers.serialize) G.state.workers = G.workers.serialize({});
   save.levels[def.id] = G.state;
