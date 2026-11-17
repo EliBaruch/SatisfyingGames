@@ -340,7 +340,7 @@ export function startAutoplay(G) {
     const t = G.thrills && G.thrills.target ? G.thrills.target() : null;
     if (!t) { thrillSince = -1; return null; }
     if (thrillSince < 0 || thrillId !== t.id) { thrillSince = simT; thrillId = t.id; }
-    if (simT - thrillSince > 14) return null;            // out of reach: carry on with the job
+    if (simT - thrillSince > (t.id === 'escort' ? 40 : 14)) return null;            // out of reach: carry on with the job
     return { kind: 'thrill', key: 'thrill:' + t.id, x: t.x, z: t.z, arrive: 0.2 };
   }
 

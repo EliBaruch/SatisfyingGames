@@ -21,7 +21,7 @@ import { getItem } from '../registry.js';
 
 const LEVEL_CAP_BONUS = 40;          // levels that still raise prices
 const PRICE_PER_LEVEL = 0.01;
-const XP = { deliver: 0.25, pad: 12, bigPad: 40, order: 25, pig: 25, coins: 20, drop: 8, deal: 8, perk: 20, fever: 10, load: 3, star: 6, runStar: 30, run: 15, win: 250 };
+const XP = { deliver: 0.25, pad: 12, bigPad: 40, order: 25, pig: 25, coins: 20, escort: 25, drop: 8, deal: 8, perk: 20, fever: 10, load: 3, star: 6, runStar: 30, run: 15, win: 250 };
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 /** XP needed to go from `level` to the next one. */
@@ -93,8 +93,11 @@ export function createProgress(G) {
   }
   drawBadge(false);
   let bannerTimer = 0;
-  function showBanner(title, sub) {
+  const toastEl = doc && doc.getElementById('toast');
+  function showBanner(title, sub, tries = 0) {
     if (!banner) return;
+    // one big card at a time: wait for a toast that is on screen (presentation only)
+    if (toastEl && toastEl.classList.contains('show') && tries < 4) { clearTimeout(bannerTimer); bannerTimer = setTimeout(() => showBanner(title, sub, tries + 1), 700); return; }
     bannerTitle.textContent = title;
     bannerSub.textContent = sub;
     clearTimeout(bannerTimer);
@@ -277,7 +280,7 @@ export function createProgress(G) {
   G.events.on('thrill', (e) => {
     if (!e) return;
     addXp(XP[e.kind] || 0);
-    if (e.kind === 'order' || e.kind === 'pig' || e.kind === 'coins') bump('event', 1);
+    if (e.kind === 'order' || e.kind === 'pig' || e.kind === 'coins' || e.kind === 'escort') bump('event', 1);
     else if (e.kind === 'fever') bump('fever', 1);
     else if (e.kind === 'star') bump('star', 1);
     else if (e.kind === 'load') bump('load', 1);

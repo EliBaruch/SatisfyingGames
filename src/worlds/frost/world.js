@@ -207,6 +207,8 @@ export default {
   finale: { pad: 'beacon', focus: LAY.beacon },
 
   // the test bot delivers what it carries before gathering more, and finds its way round the walls
+  // the VIP escort event, re-dressed: a freezing traveller to bring to the cook fire (engine/thrills/escort.js)
+  thrills: { escort: { tag: 'HELP!', toast: 'A TRAVELLER IS FREEZING!', tip: 'Touch the traveller, then lead them to the fire', to: 'fire', done: 'WARM AND SAFE!' } },
   autoplay: { chain: true },
 
   hud: { stages: ['CLEARING', 'CAMP', 'COOK FIRE', 'WATCHTOWERS', 'HIGH SNOW'], stageStat: 'stage' },

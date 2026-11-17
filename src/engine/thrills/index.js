@@ -8,6 +8,7 @@
 //   coin rush    a trail of coins: grab them all before they fade
 //   piggy bank   a golden pig runs away; catch it
 //   flash sale   two gates with price tags: buy a perk or a boost with the money in hand, or pass
+//   VIP escort   someone special waves from a little way off: touch them and lead them to the flag
 //   stars        orders, coin trails, pigs, some gates and every big purchase give a star; three
 //                stars open the perk gates, where one of two permanent perks for this world is
 //                picked (perks.js)
@@ -31,12 +32,13 @@ import { createOrders } from './orders.js';
 import { createPiggy } from './piggy.js';
 import { createCoins } from './coins.js';
 import { createDeal } from './deal.js';
+import { createEscort } from './escort.js';
 
 export const TUNE = {
   firstAt: 45,            // seconds of play in a world before the first event
   firstPads: 1,           // ... and this many pads bought
   gap: [32, 52],          // seconds between the end of one event and the next
-  events: { drop: 4, order: 4, coins: 3, pig: 2, deal: 2 },   // how often each is picked (0 = never)
+  events: { drop: 4, order: 4, coins: 3, pig: 2, deal: 2, escort: 2 },   // how often each is picked (0 = never)
   starsPerPerk: 3,
   // fever
   feverFill: 62,          // seconds of steady work to fill the meter
@@ -74,10 +76,10 @@ function loadState(raw) {
     turbo: isNum(s.turbo) ? Math.max(0, Math.min(120, s.turbo)) : 0,          // seconds of boost / fever left
     crew: isNum(s.crew) ? Math.max(0, Math.min(120, s.crew)) : 0,
     feverLeft: isNum(s.feverLeft) ? Math.max(0, Math.min(60, s.feverLeft)) : 0,
-    won: { order: won.order | 0, pig: won.pig | 0, coins: won.coins | 0 },   // events finished (count = started)
+    won: { order: won.order | 0, pig: won.pig | 0, coins: won.coins | 0, escort: won.escort | 0 },   // events finished (count = started)
     tips: isObj(s.tips) ? s.tips : {},
     count: {
-      drop: count.drop | 0, order: count.order | 0, pig: count.pig | 0, coins: count.coins | 0, deal: count.deal | 0,
+      drop: count.drop | 0, order: count.order | 0, pig: count.pig | 0, coins: count.coins | 0, deal: count.deal | 0, escort: count.escort | 0,
       jackpot: count.jackpot | 0, perk: count.perk | 0, fever: count.fever | 0, load: count.load | 0,
     },
   };
@@ -331,7 +333,8 @@ export function createThrills(G) {
   const piggy = createPiggy(K);
   const coins = createCoins(K);
   const deal = createDeal(K);
-  const EVENTS = { drop, order: orders, coins, pig: piggy, deal };
+  const escort = createEscort(K);
+  const EVENTS = { drop, order: orders, coins, pig: piggy, deal, escort };
 
   let doneCount = 0;
   for (const id in G.state.done) if (G.state.done[id]) doneCount++;
@@ -358,7 +361,7 @@ export function createThrills(G) {
 
   function pickEvent() {
     // the first two are fixed so each kind is met in a sensible order: a drop, then an order
-    const seen = st.count.drop + st.count.order + st.count.pig + st.count.coins + st.count.deal;
+    const seen = st.count.drop + st.count.order + st.count.pig + st.count.coins + st.count.deal + st.count.escort;
     if (seen === 0 && T.events.drop > 0) return 'drop';
     if (st.count.order === 0 && seen >= 1 && T.events.order > 0) return 'order';
     let total = 0;
@@ -514,12 +517,13 @@ export function createThrills(G) {
     }
     if (D.cur === piggy && piggy.position(TG)) { TG.id = 'pig'; return TG; }
     if (D.cur === coins && coins.position(TG)) { TG.id = 'coins'; return TG; }
+    if (D.cur === escort && escort.position(TG)) { TG.id = 'escort'; return TG; }
     return null;
   }
 
   ui.setStars(Math.min(T.starsPerPerk, st.stars));
   ui.setFever(F.charge, false, 0);
-  if (st.count.drop + st.count.order + st.count.pig + st.count.coins + st.count.deal > 0) { D.started = true; ui.show(true); }
+  if (st.count.drop + st.count.order + st.count.pig + st.count.coins + st.count.deal + st.count.escort > 0) { D.started = true; ui.show(true); }
 
   return {
     update,
