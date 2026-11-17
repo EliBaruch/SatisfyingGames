@@ -93,6 +93,11 @@ const loaded = await resolveWorld();
 const def = normaliseWorld(loaded.def);
 for (const it of def.items) registerItem(it);
 if (!loaded.dev) save.level = def.id;
+// how many pads each visited world has, so the world select can show how far along it is
+if (!loaded.dev) {
+  const totals = save.meta.padTotals && typeof save.meta.padTotals === 'object' ? save.meta.padTotals : (save.meta.padTotals = {});
+  totals[def.id] = def.pads.filter((p) => p.cost > 0).length;
+}
 
 // ------------------------------------------------------------------ G
 const view = createView(document.getElementById('game'), def.camera);

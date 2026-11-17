@@ -1,0 +1,73 @@
+/* HUD family: dark glass pills with white type (engine/hud.js, engine/thrills/ui.js, engine/progress). */
+
+.money {
+  position: relative;
+  gap: 8px;
+  padding: 4px 20px 4px 54px;
+  min-height: 40px;
+  background: linear-gradient(rgba(26, 44, 78, 0.9), rgba(14, 24, 46, 0.92));
+  border: 2.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 5px 0 rgba(6, 12, 26, 0.55), 0 10px 18px rgba(0, 0, 0, 0.22);
+}
+
+.money .bill {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 58px;
+  height: 40px;
+  transform: translateY(-50%) rotate(-8deg);
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.3));
+}
+
+.money .num { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+.money.pop .bill { animation: billPop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes billPop { 35% { transform: translateY(-50%) rotate(-16deg) scale(1.22); } }
+
+.goal {
+  padding: 5px 16px 6px;
+  background: linear-gradient(#ffffff, #f1f4fb);
+  box-shadow: 0 4px 0 rgba(10, 20, 40, 0.3);
+}
+
+.icon-btn {
+  width: 48px;
+  height: 48px;
+  border: 2.5px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(rgba(26, 44, 78, 0.9), rgba(14, 24, 46, 0.92));
+  box-shadow: 0 4px 0 rgba(6, 12, 26, 0.55);
+}
+
+.icon-btn:active { box-shadow: 0 1px 0 rgba(6, 12, 26, 0.55); }
+.icon-btn svg { width: 23px; height: 23px; }
+.hud-buttons { gap: 10px; }
+
+/* bills flying to the counter */
+.hud-fly { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.hud-bill {
+  position: absolute;
+  left: -15px;
+  top: -10px;
+  width: 30px;
+  height: 20px;
+  display: none;
+  border-radius: 4px;
+  background: linear-gradient(#63d873, #2e9e44);
+  border: 2px solid #17602a;
+  box-shadow: inset 0 0 0 2px rgba(200, 247, 201, 0.55);
+  will-change: transform, opacity;
+}
+
+.hud-bill::after { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: #c8f7c9; }
+
+/* a soft vignette over the 3D view: frames the scene, keeps the eye in the middle */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 85% 75% at 50% 46%, rgba(0, 0, 0, 0) 58%, rgba(8, 18, 36, 0.3) 100%);
+}
+
+/* the level banner sits lower than the toast so both can show */
+.lvl-banner { top: 52%; }

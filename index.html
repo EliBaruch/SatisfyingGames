@@ -9,10 +9,13 @@
   <title>Bloom Rush</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='%23ff4d7d'%3E%3Ccircle cx='32' cy='16' r='13'/%3E%3Ccircle cx='48' cy='32' r='13'/%3E%3Ccircle cx='32' cy='48' r='13'/%3E%3Ccircle cx='16' cy='32' r='13'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='9' fill='%23ffd166'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles/title.css">
+  <link rel="stylesheet" href="./styles/hud.css">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","addons":"./vendor/three-addons.min.js"}}</script>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
 
   <div id="joy-base" class="joy-base"></div>
   <div id="joy-knob" class="joy-knob"></div>
@@ -51,12 +54,6 @@
           <path d="M16 9.5l5 5M21 9.5l-5 5"/>
         </svg>
       </button>
-      <button id="btn-reset" class="icon-btn" type="button" aria-label="Reset progress">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/>
-          <path d="M4.5 4.5v4h4"/>
-        </svg>
-      </button>
     </div>
   </div>
 
@@ -66,11 +63,12 @@
     <div class="start-inner">
       <h1 class="title">Bloom Rush</h1>
       <p class="tagline">Drag to run. Collect. Sell. Grow!</p>
-      <p class="whatsnew">New: lucky drops, fever, rush orders and perks</p>
-      <div id="worlds" class="worlds" role="group" aria-label="Worlds"></div>
+      <div id="title-meta" class="title-meta"></div>
+      <div id="worlds" class="wsel" role="group" aria-label="Worlds"></div>
+      <button class="tap" type="button">TAP TO PLAY</button>
       <p id="perks" class="perks" hidden></p>
       <p id="world-perks" class="perks world-perks" hidden></p>
-      <button class="tap" type="button">TAP TO PLAY</button>
+      <button id="btn-reset" class="link-btn" type="button">Reset all progress</button>
     </div>
   </div>
 

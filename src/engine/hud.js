@@ -146,6 +146,39 @@ export function createHud(G) {
     if (worldHud) worldHud(dt);
   }
 
+  // ---- bills fly from the player up to the money counter when cash is picked up
+  // Presentation only (real time, pooled DOM nodes); skipped when the sim runs fast (tests).
+  (function setupCashFly() {
+    const hudEl = $('hud');
+    if (!hudEl || !G.events || !G.THREE) return;
+    const N = 12, pool = [];
+    const layer = document.createElement('div');
+    layer.className = 'hud-fly';
+    for (let i = 0; i < N; i++) { const b = document.createElement('i'); b.className = 'hud-bill'; layer.append(b); pool.push(b); }
+    hudEl.append(layer);
+    const v = new G.THREE.Vector3();
+    let next = 0, last = 0;
+    G.events.on('p:cash', () => {
+      const now = performance.now();
+      if (now - last < 75 || (G.timeScale || 1) > 3 || !G.player || !G.camera || typeof layer.animate !== 'function') return;
+      last = now;
+      const W = window.innerWidth || 1, H = window.innerHeight || 1;
+      v.set(G.player.pos.x, 1.3, G.player.pos.z).project(G.camera);
+      const sx = (v.x * 0.5 + 0.5) * W + (Math.random() - 0.5) * 30, sy = (-v.y * 0.5 + 0.5) * H;
+      const r = moneyEl.getBoundingClientRect();
+      const ex = r.left + 30, ey = r.top + r.height / 2;
+      const el = pool[next]; next = (next + 1) % N;
+      const mx = (sx + ex) / 2 + (Math.random() - 0.5) * 80, my = Math.min(sy, ey) + (sy - ey) * 0.35 - 30;
+      el.style.display = 'block';
+      const a = el.animate([
+        { transform: `translate(${sx}px, ${sy}px) scale(0.5) rotate(-20deg)`, opacity: 0 },
+        { transform: `translate(${mx}px, ${my}px) scale(1.15) rotate(8deg)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${ex}px, ${ey}px) scale(0.55) rotate(0deg)`, opacity: 1 },
+      ], { duration: 560, easing: 'cubic-bezier(0.3, 0, 0.3, 1)' });
+      a.onfinish = () => { el.style.display = 'none'; };
+    });
+  }());
+
   // ---- optional world HUD: a stage bar and production-rate chips (world.hud)
   //   world.hud = { stages: ['GARAGE', ...], stageStat: 'stage',
   //                 rates: [{ label: 'PACKS', total: (G) => n so far, show: (G) => bool, color }] }
@@ -284,64 +317,117 @@ export function createHud(G) {
   }
 
   // ---- world cards
+  // Poster cards in a snap carousel: in-game art (assets/ui/world-<id>.jpg), an emblem, a state line
+  // and a progress bar. Finished worlds get an AGAIN button on the art.
+  const CARD_COLOR = { flower: '#ff8fb1', chicken: '#ffd166', grocery: '#9be7a8', factory: '#6fa8ff', frost: '#7fd3e6', town: '#f2b65a' };
+  function worldProgress(id) {
+    const lv = G.save && G.save.levels ? G.save.levels[id] : null;
+    const total = G.meta && G.meta.padTotals ? G.meta.padTotals[id] : 0;
+    if (!lv || !lv.done || !(total > 0)) return 0;
+    let n = 0;
+    for (const k in lv.done) if (lv.done[k]) n++;
+    return Math.max(0, Math.min(1, n / total));
+  }
   function renderCards() {
     if (!cardsEl) return;
     const fin = finishedMap();
     cardsEl.textContent = '';
+    let current = null;
     for (const w of worlds()) {
       const done = !!fin[w.id];
       const open = !w.unlockedBy || !!fin[w.unlockedBy];
       const isCur = w.id === G.worldId;
-      let state;
       const best = bestMap()[w.id];
-      if (done) state = best > 0 ? `Done, best ${formatTime(best)}` : 'Done';
-      else if (isCur) state = 'Playing now';
-      else if (open) state = 'Tap to play';
-      else state = `Finish ${nameOf(w.unlockedBy)} to unlock`;
+      const prog = done ? 1 : worldProgress(w.id);
+      let state;
+      if (!open) state = `Finish ${nameOf(w.unlockedBy)} to unlock`;
+      else if (done) state = best > 0 ? `Complete, best ${formatTime(best)}` : 'Complete';
+      else if (prog > 0) state = `${Math.round(prog * 100)}% built`;
+      else state = 'New world';
+
+      const row = document.createElement('div');
+      row.className = 'wrow' + (isCur ? ' is-current' : '') + (done ? ' is-finished' : '') + (open ? '' : ' is-locked');
+      row.style.setProperty('--wc', CARD_COLOR[w.id] || '#ffd166');
 
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'world-card'
-        + (isCur ? ' is-current' : '')
-        + (done ? ' is-finished' : '')
-        + (open ? '' : ' is-locked');
+      card.className = 'wcard';
       card.dataset.world = w.id;
       card.setAttribute('aria-disabled', String(!open));
       card.setAttribute('aria-label', `${w.name}, ${state}`);
 
-      const icon = document.createElement('span');
-      icon.className = 'wc-icon';
-      icon.innerHTML = `<svg viewBox="${ICON_VB}" aria-hidden="true">${ICON[w.id] || ICON.generic}</svg>`;
+      const art = document.createElement('span');
+      art.className = 'wcard-art';
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.onerror = () => img.remove();           // no art for this world: the gradient shows
+      img.src = new URL(`../../assets/ui/world-${w.id}.jpg`, import.meta.url).href;
+      const emblem = document.createElement('span');
+      emblem.className = 'wcard-emblem';
+      emblem.innerHTML = `<svg viewBox="${ICON_VB}" aria-hidden="true">${ICON[w.id] || ICON.generic}</svg>`;
+      art.append(img);
 
-      const text = document.createElement('span');
-      text.className = 'wc-text';
+      const tag = document.createElement('span');
+      if (!open) { tag.className = 'wcard-tag is-lock'; tag.innerHTML = LOCK_SVG + '<span>LOCKED</span>'; }
+      else if (isCur) { tag.className = 'wcard-tag is-now'; tag.textContent = 'PLAYING'; }
+      else if (done) { tag.className = 'wcard-tag'; tag.textContent = 'COMPLETE'; }
+
+      const body = document.createElement('span');
+      body.className = 'wcard-body';
       const name = document.createElement('span');
-      name.className = 'wc-name';
+      name.className = 'wcard-name';
       name.textContent = w.name;
       const st = document.createElement('span');
-      st.className = 'wc-state';
+      st.className = 'wcard-state';
       st.textContent = state;
-      text.append(name, st);
+      const bar = document.createElement('span');
+      bar.className = 'wcard-bar';
+      const fill = document.createElement('i');
+      fill.style.width = Math.round(prog * 100) + '%';
+      bar.append(fill);
+      body.append(name, st, bar);
 
-      const mark = document.createElement('span');
-      mark.className = 'wc-mark';
-      if (done) mark.innerHTML = CHECK_SVG;
-      else if (!open) mark.innerHTML = LOCK_SVG;
-
-      card.append(icon, text, mark);
+      const artWrap = document.createElement('span');
+      artWrap.style.cssText = 'position:relative;display:block';
+      artWrap.append(art, emblem);
+      card.append(artWrap, body);
+      if (tag.className) card.append(tag);
+      row.append(card);
       if (done) {
         // a finished world can be played again from the start (new events, new perk picks, a time to beat)
-        const row = document.createElement('div');
-        row.className = 'world-row';
         const again = document.createElement('button');
         again.type = 'button';
-        again.className = 'wc-replay';
+        again.className = 'wcard-again';
         again.dataset.replay = w.id;
         again.setAttribute('aria-label', `Play ${w.name} again from the start`);
         again.innerHTML = REPLAY_SVG + '<span>AGAIN</span>';
-        row.append(card, again);
-        cardsEl.append(row);
-      } else cardsEl.append(card);
+        row.append(again);
+      }
+      cardsEl.append(row);
+      if (isCur) current = row;
+    }
+    // the world being played sits in the middle
+    if (current) {
+      const centre = () => { cardsEl.scrollLeft = current.offsetLeft - (cardsEl.clientWidth - current.offsetWidth) / 2; };
+      centre();
+      requestAnimationFrame(centre);
+    }
+  }
+
+  // the player level on the title (engine/progress)
+  const metaEl = $('title-meta');
+  function renderMeta() {
+    if (!metaEl) return;
+    metaEl.textContent = '';
+    if (G.progress && G.progress.level > 0) {
+      const chip = document.createElement('span');
+      chip.className = 'tm-chip';
+      chip.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.4l-6.1 3.4 1.4-6.8L2.2 9.3l6.9-.8z" fill="#ffd23f" stroke="#7a5200" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+      const t = document.createElement('span');
+      t.textContent = 'LEVEL ' + G.progress.level;
+      chip.append(t);
+      metaEl.append(chip);
     }
   }
 
@@ -358,6 +444,7 @@ export function createHud(G) {
     const text = loading ? `LOADING ${pct}%` : (mode === 'picker' ? 'RESUME' : 'TAP TO PLAY');
     if (tapBtn.textContent !== text) tapBtn.textContent = text;
     tapBtn.classList.toggle('loading', loading);
+    tapBtn.style.setProperty('--p', pct + '%');
     tapBtn.setAttribute('aria-disabled', String(loading));
   }
 
@@ -369,6 +456,7 @@ export function createHud(G) {
     startEl.setAttribute('aria-hidden', 'false');
     renderCards();
     renderPerks();
+    renderMeta();
     renderTap();
   }
 
@@ -401,22 +489,24 @@ export function createHud(G) {
     startEl.addEventListener('pointerdown', (e) => {
       if (mode !== 'start') return;
       const t = e.target;
-      if (t && t.closest && t.closest('.world-card, .wc-replay, .tap')) return; // those handle their own click
+      if (t && t.closest && t.closest('.wsel, .tap, .link-btn')) return; // those handle their own click (or scroll)
       play();
     });
   }
   if (tapBtn) tapBtn.addEventListener('click', play);
   if (cardsEl) {
     cardsEl.addEventListener('click', (e) => {
-      const again = e.target && e.target.closest ? e.target.closest('.wc-replay') : null;
+      const again = e.target && e.target.closest ? e.target.closest('.wcard-again') : null;
       if (again) {
         if (!ready() || typeof G.replay !== 'function') return;
         const id = again.dataset.replay;
         if (id && window.confirm(`Start ${nameOf(id)} again from the beginning?\nYour perks from finished worlds and your best time stay.`)) G.replay(id);
         return;
       }
-      const card = e.target && e.target.closest ? e.target.closest('.world-card') : null;
-      if (!card || card.classList.contains('is-locked') || !ready()) return;
+      const card = e.target && e.target.closest ? e.target.closest('.wcard') : null;
+      if (!card || !ready()) return;
+      const row = card.parentNode;
+      if (row.classList.contains('is-locked')) { row.classList.remove('shake'); void row.offsetWidth; row.classList.add('shake'); return; }
       const id = card.dataset.world;
       if (!id) return;
       if (id === G.worldId) { play(); return; }
@@ -530,5 +620,5 @@ export function createHud(G) {
     if (window.confirm('Reset all progress?')) G.events.emit('reset', {});
   });
 
-  return { update, setGoal, toast, showWin, hideWin, openWorlds, /** redraw the title's cards and perk lines */ refreshTitle() { renderCards(); renderPerks(); } };
+  return { update, setGoal, toast, showWin, hideWin, openWorlds, /** redraw the title's cards and perk lines */ refreshTitle() { renderCards(); renderPerks(); renderMeta(); } };
 }

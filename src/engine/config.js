@@ -40,7 +40,7 @@ export const SHOP = {
   },
   maxVisibleStock: 120,
   stockPerColumn: 20,
-  maxVisibleBills: 36,
+  maxVisibleBills: 84,      // 7 layers of 12 bundles: a pile left alone grows into a tower
   collectTime: 0.6,      // a cash pile empties into the player in about this long
 };
 
