@@ -281,3 +281,81 @@
 }
 
 body.leaving .curtain { opacity: 1; pointer-events: auto; }
+
+/* ---- trophies (engine/progress/trophies.js) */
+.tm-btn { font-family: inherit; cursor: pointer; touch-action: manipulation; background: rgba(120, 70, 0, 0.62); border-color: #ffd23f; }
+.tm-btn:active { transform: scale(0.95); }
+
+.trophy-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(6, 14, 26, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.trophy-sheet.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.2s ease, visibility 0s; }
+
+.ts-card {
+  width: min(100vw, 520px);
+  max-height: 84vh;
+  max-height: 84dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px 26px 0 0;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
+  transform: translateY(40px);
+  transition: transform 0.25s cubic-bezier(0.2, 1.2, 0.4, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.trophy-sheet.show .ts-card { transform: none; }
+
+.ts-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px 20px; }
+.ts-head b { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
+
+.ts-close {
+  padding: 6px 14px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mint);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 0 3px 0 var(--mint-dark);
+  cursor: pointer;
+}
+
+.ts-grid { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 2px 14px 16px; display: grid; gap: 8px; }
+
+.ts-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--cream-edge);
+}
+
+.ts-medal { flex: none; width: 42px; height: 42px; filter: grayscale(1) opacity(0.45); }
+.ts-medal svg { display: block; width: 100%; height: 100%; }
+.ts-item.is-done .ts-medal { filter: none; }
+.ts-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ts-text b { font-size: 16px; font-weight: 700; line-height: 1.15; }
+.ts-text span { font-size: 13px; font-weight: 600; color: #7a6a4a; line-height: 1.2; }
+.ts-bar { display: block; height: 6px; margin-top: 5px; border-radius: 999px; background: #eee3c6; overflow: hidden; }
+.ts-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb02e, #ffd23f); }
+.ts-item.is-done .ts-bar i { background: linear-gradient(90deg, #2fb14a, #7be06a); }
+.ts-n { flex: none; font-size: 13px; font-weight: 700; color: #7a6a4a; font-variant-numeric: tabular-nums; }
+.ts-item.is-done .ts-n { color: var(--mint-dark); }

@@ -428,6 +428,18 @@ export function createHud(G) {
       t.textContent = 'LEVEL ' + G.progress.level;
       chip.append(t);
       metaEl.append(chip);
+      const tr = G.progress.trophies;
+      if (tr) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tm-chip tm-btn';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="#ffd23f" stroke="#7a5200" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 4.500H3.500c0 3 1.500 4.500 3.800 4.800M17 4.500h3.500c0 3-1.500 4.500-3.800 4.800M12 13v4M8 20.500h8M9.500 17h5v3.500h-5z" fill="none" stroke="#fff" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const tt = document.createElement('span');
+        tt.textContent = `TROPHIES ${tr.earned()}/${tr.total}`;
+        btn.append(tt);
+        btn.addEventListener('click', () => tr.open());
+        metaEl.append(btn);
+      }
     }
   }
 
@@ -489,7 +501,7 @@ export function createHud(G) {
     startEl.addEventListener('pointerdown', (e) => {
       if (mode !== 'start') return;
       const t = e.target;
-      if (t && t.closest && t.closest('.wsel, .tap, .link-btn')) return; // those handle their own click (or scroll)
+      if (t && t.closest && t.closest('.wsel, .tap, .link-btn, .title-meta')) return; // those handle their own click (or scroll)
       play();
     });
   }

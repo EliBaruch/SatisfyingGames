@@ -18,6 +18,7 @@
 // Events it listens to: 'p:deliver', 'p:cash', 'unlock', 'thrill' { kind }, 'run:done', 'win'.
 import { fmtMoney } from '../config.js';
 import { getItem } from '../registry.js';
+import { createTrophies } from './trophies.js';
 
 const LEVEL_CAP_BONUS = 40;          // levels that still raise prices
 const PRICE_PER_LEVEL = 0.01;
@@ -107,6 +108,9 @@ export function createProgress(G) {
     bannerTimer = setTimeout(() => banner.classList.remove('show'), 2600);
   }
 
+  // trophies (trophies.js): long-term goals counted from the same events
+  const trophies = createTrophies(G, { level: () => L.level, addXp: (n) => addXp(n), banner: (t, s) => showBanner(t, s) });
+
   // ------------------------------------------------------------------ rewards
   function unit() {
     if (G.thrills && G.thrills.unit) return G.thrills.unit();
@@ -147,6 +151,7 @@ export function createProgress(G) {
     if (G.fx && G.player) { G.fx.confetti({ x: G.player.pos.x, y: 0.4, z: G.player.pos.z }, 90); G.fx.ring(G.player.pos, { color: 0xffd23f, radius: 4.5, life: 0.7 }); }
     if (G.refresh) G.refresh(true);       // the price bonus applies at once
     drawBadge(true);
+    trophies.note(null);
     if (G.saveNow) G.saveNow();
   }
 
@@ -280,16 +285,22 @@ export function createProgress(G) {
   G.events.on('thrill', (e) => {
     if (!e) return;
     addXp(XP[e.kind] || 0);
+    trophies.note(e.kind);
     if (e.kind === 'order' || e.kind === 'pig' || e.kind === 'coins' || e.kind === 'escort') bump('event', 1);
     else if (e.kind === 'fever') bump('fever', 1);
     else if (e.kind === 'star') bump('star', 1);
     else if (e.kind === 'load') bump('load', 1);
   });
   G.events.on('run:done', (e) => {
-    addXp(XP.run + XP.runStar * Math.max(0, (e && e.newStars) | 0));
+    const fresh = Math.max(0, (e && e.newStars) | 0);
+    addXp(XP.run + XP.runStar * fresh);
     bump('run', 1);
+    trophies.note('run');
+    if (fresh > 0) trophies.note('runStar', fresh);
+    if (e && e.stars >= 3) trophies.note('run3');
   });
-  G.events.on('win', () => addXp(XP.win));
+  G.events.on('win', () => { addXp(XP.win); trophies.note(null); });
+  G.events.on('level:won', () => trophies.note(null));       // the best time is recorded by then
 
   // ------------------------------------------------------------------ welcome back
   // Read at boot, before the first save stamps the time again. Wall-clock time: it is about the real
@@ -323,6 +334,7 @@ export function createProgress(G) {
   let slow = 0, decayT = 0;
   function update(dt) {
     if (awaySeconds > 0 && G.player && G.player.speed01 > 0.2) welcomeBack();
+    trophies.update(dt);
     if (pendingLevels > 0) levelUp();
     slow += dt;
     if (slow >= 0.2) {
@@ -345,7 +357,7 @@ export function createProgress(G) {
   if (M.on) draw(true);
 
   return {
-    update, applyStats, addXp,
+    update, applyStats, addXp, trophies,
     get level() { return L.level; },
     get xp() { return meta.xp; },
     get mission() { return M.on ? { type: M.type, text: label(), have: M.have, need: M.need } : null; },

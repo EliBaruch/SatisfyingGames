@@ -112,6 +112,7 @@ export function createDrop(K) {
         const r = rnd(), jack = 0.08 * K.totals.luck;
         if (r < jack) {
           st.count.jackpot++;
+          K.note('jackpot');
           K.pay(K.nice(u * T.jackpot), from, 'JACKPOT');
           K.toast('JACKPOT!');
           K.play('jackpot');
