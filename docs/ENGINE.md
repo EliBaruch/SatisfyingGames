@@ -597,3 +597,33 @@ and the wait for the next one starts when an event starts, so a reload cannot sk
 Testing: `G.thrills.trigger('drop' | 'order' | 'coins' | 'pig' | 'deal' | 'perk' | 'fever')` starts one now;
 `G.thrills.state` (stars, perks, counts), `G.thrills.target()` (where the current event wants the player; the test
 bot walks there), `G.thrills.tune` (live values). The bot takes gates, coins and pigs like a player would.
+
+## 14. Progress: player level, missions, trophies, welcome back
+
+`src/engine/progress/` (`G.progress`, created before thrills, updated after it; off with `?noprogress`).
+
+- **Level.** `meta.xp` is one total for every world. XP comes from the player's deliveries, purchases, thrill
+  events, stars, gate runs and wins (`XP` table in `index.js`). `levelOf(xp)` gives the level; each level pays a
+  cash bonus and raises sale prices by 1% in every world, for good (the first 40 levels). `applyStats(stats)` runs
+  right after `computeStats` and before the thrills overlay, so the bonus is part of the base. HUD: a badge with
+  an XP ring in the top-left corner and a banner on level-up.
+- **Mission.** One untimed goal at a time, on a card under the goal line (`levels.<world>.mission`): buy the next
+  pad, deliver N of something, collect cash, finish events, earn stars, hand in full loads, start a fever, finish a
+  gate run. The order is the `CYCLE` list; anything that cannot be asked right now is skipped. Finishing one pays
+  XP and a little cash. A rush order takes the card's place while it runs (one task card at a time).
+- **Trophies** (`trophies.js`): long-term goals counted in `meta.counts` and stored in `meta.trophies`; the
+  list opens from the TROPHIES chip on the title. Earning one shows a banner and pays XP. Trophies an old save
+  already deserves are granted quietly at boot.
+- **Welcome back.** `levels.<world>.seenAt` is stamped on every save. Coming back after 3 minutes or more to a
+  world with a crew pays a quarter of the recent income (`thrills.state.rate`) for the time away, capped at four
+  hours and at ten reward units, once the player moves.
+
+Thrills report what happened with one event, `'thrill' { kind }` (`order`, `pig`, `coins`, `escort`, `drop`,
+`deal`, `perk`, `fever`, `load`, `star`, `jackpot`; the payload is reused). Gate runs report `'run:done'`.
+
+Title and HUD (`hud.js`, `styles/title.css`, `styles/hud.css`): the title is the live world behind blurred glass
+with a snap carousel of world cards (art in `assets/ui/world-<id>.jpg`, made with a screenshot of the world; a
+gradient shows if the file is missing), each with a state line and a progress bar (`meta.padTotals[id]` is
+recorded when a world loads). `G.travel` / `G.replay` close a curtain, and the next boot opens in mode `intro`:
+no title, the world's number and name over a loading bar, then play starts by itself. Cash picked up flies as
+bills to the money counter.

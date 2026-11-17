@@ -20,7 +20,9 @@ unlock the next one and carry a small perk with you.
 On top of that loop the game keeps throwing things at you: a fever meter that doubles your sales
 when you keep busy, lucky drops with a choice of prizes, rush orders against the clock, coin trails,
 a golden piggy bank to chase, flash sales, and perk gates where you pick one of two permanent perks
-(three stars buy a choice). Finished worlds can be played again to beat your best time.
+(three stars buy a choice), and a VIP to escort. You have a player level that carries across every
+world, a mission to work on at all times, trophies to earn, and a bonus waiting when you come back.
+Finished worlds can be played again to beat your best time.
 
 ## How to play
 
@@ -54,7 +56,8 @@ Debug flags (add to the URL):
 - `?autoplay` runs a test bot that plays the game.
 - `?speed=N` runs the simulation N times faster.
 - `?noreveal` turns off the cinematics that play on big purchases.
-- `?nothrills` turns off the events, fever and perks (the plain loop).
+- `?nothrills` turns off the events, fever and perks (the plain loop); `?noprogress` turns off the
+  player level, missions and trophies.
 
 `node tools/playtest.js --world=<id>` plays a world to the end headlessly with
 Playwright and prints the unlock timeline.
@@ -75,6 +78,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
   workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator, turret
   thrills/                 fever, lucky drops, rush orders, coin trails, the piggy bank, flash sales,
                            stars and perk gates (docs/ENGINE.md section 13)
+  progress/                the player level and XP, missions, trophies, the welcome-back bonus
+                           (docs/ENGINE.md section 14)
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound
   art/                     model loading and caching, shared materials, characters
