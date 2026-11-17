@@ -33,6 +33,7 @@ import { createPiggy } from './piggy.js';
 import { createCoins } from './coins.js';
 import { createDeal } from './deal.js';
 import { createEscort } from './escort.js';
+import { createSwoosh } from './swoosh.js';
 
 export const TUNE = {
   firstAt: 45,            // seconds of play in a world before the first event
@@ -334,6 +335,7 @@ export function createThrills(G) {
   const coins = createCoins(K);
   const deal = createDeal(K);
   const escort = createEscort(K);
+  const swoosh = createSwoosh(G);
   const EVENTS = { drop, order: orders, coins, pig: piggy, deal, escort };
 
   let doneCount = 0;
@@ -473,6 +475,7 @@ export function createThrills(G) {
       D.started = true;
       ui.show(true);
     }
+    swoosh.update(dt);
     updateBoosts(dt);
     updateFever(dt);
     updateLoad(dt);
