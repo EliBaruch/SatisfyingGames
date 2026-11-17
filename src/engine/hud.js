@@ -432,7 +432,7 @@ export function createHud(G) {
   }
 
   // ---- title overlay: mode, loading state, open / play
-  let mode = 'start';        // 'start' | 'picker'
+  let mode = 'start';        // 'start' | 'picker' | 'intro' (arriving from another world: no title, just the world's name)
   let pausedScale = null;    // G.timeScale saved while the picker is open
   const ready = () => typeof G.loading !== 'number' || G.loading >= 1;
 
@@ -516,6 +516,26 @@ export function createHud(G) {
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mode === 'picker') play(); });
 
   if (G.events && typeof G.events.on === 'function') G.events.on('loading', renderTap);
+
+  // Arriving from another world (G.travel / G.replay set the flag): the title is skipped. The overlay
+  // shows "WORLD 2 / Chicken Farm" with a loading bar and opens by itself once the world is built.
+  (function setupIntro() {
+    let flag = false;
+    try { flag = sessionStorage.getItem('bloomrush.intro') === '1'; sessionStorage.removeItem('bloomrush.intro'); } catch (e) { /* ignore */ }
+    if (!flag || !startEl) return;
+    mode = 'intro';
+    startEl.dataset.mode = 'intro';
+    const list = worlds(), idx = list.findIndex((w) => w.id === G.worldId);
+    const kicker = $('intro-kicker'), nameEl = $('intro-name'), fill = $('intro-fill');
+    if (kicker) kicker.textContent = idx >= 0 ? `WORLD ${idx + 1}` : 'WORLD';
+    if (nameEl) nameEl.textContent = nameOf(G.worldId);
+    const t0 = performance.now();
+    if (fill) G.events.on('loading', (v) => { fill.style.width = Math.round((+v || 0) * 100) + '%'; });
+    G.events.on('ready', () => {
+      if (fill) fill.style.width = '100%';
+      setTimeout(() => { if (mode === 'intro') play(); }, Math.max(350, 1100 - (performance.now() - t0)));
+    });
+  }());
   renderCards();
   renderPerks();
   renderTap();

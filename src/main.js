@@ -262,16 +262,24 @@ function saveNow() {
 G.saveNow = saveNow;
 
 /** Save, then reload into world `id` (each world keeps its own progress). */
+// Leaving for another world: a curtain closes, the page reloads into that world, and the next boot
+// skips the title and opens with the world's name instead (engine/hud.js, mode 'intro').
+function leaveTo(id) {
+  const url = new URL(location.href);
+  url.searchParams.set('world', id);
+  url.searchParams.delete('worldUrl');
+  try { sessionStorage.setItem('bloomrush.intro', '1'); } catch (e) { /* ignore */ }
+  document.body.classList.add('leaving');
+  setTimeout(() => { location.href = url.href; }, 320);       // presentation only: lets the curtain close
+}
+
 G.travel = (id) => {
   if (G.audio && G.audio.play) G.audio.play('travel');
   saveNow();
   if (worldInfo(id)) save.level = id;
   writeSave(save);
   noSave = true;
-  const url = new URL(location.href);
-  url.searchParams.set('world', id);
-  url.searchParams.delete('worldUrl');
-  location.href = url.href;
+  leaveTo(id);
 };
 /** Start world `id` again from nothing (its level state is dropped; perks from finished worlds and best times stay). */
 G.replay = (id) => {
@@ -281,10 +289,7 @@ G.replay = (id) => {
   delete save.levels[id];
   save.level = id;
   writeSave(save);
-  const url = new URL(location.href);
-  url.searchParams.set('world', id);
-  url.searchParams.delete('worldUrl');
-  location.href = url.href;
+  leaveTo(id);
 };
 setInterval(saveNow, 2000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
