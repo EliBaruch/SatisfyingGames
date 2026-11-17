@@ -3,7 +3,8 @@
 //
 // def = {
 //   id, type: 'source', name, item: 'rose',          // item kind produced
-//   grid: { x0, z0, dx, dz, cols, rows },            // cell (c, r) at (x0 + c*dx, z0 + r*dz); dx/dz may be negative
+//   grid: { x0, z0, dx, dz, cols, rows, jitter },    // cell (c, r) at (x0 + c*dx, z0 + r*dz); dx/dz may be negative;
+//                                                     // jitter: each cell is moved up to this far (a scattered grove)
 //   plant: () => BufferGeometry,                      // growing model, origin at the ground
 //   stub:  () => BufferGeometry,                      // optional: shown while regrowing
 //   stubAligned: false,                               // true: stubs keep the grid's orientation and size (tiles)
@@ -20,7 +21,7 @@
 // }
 import * as THREE from 'three';
 import { registerStationType } from '../registry.js';
-import { getSharedMaterial } from '../geom.js';
+import { getSharedMaterial, rng } from '../geom.js';
 
 const GROWN = 0, CUT = 1, GROWING = 2;
 
@@ -82,19 +83,21 @@ function createSource(G, def) {
   const plantH = def.plantHeight || 1;
   const rateFn = typeof def.regrowRate === 'function' ? def.regrowRate : null;
 
+  const JIT = g.jitter > 0 ? g.jitter : 0;
+  const jr = rng(((g.x0 * 31 + g.z0 * 17) | 0) + N);   // the same grove on every load
   const xs = new Float32Array(N), zs = new Float32Array(N);
   const yaw = new Float32Array(N), scl = new Float32Array(N);
   const state = new Uint8Array(N);
   const timer = new Float32Array(N);
   for (let i = 0; i < N; i++) {
     const c = i % cols, r = (i / cols) | 0;
-    xs[i] = g.x0 + c * g.dx;
-    zs[i] = g.z0 + r * g.dz;
+    xs[i] = g.x0 + c * g.dx + (JIT ? (jr() - 0.5) * 2 * JIT : 0);
+    zs[i] = g.z0 + r * g.dz + (JIT ? (jr() - 0.5) * 2 * JIT : 0);
     yaw[i] = Math.random() * Math.PI * 2;
     scl[i] = 0.88 + Math.random() * 0.24;
   }
   const xa = g.x0, xb = g.x0 + (cols - 1) * g.dx, za = g.z0, zb = g.z0 + (rows - 1) * g.dz;
-  const bounds = { minX: Math.min(xa, xb), maxX: Math.max(xa, xb), minZ: Math.min(za, zb), maxZ: Math.max(za, zb) };
+  const bounds = { minX: Math.min(xa, xb) - JIT, maxX: Math.max(xa, xb) + JIT, minZ: Math.min(za, zb) - JIT, maxZ: Math.max(za, zb) + JIT };
   const spacing = Math.min(Math.abs(g.dx), Math.abs(g.dz));
 
   const plantGeo = typeof def.plant === 'function' ? def.plant() : def.plant;
@@ -142,6 +145,7 @@ function createSource(G, def) {
   // grid lookups: column/row ranges overlapping [x-r, x+r] x [z-r, z+r]
   const R = { c0: 0, c1: -1, r0: 0, r1: -1 };
   function range(x, z, radius) {
+    radius += JIT;
     let ca = (x - radius - g.x0) / g.dx, cb = (x + radius - g.x0) / g.dx;
     if (ca > cb) { const t = ca; ca = cb; cb = t; }
     let ra = (z - radius - g.z0) / g.dz, rb = (z + radius - g.z0) / g.dz;

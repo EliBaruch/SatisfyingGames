@@ -71,7 +71,7 @@ export function createPlayer(G) {
   const dustOpts = { color: 0xf1e3c2, count: 2, speed: 1.1, size: 0.09, life: 0.38, gravity: 3, up: 1.1 };
   const fullTextOpts = { color: '#ff5a5a', size: 1.1, life: 0.8 };
   const cashTextOpts = { color: '#7dff8a', size: 0.58, life: 1.0, maxW: 0.4 };
-  const harvestCtx = { i: 0, sound: 'cut' };
+  const harvestCtx = { i: 0, sound: 'cut', hit: false };
   // what the player does, for whoever listens (engine/thrills): payloads are reused, do not keep them
   const evTake = { kind: '' }, evDeliver = { kind: '', station: null }, evCash = { amount: 0 };
   const onHarvest = (kind, x, z, ctx) => {
@@ -143,7 +143,8 @@ export function createPlayer(G) {
 
   // --------------------------------------------------------------- harvest
   function harvest(dt) {
-    const R = P.harvestRadius * (G.stats.reach || 1);
+    // a world may make reach a stat (an upgrade pad); the thrills' reach perk multiplies either
+    const R = (G.stats.harvestRadius || P.harvestRadius) * (G.stats.reach || 1);
     let blockedByFull = false;
     for (let s = 0; s < stations.length; s++) {
       const st = stations[s];
@@ -157,7 +158,9 @@ export function createPlayer(G) {
       }
       harvestCtx.i = 0;
       harvestCtx.sound = st.def.sound || 'cut';
+      harvestCtx.hit = false;
       const n = h.harvestAt(pos.x, pos.z, R, stack.room, onHarvest, harvestCtx);
+      if (harvestCtx.hit) { lastAction = G.time; actionName = h.action || 'swing'; }   // a herd: struck, nothing dropped yet
       if (n > 0) {
         lastAction = G.time;
         actionName = h.action || 'swing';

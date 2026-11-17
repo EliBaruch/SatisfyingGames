@@ -26,6 +26,9 @@ const ICON = {
   factory: '<path d="M6 41V23l9 6v-6l9 6V13h8v28z" fill="#fff"/><path d="M34 41V9h7v32z" fill="#dfeaff"/>'
     + '<rect x="10" y="33" width="5" height="5" rx="1" fill="#2f7fe0"/><rect x="19" y="33" width="5" height="5" rx="1" fill="#2f7fe0"/>'
     + '<path d="M29.5 16l-6 9h4.5l-2 8 7-10h-4.5z" fill="#ffd23f" stroke="#b5803a" stroke-width="1.2" stroke-linejoin="round"/>',
+  frost: '<path d="M24 5l11 15h-6l9 12H10l9-12h-6z" fill="#fff"/><rect x="21.5" y="32" width="5" height="9" rx="1.5" fill="#8a5a2a"/>'
+    + '<path d="M24 5l5 7c-3 1.5-7 1.5-10 0z" fill="#dff6ff"/><circle cx="38" cy="10" r="2" fill="#fff"/><circle cx="9" cy="14" r="1.6" fill="#fff"/>'
+    + '<circle cx="40" cy="24" r="1.4" fill="#fff"/>',
   generic: '<path d="M24 8l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="#fff"/>',
 };
 const LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10.5" rx="3" fill="currentColor"/>'

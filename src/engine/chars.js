@@ -78,6 +78,12 @@ function buildHat(kind) {
   } else if (kind === 'cap') {
     b.sph(0xffd23f, 0.26, [0, 0.0, 0], [1, 0.75, 1], null, 16, 8);
     b.rcyl(0xffb21a, 0.15, 0.04, 0.015, [0, 0.0, 0.2], [0.2, 0, 0], 16, [1, 1, 0.8]);
+  } else if (kind === 'fur') {
+    // a fur cap with ear flaps and a pale rim
+    b.sph(0x8a5a36, 0.25, [0, 0.03, 0], [1, 0.72, 1], null, 14, 8);
+    b.rcyl(0xf3e6cf, 0.262, 0.11, 0.04, [0, -0.02, 0], null, 18);
+    for (const sx of [-1, 1]) b.rbox(0x8a5a36, 0.07, 0.2, 0.2, 0.03, [sx * 0.25, -0.12, -0.02]);
+    b.sph(0xf3e6cf, 0.07, [0, 0.21, 0], null, null, 8, 6);
   } else if (kind === 'hardhat' || kind === 'hardhat-white' || kind === 'hardhat-orange') {
     // safety helmet sized for the human rig (unit scale: sits on a 0.2 m wide head); origin = top of the skull
     const c = kind === 'hardhat-white' ? 0xf4f6f8 : kind === 'hardhat-orange' ? 0xff8a2a : 0xffc928;

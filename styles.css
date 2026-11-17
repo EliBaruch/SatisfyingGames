@@ -368,6 +368,7 @@ canvas#game {
 .world-card[data-world="chicken"] .wc-icon { background: #ffd166; }
 .world-card[data-world="grocery"] .wc-icon { background: #9be7a8; }
 .world-card[data-world="factory"] .wc-icon { background: #6fa8ff; }
+.world-card[data-world="frost"] .wc-icon { background: #7fd3e6; }
 
 .wc-text {
   display: flex;
