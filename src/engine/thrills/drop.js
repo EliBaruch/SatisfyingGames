@@ -180,7 +180,7 @@ export function createDrop(K) {
         if (G.fx) { P.set(E.x, 0.6, E.z); G.fx.confetti(P, 36); }
         gates.open({
           x: E.x, z: E.z, ttl: T.dropTtl, scale: E.s, options: rollOptions(),
-          onPick(i, o) { give(o.kind, o, gates.at(i, spot)); E.t = 0; E.phase = 4; },
+          onPick(i, o) { give(o.kind, o, gates.at(i, spot)); K.note('drop'); E.t = 0; E.phase = 4; },
           onExpire() { E.t = 0; E.phase = 4; },
         });
       }

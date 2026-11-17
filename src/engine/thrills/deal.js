@@ -42,6 +42,7 @@ export function createDeal(K) {
       case 'crew': K.boost('crew', T.crewTime * 2); K.toast('CREW RUSH!'); K.play('whoosh'); break;
     }
     K.play('pay');
+    K.note('deal');
     E.done = true; E.t = 0;
   }
 

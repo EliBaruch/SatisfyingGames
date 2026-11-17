@@ -113,7 +113,7 @@ const G = {
   addMoney(n) { if (!(n > 0)) return; G.state.money += n; G.state.earned += n; save.meta.totalEarned += n; },
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
-  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null,
+  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null, progress: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -126,6 +126,7 @@ if (params.has('speed')) {
 /** Recompute G.stats and bring stations, workers and the player in line (after a purchase or a perk). */
 G.refresh = (live) => {
   G.stats = computeStats(def, G.state.done, save.meta);
+  if (G.progress) G.progress.applyStats(G.stats);   // the player level's price bonus
   if (G.thrills) G.thrills.applyStats();     // perks, boosts and fever lie over the pad stats
   if (G.stations) G.stations.sync(live);
   if (G.workers && G.workers.sync) G.workers.sync(live);
@@ -219,6 +220,14 @@ if (!G.scenery) {
   G.scene.add(ground);
   G.scenery = { update: noop };
 }
+// progress (engine/progress): the player level and the standing mission. Before thrills, so the
+// level's price bonus is part of the base that thrills lays its boosts over.
+if (!params.has('noprogress')) {
+  try {
+    const { createProgress } = await import('./engine/progress/index.js');
+    G.progress = createProgress(G);
+  } catch (err) { console.error('[boot] progress failed:', err); G.failed.push('progress'); G.progress = null; }
+}
 // thrills (engine/thrills): events, fever, perks. Built before the player so its perks count for the
 // saved stack; optional like the other extras (a failure leaves the plain game).
 if (!params.has('nothrills') && !(def.thrills && def.thrills.off)) {
@@ -288,7 +297,7 @@ if (params.has('noreveal')) G.noReveal = true;
 saveNow();   // persists a migrated / sanitised save right away
 
 // ------------------------------------------------------------------ loop
-const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'thrills', 'scenery', 'fx', 'hud'];
+const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'thrills', 'progress', 'scenery', 'fx', 'hud'];
 // during a reveal (engine/reveal.js): first everything stands still while the new thing builds in,
 // then the world runs again without the player until the camera is back
 const CINE_FROZEN = ['pads', 'scenery', 'fx', 'hud'];

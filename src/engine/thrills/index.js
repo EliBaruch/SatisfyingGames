@@ -175,9 +175,13 @@ export function createThrills(G) {
     st.tips[key] = n + 1;
     ui.tip(text, seconds || 5);
   }
+  // told to whoever keeps score (engine/progress): 'thrill' { kind }; the payload is reused
+  const noteEv = { kind: '' };
+  function note(kind) { noteEv.kind = kind; G.events.emit('thrill', noteEv); }
   const starText = { color: '#ffd23f', size: 0.8, life: 1.2, maxW: 0.5 };
   function addStar(n, x, z) {
     st.stars += n;
+    note('star');
     ui.setStars(Math.min(T.starsPerPerk, st.stars));
     ui.starPop();
     play('star');
@@ -227,6 +231,7 @@ export function createThrills(G) {
       F.left = T.feverTime + totals.feverTime;
       F.charge = 1;
       st.count.fever++;
+      note('fever');
       write();
       toast('FEVER! SALES x2');
       tip('fever', 'Fever: everything sells for double. Sell now!', 5);
@@ -296,6 +301,7 @@ export function createThrills(G) {
       G.addMoney(tipAmt);
       M.bonus += tipAmt;
       st.count.load++;
+      note('load');
       fever.work(0.07);
       play('tip');
       const pl = G.player;
@@ -316,7 +322,8 @@ export function createThrills(G) {
     grantPerk,
     get rate() { return M.rate; },
     /** an order filled, a pig caught, a coin trail cleared */
-    won(name) { st.won[name] = (st.won[name] | 0) + 1; },
+    won(name) { st.won[name] = (st.won[name] | 0) + 1; note(name); },
+    note,
   };
   const drop = createDrop(K);
   const orders = createOrders(K);
@@ -408,6 +415,7 @@ export function createThrills(G) {
     if (!p) return;
     st.perks[p.id] = Math.min(p.max, (st.perks[p.id] | 0) + 1);
     st.count.perk++;
+    note('perk');
     perkTotals(st.perks, totals);
     write();
     if (G.player && G.player.sync) G.player.sync();
