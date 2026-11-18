@@ -83,7 +83,7 @@ src/worlds/<id>/models.js     the world's model factories
 | `workers` | `list` | after player |
 | `hints` | `current {kind, text, x, z, target}`, `compute()` | after workers |
 | `thrills` | events, fever, perks (section 13); `null` with `?nothrills` or `world.thrills.off` | before player |
-| `modes`, `run` | mini-mode host and the Gate Run (section 15); `null` with `?nomodes` / `?norun` | before player |
+| `modes`, `run`, `raid` | mini-mode host, the Gate Run and the Raid (section 15); `null` with `?nomodes` / `?norun` / `?noraid` | before player |
 | `refresh(live)`, `saveNow()`, `travel(id)`, `replay(id)`, `step(dt)` | see sections 7, 9, 11 | ready |
 
 `window.__game === G`.
@@ -711,3 +711,41 @@ grows ever more slowly (the number above it is the truth).
 Testing: `node tools/runtest.js --url=http://localhost:8100/` plays levels 1 to 3 in all five worlds and checks the
 results, the frozen and resumed world, the render budget, leaks over 20 restarts and console errors (non-zero exit on
 failure). By hand: `G.run.debugUnlock(); G.run.start(2)`, then step with `G.input.override = { x: G.run.botSteer(), y: 0 }`.
+
+### The Raid: `G.raid`
+
+The host's second client (`src/engine/raid/`, created right after the run; `?noraid` turns it off; arena index 1).
+A round fenced yard floats away from the world with a pallet of the world's main item in the middle. Pests hop out
+of burrows, come in through the gaps in the fence, take one item each and run back out with it. The world's own
+character is moved with the stick and sweeps everything within reach a few times a second (no button): a pest has
+1 to 3 hit points, a bopped carrier's item flies back onto the pile, a popped pest drops a coin. Standing on one of
+the four pads (8 / 15 / 25 / 40 coins) pays coins into it and raises a scarecrow helper that tosses something
+harmless at the nearest pest every second. The last wave drops one big pest from the sky (many bops, steals an
+armful). The raid ends when the last wave is cleared, or early when the pile is empty.
+
+| call | what |
+|---|---|
+| `levels()` | as the run's. Level 1 opens once 35% of the world's paid pads are bought, level 2 at 75%, level 3 after the win. |
+| `start(n)`, `next()`, `leave()`, `retry(n?)`, `debugUnlock(on)` | as the run's. |
+| `active`, `phase` | `'idle' \| 'ready' \| 'fight' \| 'cheer' \| 'fail' \| 'result'`. |
+| `botSteer() -> { x, y }` | the stick a competent player would hold (one reused object): after the nearest carrying pest, else onto a pad it can pay for, else at the nearest pest. `src/autoplay.js` drives with it, presses CONTINUE and starts each level once when it unlocks (never right after another mode; `__autoplay.noRuns` stops it). |
+| `state`, `tune`, `theme`, `dress` | tests: the live raid (`pile`, `total`, `coins`, `wave`, `liveN`, `lost`, `popped`); tuning; the run's theme; pest tint and what helpers toss. |
+
+Events: `'raid:start' { level }`, `'raid:done' { level, stars, newStars, cash, left }` (payloads are reused).
+State: `levels.<world>.raids = { '<n>': { stars, best } }` (validated on load; `best` = most items saved),
+`meta.raidStars`. Stars come from the share of the pile that is left: 3 from 80%, 2 from 45%, 1 for anything, 0 for
+an emptied pile (the card says TRY AGAIN and pays 0.3 units). Reward: the run's `unit()` times `0.6 + 0.35 x factor +
+0.15 x stars` (factor 1 to 5 from the share left), halved for a beaten level played again without a new star, paid
+with `G.thrills.pay`; every new star feeds the perk gates.
+
+Theming: item and colours are the Gate Run's (`run/theme.js`); pest tint and projectile have defaults per built-in
+world and a world may set `raid: { pest: 0x9a6fe0, shot: 'turnip' | 'corn' | 'apple' | 'bolt' | 'snowball' }`.
+Files: `level.js` (seeded: gaps, pads, every pest's time, burrow and hit points; 2 / 3 / 4 gaps, 4 / 5 / 5 waves,
+about 120 / 220 / 280 pests), `arena.js` (everything 3D, built once and re-laid per level: fence, posts and bridges
+are instanced, pests are one InstancedMesh with blob shadows, the big one is its own mesh), `hud.js` + `styles/raid.css`
+(pile bar, coins, wave pips, banner), `index.js` (the simulation on typed arrays in `update(dt)`; matrices are written
+once per rendered frame in the mode's `frame()`). New sounds are prefixed `raid` in `audio.js`.
+
+Testing: `node tools/raidtest.js --url=http://localhost:8100/` plays levels 1 to 3 with the bot in all six worlds and
+checks the results (stars 0 to 3, cash, records), the frozen and resumed world, `G.modes.active`, the render budget,
+leaks over 10 restarts and console errors. By hand: `G.raid.debugUnlock(); G.raid.start(1)`.

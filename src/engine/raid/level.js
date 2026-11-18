@@ -25,9 +25,9 @@ export const LEAD = 2.2;                 // seconds before the first wave
 // What each level is made of: pests per wave, seconds between wave starts, how long a wave pours in,
 // the share of two- and three-bop pests in the last wave (it grows from nothing over the waves).
 const PLAN = {
-  1: { gaps: 2, total: 40, waves: [16, 24, 34, 46], every: 10.5, burst: 6.2, speed: 2.9, tough: 0.22, tougher: 0.03, big: { hp: 14, steal: 7 } },
-  2: { gaps: 3, total: 48, waves: [20, 30, 42, 56, 70], every: 9.6, burst: 6.0, speed: 3.2, tough: 0.32, tougher: 0.1, big: { hp: 18, steal: 9 } },
-  3: { gaps: 4, total: 56, waves: [24, 38, 54, 72, 90], every: 9.0, burst: 5.8, speed: 3.5, tough: 0.4, tougher: 0.15, big: { hp: 22, steal: 11 } },
+  1: { gaps: 2, total: 40, waves: [16, 24, 34, 46], every: 10.5, burst: 6.2, speed: 2.9, tough: 0.22, tougher: 0.03, big: { hp: 18, steal: 7 } },
+  2: { gaps: 3, total: 48, waves: [20, 30, 42, 56, 70], every: 9.6, burst: 6.0, speed: 3.2, tough: 0.32, tougher: 0.1, big: { hp: 24, steal: 9 } },
+  3: { gaps: 4, total: 56, waves: [24, 38, 54, 72, 90], every: 9.0, burst: 5.8, speed: 3.5, tough: 0.4, tougher: 0.15, big: { hp: 30, steal: 11 } },
 };
 
 function hashStr(str) {

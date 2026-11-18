@@ -33,7 +33,8 @@ import { createRaidHud, SHIELD } from './hud.js';
 
 const S2 = Math.SQRT1_2;
 export const TUNE = {
-  view: { portrait: 29, landscape: 17.5 },    // world units visible vertically
+  view: { portrait: 29, landscape: 19 },      // world units visible vertically
+  lift: { portrait: 0.4, landscape: 1.1 },    // the yard sits this far below the middle of the screen (the HUD is on top)
   follow: { portrait: 0.62, landscape: 0.28 },// how far the camera leans after the hero
   speed: 7.6,                                 // the hero's pace
   reach: 2.05,                                // sweep radius
@@ -166,7 +167,8 @@ export function createRaid(G) {
     const char = makeCharacter(look);
     char.visible = false;
     G.scene.add(char);
-    B = { arena, char };
+    // the human rig's swing is a deep lunge for cutting crops: too much for a bop, the sweep arc says it
+    B = { arena, char, swings: char.userData.rig !== 'human' };
     return B;
   }
 
@@ -267,7 +269,8 @@ export function createRaid(G) {
     const port = aspect() < 1;
     const f = port ? T.follow.portrait : T.follow.landscape;
     S.cx += (S.hx * f - S.cx) * k; S.cz += (S.hz * f - S.cz) * k;
-    modes.follow(origin.x + S.cx, origin.z + S.cz, modes.zoomFor(port ? T.view.portrait : T.view.landscape));
+    const up = (port ? T.lift.portrait : T.lift.landscape) * S2;      // screen-up is world (+x, +z)
+    modes.follow(origin.x + S.cx + up, origin.z + S.cz + up, modes.zoomFor(port ? T.view.portrait : T.view.landscape));
   }
 
   // ------------------------------------------------------------------ pests
@@ -787,7 +790,7 @@ export function createRaid(G) {
 
     place();
     anim.moving = S.moving;
-    anim.action = S.phase === 'cheer' || (S.phase === 'result' && S.result && S.result.stars > 0) ? 'wave' : S.swing > 0.45 ? 'swing' : null;
+    anim.action = S.phase === 'cheer' || (S.phase === 'result' && S.result && S.result.stars > 0) ? 'wave' : S.swing > 0.45 && b.swings ? 'swing' : null;
     animateCharacter(b.char, dt, anim);
     camera(1 - Math.exp(-4 * dt));
   }
