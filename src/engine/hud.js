@@ -393,17 +393,21 @@ export function createHud(G) {
       fill.style.width = Math.round(prog * 100) + '%';
       bar.append(fill);
       body.append(name, st, bar);
-      // gate run stars won in that world (engine/run keeps them in the level state)
-      const lvRuns = G.save && G.save.levels && G.save.levels[w.id] ? G.save.levels[w.id].runs : null;
-      if (open && lvRuns && typeof lvRuns === 'object') {
+      // bonus-level stars won in that world (kept in the level state by engine/run, raid, rush)
+      const lvSave = G.save && G.save.levels ? G.save.levels[w.id] : null;
+      if (open && lvSave) {
+        // stars from all three kinds of bonus level: 3 levels x 3 stars each
         let got = 0;
-        for (const k in lvRuns) got += Math.max(0, Math.min(3, (lvRuns[k] && lvRuns[k].stars) | 0));
+        for (const key of ['runs', 'raids', 'rushes']) {
+          const rec = lvSave[key];
+          if (rec && typeof rec === 'object') for (const k in rec) got += Math.max(0, Math.min(3, (rec[k] && rec[k].stars) | 0));
+        }
         if (got > 0) {
           const rs = document.createElement('span');
           rs.className = 'wcard-runs';
           rs.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.4l-6.1 3.4 1.4-6.8L2.2 9.3l6.9-.8z" fill="#ffd23f" stroke="#a86a00" stroke-width="1.4" stroke-linejoin="round"/></svg>';
           const rt = document.createElement('span');
-          rt.textContent = got + ' / 9';
+          rt.textContent = got + ' / 27';
           rs.append(rt);
           art.append(rs);
         }

@@ -15,7 +15,7 @@
 //             once the player starts moving again.
 //
 // State: meta.xp (all worlds) and levels.<world>.mission. Off with ?noprogress.
-// Events it listens to: 'p:deliver', 'p:cash', 'unlock', 'thrill' { kind }, 'run:done', 'win'.
+// Events it listens to: 'p:deliver', 'p:cash', 'unlock', 'thrill' { kind }, 'run:done' / 'raid:done' / 'rush:done', 'win'.
 import { fmtMoney } from '../config.js';
 import { getItem } from '../registry.js';
 import { createTrophies } from './trophies.js';
@@ -169,10 +169,16 @@ export function createProgress(G) {
   const recent = new Map(), recentKinds = [];
   // the order missions come in; anything that cannot be asked right now is skipped
   const CYCLE = ['buy', 'deliver', 'cash', 'event', 'buy', 'load', 'star', 'deliver', 'run', 'fever'];
+  /** is there a bonus level (gate run, raid, harvest rush) with stars left to win? */
+  function bonusOpen() {
+    const kinds = [G.run, G.raid, G.rush];
+    for (let i = 0; i < kinds.length; i++) if (kinds[i] && kinds[i].next && kinds[i].next()) return true;
+    return false;
+  }
   /** can this kind of mission still be finished? (thrills or gate runs may be off or have failed to load) */
   function possible(type) {
     if (type === 'event' || type === 'fever' || type === 'star' || type === 'load') return !!G.thrills;
-    if (type === 'run') return !!(G.run && G.run.start);
+    if (type === 'run') return !!(G.run || G.raid || G.rush);
     return true;
   }
   (function restore() {
@@ -202,7 +208,7 @@ export function createProgress(G) {
       case 'fever': return 'Start a fever';
       case 'star': return 'Earn stars';
       case 'load': return 'Hand in full loads';
-      case 'run': return 'Finish a gate run';
+      case 'run': return 'Finish a bonus level';
     }
     return '';
   }
@@ -225,7 +231,7 @@ export function createProgress(G) {
       case 'fever': if (!thrillsOn()) return false; M.need = 1; return true;
       case 'star': if (!thrillsOn()) return false; M.need = 2; return true;
       case 'load': if (!thrillsOn() || cap < 8) return false; M.need = 3; return true;
-      case 'run': if (!(G.run && G.run.next && G.run.next())) return false; M.need = 1; return true;
+      case 'run': if (!bonusOpen()) return false; M.need = 1; return true;
     }
     return false;
   }
@@ -306,14 +312,18 @@ export function createProgress(G) {
     else if (e.kind === 'star') bump('star', 1);
     else if (e.kind === 'load') bump('load', 1);
   });
-  G.events.on('run:done', (e) => {
+  // a bonus level of any kind was finished (gate run, raid, harvest rush): the three count alike
+  const onBonus = (e) => {
     const fresh = Math.max(0, (e && e.newStars) | 0);
     addXp(XP.run + XP.runStar * fresh);
     bump('run', 1);
     trophies.note('run');
     if (fresh > 0) trophies.note('runStar', fresh);
     if (e && e.stars >= 3) trophies.note('run3');
-  });
+  };
+  G.events.on('run:done', onBonus);
+  G.events.on('raid:done', onBonus);
+  G.events.on('rush:done', onBonus);
   G.events.on('win', () => { addXp(XP.win); trophies.note(null); });
   G.events.on('level:won', () => trophies.note(null));       // the best time is recorded by then
 

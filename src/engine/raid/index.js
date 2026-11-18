@@ -677,7 +677,7 @@ export function createRaid(G) {
     // a first finish and every new star pay in full; a beaten level played again pays half;
     // an emptied pile pays a small consolation
     const replay = !first && newStars === 0;
-    const cash = stars > 0 ? nice(unit() * (0.6 + 0.35 * factor + 0.15 * stars) * (replay ? 0.5 : 1)) : nice(unit() * 0.3);
+    const cash = stars > 0 ? nice(unit() * (0.5 + 0.25 * factor + 0.1 * stars) * (replay ? 0.5 : 1)) : nice(unit() * 0.3);
     if (stars > 0) {
       const rec = saved[lv.n] || (saved[lv.n] = { stars: 0, best: 0 });
       if (stars > rec.stars) rec.stars = stars;

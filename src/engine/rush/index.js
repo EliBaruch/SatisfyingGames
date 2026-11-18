@@ -563,7 +563,7 @@ export function createRush(G) {
     const newBest = !first && c > rec.best;
     // a first finish and every new star pay in full; sweeping a beaten level again pays half
     const replay = !first && newStars === 0;
-    const cash = nice(unit() * (0.6 + 0.35 * factor + 0.15 * stars) * (replay ? 0.5 : 1));
+    const cash = nice(unit() * (0.5 + 0.25 * factor + 0.1 * stars) * (replay ? 0.5 : 1));
     if (stars > rec.stars) rec.stars = stars;
     if (c > rec.best) rec.best = c;
     if (G.save && G.save.meta) G.save.meta.rushStars = totalStars();
