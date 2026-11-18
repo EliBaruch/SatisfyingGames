@@ -9,6 +9,7 @@
 //   piggy bank   a golden pig runs away; catch it
 //   flash sale   two gates with price tags: buy a perk or a boost with the money in hand, or pass
 //   VIP escort   someone special waves from a little way off: touch them and lead them to the flag
+//   bonus run    a single gate that leads into the next Gate Run level (engine/run)
 //   stars        orders, coin trails, pigs, some gates and every big purchase give a star; three
 //                stars open the perk gates, where one of two permanent perks for this world is
 //                picked (perks.js)
@@ -34,12 +35,13 @@ import { createCoins } from './coins.js';
 import { createDeal } from './deal.js';
 import { createEscort } from './escort.js';
 import { createSwoosh } from './swoosh.js';
+import { createPortal } from './portal.js';
 
 export const TUNE = {
   firstAt: 45,            // seconds of play in a world before the first event
   firstPads: 1,           // ... and this many pads bought
   gap: [32, 52],          // seconds between the end of one event and the next
-  events: { drop: 4, order: 4, coins: 3, pig: 2, deal: 2, escort: 2 },   // how often each is picked (0 = never)
+  events: { drop: 4, order: 4, coins: 3, pig: 2, deal: 2, escort: 2, portal: 2 },   // how often each is picked (0 = never)
   starsPerPerk: 3,
   // fever
   feverFill: 62,          // seconds of steady work to fill the meter
@@ -80,7 +82,7 @@ function loadState(raw) {
     won: { order: won.order | 0, pig: won.pig | 0, coins: won.coins | 0, escort: won.escort | 0 },   // events finished (count = started)
     tips: isObj(s.tips) ? s.tips : {},
     count: {
-      drop: count.drop | 0, order: count.order | 0, pig: count.pig | 0, coins: count.coins | 0, deal: count.deal | 0, escort: count.escort | 0,
+      drop: count.drop | 0, order: count.order | 0, pig: count.pig | 0, coins: count.coins | 0, deal: count.deal | 0, escort: count.escort | 0, portal: count.portal | 0,
       jackpot: count.jackpot | 0, perk: count.perk | 0, fever: count.fever | 0, load: count.load | 0,
     },
   };
@@ -336,7 +338,8 @@ export function createThrills(G) {
   const deal = createDeal(K);
   const escort = createEscort(K);
   const swoosh = createSwoosh(G);
-  const EVENTS = { drop, order: orders, coins, pig: piggy, deal, escort };
+  const portal = createPortal(K);
+  const EVENTS = { drop, order: orders, coins, pig: piggy, deal, escort, portal };
 
   let doneCount = 0;
   for (const id in G.state.done) if (G.state.done[id]) doneCount++;
@@ -513,7 +516,7 @@ export function createThrills(G) {
   function target() {
     if (gates.waiting) {
       // which gate the bot takes: stable for one set, varies between sets
-      const i = gates.count > 1 ? (st.count.drop + st.count.perk) % gates.count : 0;
+      const i = gates.count > 1 ? (st.count.drop + st.count.perk) % gates.count : 0;       // a single gate (the bonus run portal) is gate 0
       gates.at(i, TG);
       TG.id = 'gate' + i;
       return TG;

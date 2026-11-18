@@ -561,12 +561,38 @@ export function startAutoplay(G) {
     }
   }
 
+  // ------------------------------------------------------------ gate run (engine/run)
+  // The bot steers a run with G.run.botSteer(), presses CONTINUE on the result card, and starts each
+  // level once when it unlocks, so a full playthrough exercises the mode. ap.noRuns = true stops the starting.
+  const runTried = {};
+  G.events.on('run:done', (e) => push({ t: T1(), event: 'run', level: e.level, stars: e.stars, count: e.count, cash: e.cash }));
+  function runBot() {
+    const R = G.run;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      G.input.override = { x: R.botSteer(), y: 0 };
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 0 && !ap.noRuns && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      for (const l of R.levels()) {
+        if (!l.unlocked || runTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) runTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
   // ------------------------------------------------------------ hook
   function tick() {
     if (!G.player || !G.player.stack || !G.stations) return;
     simT += STEP;
     steps++;
     if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
+    if (runBot()) return;
     if (steps % DECIDE_EVERY === 1) decide();
     stuckCheck();
     G.input.override = drive();

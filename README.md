@@ -23,6 +23,8 @@ a golden piggy bank to chase, flash sales, and perk gates where you pick one of 
 (three stars buy a choice), and a VIP to escort. You have a player level that carries across every
 world, a mission to work on at all times, trophies to earn, and a bonus waiting when you come back.
 Finished worlds can be played again to beat your best time.
+Every world also has three Gate Run bonus levels (the flag button, bottom right): run up a floating runway,
+steer through the better gate, stack your goods absurdly high and cash the tower in on the scale.
 
 ## How to play
 
@@ -58,9 +60,11 @@ Debug flags (add to the URL):
 - `?noreveal` turns off the cinematics that play on big purchases.
 - `?nothrills` turns off the events, fever and perks (the plain loop); `?noprogress` turns off the
   player level, missions and trophies.
+- `?norun` turns off the Gate Run bonus levels, `?nomodes` the whole mini-mode host.
 
 `node tools/playtest.js --world=<id>` plays a world to the end headlessly with
-Playwright and prints the unlock timeline.
+Playwright and prints the unlock timeline. `node tools/runtest.js` plays the Gate Run
+levels in every world and checks them.
 
 ## Layout
 
@@ -80,6 +84,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
                            stars and perk gates (docs/ENGINE.md section 13)
   progress/                the player level and XP, missions, trophies, the welcome-back bonus
                            (docs/ENGINE.md section 14)
+  modes/, run/             mini-mode host (bonus levels away from the world) and the Gate Run
+                           (docs/ENGINE.md section 15); their styles are in styles/run.css
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound
   art/                     model loading and caching, shared materials, characters
