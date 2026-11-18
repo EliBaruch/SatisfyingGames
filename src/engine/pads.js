@@ -352,7 +352,7 @@ export function createPads(G) {
         if (inside && v.armed && pl.speed01 < SLOW) v.stand += dt; else if (!inside) v.stand = 0;
         if (inside && v.armed && v.stand >= STAND_DELAY) {
           if (rem <= 0) { complete(v); if (v.removing >= 0) continue; }    // free pad
-          if (money > 0) paying = true;
+          if (money >= 1) paying = true;
           else if (rem > 0) {
             // standing on a pad with an empty wallet: say so (once in a while)
             v.brokeT -= dt;

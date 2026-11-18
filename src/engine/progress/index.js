@@ -93,19 +93,27 @@ export function createProgress(G) {
     if (pop) { badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop'); }
   }
   drawBadge(false);
-  let bannerTimer = 0;
+  // Banners queue up: one big card at a time, and never on top of a toast (presentation only,
+  // so real timers are fine here).
   const toastEl = doc && doc.getElementById('toast');
-  function showBanner(title, sub, tries = 0) {
+  const bannerQueue = [];
+  let bannerBusy = false, bannerTries = 0;
+  function showBanner(title, sub) {
     if (!banner) return;
-    // one big card at a time: wait for a toast that is on screen (presentation only)
-    if (toastEl && toastEl.classList.contains('show') && tries < 4) { clearTimeout(bannerTimer); bannerTimer = setTimeout(() => showBanner(title, sub, tries + 1), 700); return; }
-    bannerTitle.textContent = title;
-    bannerSub.textContent = sub;
-    clearTimeout(bannerTimer);
+    if (bannerQueue.length < 8) bannerQueue.push(title, sub);
+    if (!bannerBusy) nextBanner();
+  }
+  function nextBanner() {
+    if (!bannerQueue.length) { bannerBusy = false; return; }
+    bannerBusy = true;
+    if (toastEl && toastEl.classList.contains('show') && bannerTries < 5) { bannerTries++; setTimeout(nextBanner, 600); return; }
+    bannerTries = 0;
+    bannerTitle.textContent = bannerQueue.shift();
+    bannerSub.textContent = bannerQueue.shift();
     banner.classList.remove('show');
     void banner.offsetWidth;
     banner.classList.add('show');
-    bannerTimer = setTimeout(() => banner.classList.remove('show'), 2600);
+    setTimeout(() => { banner.classList.remove('show'); nextBanner(); }, 2600);
   }
 
   // trophies (trophies.js): long-term goals counted from the same events
@@ -159,11 +167,19 @@ export function createProgress(G) {
   // { type, kind, pad, need, have, xp, cash, n }: n = missions finished in this world so far
   const M = { on: false, type: '', kind: '', pad: '', name: '', need: 1, have: 0, xp: 30, cash: 0, n: 0, wait: 2, doneT: 0, shown: -1 };
   const recent = new Map(), recentKinds = [];
+  // the order missions come in; anything that cannot be asked right now is skipped
+  const CYCLE = ['buy', 'deliver', 'cash', 'event', 'buy', 'load', 'star', 'deliver', 'run', 'fever'];
+  /** can this kind of mission still be finished? (thrills or gate runs may be off or have failed to load) */
+  function possible(type) {
+    if (type === 'event' || type === 'fever' || type === 'star' || type === 'load') return !!G.thrills;
+    if (type === 'run') return !!(G.run && G.run.start);
+    return true;
+  }
   (function restore() {
     const m = G.state.mission;
     if (!m || typeof m !== 'object') return;
     M.n = isNum(m.n) && m.n > 0 ? Math.floor(m.n) : 0;
-    if (typeof m.type !== 'string' || !isNum(m.need) || !(m.need > 0)) return;
+    if (!CYCLE.includes(m.type) || !isNum(m.need) || !(m.need > 0)) return;
     if (m.type === 'buy' && !(G.pads && G.pads.get(m.pad) && !G.state.done[m.pad])) return;
     if (m.type === 'deliver' && !getItem(m.kind)) return;
     M.on = true; M.type = m.type; M.kind = m.kind || ''; M.pad = m.pad || ''; M.need = m.need;
@@ -199,8 +215,6 @@ export function createProgress(G) {
     for (let i = 0; i < recentKinds.length; i++) { const v = recent.get(recentKinds[i]); if (v > bv) { bv = v; best = recentKinds[i]; } }
     return best;
   }
-  // the order missions come in; anything that cannot be asked right now is skipped
-  const CYCLE = ['buy', 'deliver', 'cash', 'event', 'buy', 'load', 'star', 'deliver', 'run', 'fever'];
   function make(type) {
     const cap = G.stats.capacity;
     switch (type) {
@@ -238,7 +252,8 @@ export function createProgress(G) {
   function draw(fresh) {
     if (!card) return;
     if (!M.on) { card.hidden = true; return; }
-    const shown = M.type === 'cash' ? Math.floor(M.have) : Math.floor(M.have);
+    // what the card shows: the count, or for a purchase how much of the pad is paid
+    const shown = M.type === 'buy' ? Math.floor(G.state.paid[M.pad] || 0) : Math.floor(M.have);
     if (shown !== M.shown || fresh) {
       M.shown = shown;
       cardText.textContent = label();
@@ -305,10 +320,31 @@ export function createProgress(G) {
   // ------------------------------------------------------------------ welcome back
   // Read at boot, before the first save stamps the time again. Wall-clock time: it is about the real
   // world, not the simulation.
-  let awaySeconds = 0;
+  // The time away and the income rate at that moment are kept in the level state (`away`) until the
+  // bonus is paid, so a reload or a detour through the title does not lose or shrink it.
+  let awaySeconds = 0, awayRate = 0;
+  function addAway(seconds, rate) {
+    if (!(seconds >= 180) || !(rate > 0)) return;
+    const a = G.state.away && typeof G.state.away === 'object' ? G.state.away : null;
+    awaySeconds = Math.min(4 * 3600, (a && isNum(a.seconds) && a.seconds > 0 ? a.seconds : 0) + seconds);
+    awayRate = Math.max(a && isNum(a.rate) && a.rate > 0 ? a.rate : 0, rate);
+    G.state.away = { seconds: Math.round(awaySeconds), rate: awayRate };
+  }
   {
-    const seen = G.state.seenAt;
-    if (isNum(seen) && seen > 0) awaySeconds = Math.max(0, (Date.now() - seen) / 1000);
+    const seen = G.state.seenAt, saved = G.state.thrills && isNum(G.state.thrills.rate) ? G.state.thrills.rate : 0;
+    const a = G.state.away;
+    if (a && typeof a === 'object' && isNum(a.seconds) && a.seconds > 0 && isNum(a.rate) && a.rate > 0) { awaySeconds = Math.min(4 * 3600, a.seconds); awayRate = a.rate; }
+    else delete G.state.away;
+    if (isNum(seen) && seen > 0) addAway((Date.now() - seen) / 1000, saved);
+  }
+  // a tab the phone kept alive: the time it was hidden counts too
+  if (doc) {
+    let hiddenAt = 0;
+    doc.addEventListener('visibilitychange', () => {
+      if (doc.hidden) { hiddenAt = Date.now(); return; }
+      if (hiddenAt > 0) addAway((Date.now() - hiddenAt) / 1000, G.thrills && G.thrills.state ? G.thrills.state.rate || 0 : 0);
+      hiddenAt = 0;
+    });
   }
   function crewSize() {
     const h = G.stats.hires;
@@ -317,9 +353,9 @@ export function createProgress(G) {
     return n;
   }
   function welcomeBack() {
-    const away = awaySeconds;
-    awaySeconds = 0;
-    const rate = G.thrills && G.thrills.state ? G.thrills.state.rate || 0 : 0;
+    const away = awaySeconds, rate = awayRate;
+    awaySeconds = 0; awayRate = 0;
+    delete G.state.away;
     if (away < 180 || !(rate > 0) || crewSize() === 0 || G.stats.won) return;
     const cash = nice(Math.min(rate * Math.min(away, 4 * 3600) * 0.25, unit() * 10));
     if (!(cash >= 5)) return;
@@ -343,7 +379,9 @@ export function createProgress(G) {
       if (M.on) {
         // a bought pad that was the mission (e.g. restored from an older save) cannot hang
         if (M.type === 'buy' && (G.state.done[M.pad] || !G.pads.get(M.pad))) M.have = M.need;
-        if (M.have >= M.need) complete(); else draw(false);
+        if (M.have >= M.need) complete();
+        else if (!possible(M.type)) { M.on = false; M.wait = 1; if (card) card.hidden = true; persist(); }   // cannot be finished here: move on
+        else draw(false);
       }
     }
     decayT += dt;

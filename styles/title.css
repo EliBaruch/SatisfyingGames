@@ -207,9 +207,30 @@
   cursor: pointer;
 }
 
-/* wide screens: no need to scroll */
-@media (min-width: 900px) {
-  .wsel { justify-content: center; flex-wrap: wrap; overflow: visible; padding: 10px 24px 20px; }
+/* mouse users step through the carousel with arrows (touch devices swipe) */
+.wsel-arrow { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .start-inner { position: relative; }
+  .wsel-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    margin-top: -40px;
+    padding: 0;
+    border: 2.5px solid #fff;
+    border-radius: 50%;
+    background: rgba(12, 26, 46, 0.72);
+    color: #fff;
+    cursor: pointer;
+  }
+  .wsel-arrow svg { width: 24px; height: 24px; }
+  .wsel-arrow.is-prev { left: max(10px, calc(50% - 420px)); }
+  .wsel-arrow.is-next { right: max(10px, calc(50% - 420px)); }
+  .start[data-mode="intro"] .wsel-arrow { display: none; }
 }
 
 /* landscape phones: smaller posters in one row */
@@ -359,3 +380,7 @@ body.leaving .curtain { opacity: 1; pointer-events: auto; }
 .ts-item.is-done .ts-bar i { background: linear-gradient(90deg, #2fb14a, #7be06a); }
 .ts-n { flex: none; font-size: 13px; font-weight: 700; color: #7a6a4a; font-variant-numeric: tabular-nums; }
 .ts-item.is-done .ts-n { color: var(--mint-dark); }
+
+/* the HUD is hidden while the title or picker is up */
+body.titled #hud { opacity: 0; pointer-events: none; }
+#hud { transition: opacity 0.25s ease; }

@@ -1,7 +1,7 @@
 {
   "name": "Bloom Rush",
   "short_name": "Bloom Rush",
-  "description": "Run, stack, sell and build across six worlds.",
+  "description": "Run, stack, sell and build, world after world.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

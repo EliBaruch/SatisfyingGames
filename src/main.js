@@ -239,9 +239,9 @@ if (!params.has('nothrills') && !(def.thrills && def.thrills.off)) {
   try {
     const { createThrills } = await import('./engine/thrills/index.js');
     G.thrills = createThrills(G);
-    if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title lists this world's perks
   } catch (err) { console.error('[boot] thrills failed:', err); G.failed.push('thrills'); G.thrills = null; }
 }
+if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title shows the level, trophies and this world's perks
 G.player = createPlayer(G);
 G.workers = createWorkers(G);
 G.workers.sync(false);
@@ -292,6 +292,8 @@ G.replay = (id) => {
   writeSave(save);
   leaveTo(id);
 };
+// a page brought back from the back-forward cache after leaving (curtain closed, saving off) starts over
+window.addEventListener('pageshow', (e) => { if (e.persisted && noSave) location.reload(); });
 setInterval(saveNow, 2000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 window.addEventListener('pagehide', saveNow);

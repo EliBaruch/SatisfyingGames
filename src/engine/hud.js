@@ -466,6 +466,7 @@ export function createHud(G) {
     startEl.dataset.mode = mode;
     startEl.classList.add('show');
     startEl.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('titled');
     renderCards();
     renderPerks();
     renderMeta();
@@ -477,6 +478,7 @@ export function createHud(G) {
     if (!startEl || !startEl.classList.contains('show') || !ready()) return;
     startEl.classList.remove('show');
     startEl.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('titled');
     mode = 'start';
     if (pausedScale !== null) {
       G.timeScale = pausedScale;
@@ -506,6 +508,24 @@ export function createHud(G) {
     });
   }
   if (tapBtn) tapBtn.addEventListener('click', play);
+  if (startEl && startEl.classList.contains('show')) document.body.classList.add('titled');
+  // mouse and trackpad: the wheel moves the carousel sideways, and two arrow buttons step through it
+  if (cardsEl) {
+    cardsEl.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      cardsEl.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
+    for (const dir of [-1, 1]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wsel-arrow ' + (dir < 0 ? 'is-prev' : 'is-next');
+      b.setAttribute('aria-label', dir < 0 ? 'Previous world' : 'Next world');
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (dir < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7') + '" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      b.addEventListener('click', () => cardsEl.scrollBy({ left: dir * 278, behavior: 'smooth' }));
+      cardsEl.after(b);
+    }
+  }
   if (cardsEl) {
     cardsEl.addEventListener('click', (e) => {
       const again = e.target && e.target.closest ? e.target.closest('.wcard-again') : null;

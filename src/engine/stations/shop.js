@@ -344,6 +344,7 @@ function createShop(G, def) {
     return !!(s && s[staffRole]);
   }
 
+  let saleFrac = 0;
   function sell(c) {
     const cfg = staffed() ? serveCfg.staffed : serveCfg.self;
     const n = Math.min(cfg.batch, stock);
@@ -354,7 +355,10 @@ function createShop(G, def) {
     stockValue = stock > 0 ? Math.max(0, stockValue - n * each) : 0;
     stockDirty = true;
     station.sold += n;
-    const amount = Math.max(1, Math.round(n * each * G.stats.priceMult));
+    // whole money per sale; the fraction carries over to the next one, so small bonuses still count
+    const raw = n * each * G.stats.priceMult + saleFrac;
+    const amount = Math.max(1, Math.floor(raw));
+    saleFrac = Math.max(0, Math.min(1, raw - amount));
     cash += amount;
     const fx = G.fx;
     if (fx && fx.fly) {
