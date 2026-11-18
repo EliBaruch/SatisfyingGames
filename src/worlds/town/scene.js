@@ -25,126 +25,78 @@ const inRect = (x, z, r, pad = 0) => x > r.minX - pad && x < r.maxX + pad && z >
 const css = (c, a = 1) => { const k = new THREE.Color(c); return `rgba(${Math.round(k.r * 255)},${Math.round(k.g * 255)},${Math.round(k.b * 255)},${a})`; };
 
 // ------------------------------------------------------------ painted ground ---
-// One canvas over the play area, transparent where the grass shows: soft-edged dirt, soil and straw.
-const PAINT = { x0: -30, z0: -29, size: 60, px: 2048 };
-function paintGround(LAY, truckPath) {
-  const k = PAINT.px / PAINT.size;
-  return canvasTex(PAINT.px, PAINT.px, (ctx) => {
-    const r = rng(41);
-    const X = (x) => (x - PAINT.x0) * k, Z = (z) => (z - PAINT.z0) * k;
+// Soft-edged dirt, soil and straw painted on canvases that lie over the grass (transparent where the
+// grass shows). One layer per part of the world, so the ground wears in as the farm grows.
+const PX = 34;                   // canvas pixels per world unit
+const DIRT = 0xdcc5a0, DIRT_D = 0xbfa078, DIRT_L = 0xf1e3c6;
+/** Paint a layer over the world rectangle { x0, z0, x1, z1 }: draw(tools) -> a canvas texture. */
+function paintLayer(R, seed, draw) {
+  const w = Math.round((R.x1 - R.x0) * PX), h = Math.round((R.z1 - R.z0) * PX), k = PX;
+  return canvasTex(w, h, (ctx) => {
+    const r = rng(seed);
+    const X = (x) => (x - R.x0) * k, Z = (z) => (z - R.z0) * k;
     const OFF = 6000;
-    /** a soft-edged rectangle (the blur comes from a shadow, which every browser supports) */
-    const soft = (x0, z0, x1, z1, color, a = 1, blur = 0.5, rad = 0.6) => {
-      ctx.save();
-      ctx.shadowColor = css(color, a); ctx.shadowBlur = blur * k; ctx.shadowOffsetX = OFF;
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      const px = X(x0) - OFF, pz = Z(z0), w = (x1 - x0) * k, h = (z1 - z0) * k, q = Math.min(rad * k, w / 2, h / 2);
-      ctx.moveTo(px + q, pz); ctx.arcTo(px + w, pz, px + w, pz + h, q); ctx.arcTo(px + w, pz + h, px, pz + h, q);
-      ctx.arcTo(px, pz + h, px, pz, q); ctx.arcTo(px, pz, px + w, pz, q); ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+    const T = {
+      ctx, r, X, Z, k,
+      /** a soft-edged rectangle (the blur comes from a shadow, which every browser supports) */
+      soft(x0, z0, x1, z1, color, a = 1, blur = 0.5, rad = 0.6) {
+        ctx.save();
+        ctx.shadowColor = css(color, a); ctx.shadowBlur = blur * k; ctx.shadowOffsetX = OFF;
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        const px = X(x0) - OFF, pz = Z(z0), ww = (x1 - x0) * k, hh = (z1 - z0) * k, q = Math.min(rad * k, ww / 2, hh / 2);
+        ctx.moveTo(px + q, pz); ctx.arcTo(px + ww, pz, px + ww, pz + hh, q); ctx.arcTo(px + ww, pz + hh, px, pz + hh, q);
+        ctx.arcTo(px, pz + hh, px, pz, q); ctx.arcTo(px, pz, px + ww, pz, q); ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      },
+      blob(x, z, rad, color, a = 1) {
+        const g = ctx.createRadialGradient(X(x), Z(z), rad * k * 0.35, X(x), Z(z), rad * k);
+        g.addColorStop(0, css(color, a)); g.addColorStop(1, css(color, 0));
+        ctx.fillStyle = g; ctx.fillRect(X(x - rad), Z(z - rad), rad * 2 * k, rad * 2 * k);
+      },
+      /** a trodden strip along a polyline */
+      strip(pts, wd, color, a = 1) {
+        for (let i = 1; i < pts.length; i++) {
+          const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+          const n = Math.max(2, Math.ceil(Math.hypot(bx - ax, bz - az) / (wd * 0.3)));
+          for (let j = 0; j <= n; j++) T.blob(ax + (bx - ax) * j / n + (r() - 0.5) * wd * 0.14, az + (bz - az) * j / n + (r() - 0.5) * wd * 0.14, wd * (0.52 + r() * 0.1), color, a * 0.75);
+        }
+      },
+      /** ragged edges: blobs straddling the outline of a rectangle */
+      ragged(x0, z0, x1, z1, color, a = 0.8, rad = 0.7) {
+        const per = 2 * (x1 - x0 + z1 - z0), n = Math.ceil(per / 1.1);
+        for (let i = 0; i < n; i++) {
+          let d = (i / n) * per, x, z;
+          if (d < x1 - x0) { x = x0 + d; z = z0; } else if ((d -= x1 - x0) < z1 - z0) { x = x1; z = z0 + d; } else if ((d -= z1 - z0) < x1 - x0) { x = x1 - d; z = z1; } else { d -= x1 - x0; x = x0; z = z1 - d; }
+          if (r() < 0.75) T.blob(x + (r() - 0.5) * 0.5, z + (r() - 0.5) * 0.5, rad * (0.6 + r() * 0.7), color, a);
+        }
+      },
+      /** details that only land where something is already painted */
+      atop(x0, z0, x1, z1, fn) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(X(x0), Z(z0), (x1 - x0) * k, (z1 - z0) * k); ctx.clip();
+        ctx.globalCompositeOperation = 'source-atop';
+        fn();
+        ctx.restore();
+      },
+      speckle(x0, z0, x1, z1, n, colors, s0 = 0.03, s1 = 0.09, skip = null) {
+        T.atop(x0, z0, x1, z1, () => {
+          for (let i = 0; i < n; i++) {
+            const x = x0 + r() * (x1 - x0), z = z0 + r() * (z1 - z0), c = colors[(r() * colors.length) | 0], sz = (s0 + r() * (s1 - s0)) * k, e = 0.6 + r() * 0.4, rot = r() * 3;
+            if (skip && skip(x, z)) continue;
+            ctx.fillStyle = c;
+            ctx.beginPath(); ctx.ellipse(X(x), Z(z), sz, sz * e, rot, 0, 6.3); ctx.fill();
+          }
+        });
+      },
+      /** pebbles and wear over everything painted so far in the layer */
+      wear(density = 1.6, skip = null) {
+        const area = (R.x1 - R.x0) * (R.z1 - R.z0);
+        T.speckle(R.x0, R.z0, R.x1, R.z1, Math.round(area * density), [css(DIRT_D, 0.4), css(DIRT_D, 0.3), css(DIRT_L, 0.55), css(0xa59a8c, 0.6)], 0.03, 0.1, skip);
+      },
     };
-    const blob = (x, z, rad, color, a = 1) => {
-      const g = ctx.createRadialGradient(X(x), Z(z), rad * k * 0.35, X(x), Z(z), rad * k);
-      g.addColorStop(0, css(color, a)); g.addColorStop(1, css(color, 0));
-      ctx.fillStyle = g; ctx.fillRect(X(x - rad), Z(z - rad), rad * 2 * k, rad * 2 * k);
-    };
-    /** a trodden strip along a polyline */
-    const strip = (pts, w, color, a = 1) => {
-      for (let i = 1; i < pts.length; i++) {
-        const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
-        const n = Math.max(2, Math.ceil(Math.hypot(bx - ax, bz - az) / (w * 0.3)));
-        for (let j = 0; j <= n; j++) blob(ax + (bx - ax) * j / n + (r() - 0.5) * w * 0.14, az + (bz - az) * j / n + (r() - 0.5) * w * 0.14, w * (0.52 + r() * 0.1), color, a * 0.75);
-      }
-    };
-    /** ragged edges: blobs straddling the outline of a rectangle */
-    const ragged = (x0, z0, x1, z1, color, a = 0.8, rad = 0.7) => {
-      const per = 2 * (x1 - x0 + z1 - z0), n = Math.ceil(per / 1.1);
-      for (let i = 0; i < n; i++) {
-        let d = (i / n) * per, x, z;
-        if (d < x1 - x0) { x = x0 + d; z = z0; } else if ((d -= x1 - x0) < z1 - z0) { x = x1; z = z0 + d; } else if ((d -= z1 - z0) < x1 - x0) { x = x1 - d; z = z1; } else { d -= x1 - x0; x = x0; z = z1 - d; }
-        if (r() < 0.75) blob(x + (r() - 0.5) * 0.5, z + (r() - 0.5) * 0.5, rad * (0.6 + r() * 0.7), color, a);
-      }
-    };
-    /** details that only land where something is already painted */
-    const atop = (x0, z0, x1, z1, draw) => {
-      ctx.save();
-      ctx.beginPath(); ctx.rect(X(x0), Z(z0), (x1 - x0) * k, (z1 - z0) * k); ctx.clip();
-      ctx.globalCompositeOperation = 'source-atop';
-      draw();
-      ctx.restore();
-    };
-    const speckle = (x0, z0, x1, z1, n, colors, s0 = 0.03, s1 = 0.09) => atop(x0, z0, x1, z1, () => {
-      for (let i = 0; i < n; i++) {
-        ctx.fillStyle = colors[(r() * colors.length) | 0];
-        const s = (s0 + r() * (s1 - s0)) * k;
-        ctx.beginPath(); ctx.ellipse(X(x0 + r() * (x1 - x0)), Z(z0 + r() * (z1 - z0)), s, s * (0.6 + r() * 0.4), r() * 3, 0, 6.3); ctx.fill();
-      }
-    });
-
-    const DIRT = 0xd3ae7c, DIRT_D = 0xb98f5e, DIRT_L = 0xe8cc9f;
-    const SOIL = 0xa8733c, SOIL_D = 0x8a5a2c, STRAW = 0xdcb866;
-    const ST = LAY.street;
-    // ---- fields first (the lanes are drawn over their edges)
-    const wf = LAY.wheat, pf = LAY.pumpkins;
-    const W = { x0: wf.x0 - 0.9, x1: wf.x0 + (wf.cols - 1) * wf.dx + 0.75, z0: wf.z0 - 0.9, z1: wf.z0 + (wf.rows - 1) * wf.dz + 0.9 };
-    soft(W.x0, W.z0, W.x1, W.z1, SOIL, 1, 0.35, 0.5);
-    ragged(W.x0, W.z0, W.x1, W.z1, SOIL, 0.7, 0.55);
-    atop(W.x0 - 1, W.z0 - 1, W.x1 + 1, W.z1 + 1, () => {
-      for (let i = 0; i < wf.rows; i++) {                                  // straw-gold rows with dark furrows between
-        const z = wf.z0 + i * wf.dz;
-        ctx.fillStyle = css(0xc79a4a, 0.55); ctx.fillRect(X(W.x0 - 1), Z(z - 0.3), (W.x1 - W.x0 + 2) * k, 0.6 * k);
-        ctx.fillStyle = css(SOIL_D, 0.5); ctx.fillRect(X(W.x0 - 1), Z(z + 0.42), (W.x1 - W.x0 + 2) * k, 0.16 * k);
-      }
-    });
-    speckle(W.x0, W.z0, W.x1, W.z1, 900, [css(SOIL_D, 0.5), css(0xe2c070, 0.6), css(0x7a4d24, 0.4)]);
-    const PP = { x0: pf.x0 - 1.0, x1: pf.x0 + (pf.cols - 1) * pf.dx + 0.9, z0: pf.z0 - 1.0, z1: pf.z0 + (pf.rows - 1) * pf.dz + 0.9 };
-    soft(PP.x0, PP.z0, PP.x1, PP.z1, 0x95683a, 1, 0.35, 0.5);
-    ragged(PP.x0, PP.z0, PP.x1, PP.z1, 0x95683a, 0.7, 0.55);
-    atop(PP.x0 - 1, PP.z0 - 1, PP.x1 + 1, PP.z1 + 1, () => {
-      for (let i = 0; i < pf.rows; i++) for (let j = 0; j < pf.cols; j++) {     // a mound under every vine
-        const g = ctx.createRadialGradient(X(pf.x0 + j * pf.dx), Z(pf.z0 + i * pf.dz), 0, X(pf.x0 + j * pf.dx), Z(pf.z0 + i * pf.dz), 0.62 * k);
-        g.addColorStop(0, css(0xb5824a, 0.9)); g.addColorStop(1, css(0xb5824a, 0));
-        ctx.fillStyle = g; ctx.fillRect(X(pf.x0 + j * pf.dx - 0.7), Z(pf.z0 + i * pf.dz - 0.7), 1.4 * k, 1.4 * k);
-      }
-    });
-    speckle(PP.x0, PP.z0, PP.x1, PP.z1, 500, [css(0x754a26, 0.5), css(0xc79a5c, 0.5)]);
-    // ---- the paddock: trampled straw
-    const PD = LAY.paddock;
-    soft(PD.minX, PD.minZ, PD.maxX + 0.5, PD.maxZ - 0.2, STRAW, 0.95, 0.5, 0.8);
-    ragged(PD.minX, PD.minZ, PD.maxX + 0.5, PD.maxZ - 0.2, STRAW, 0.6, 0.7);
-    speckle(PD.minX - 0.5, PD.minZ - 0.5, PD.maxX + 1, PD.maxZ, 700, [css(0xc09a48, 0.6), css(0xf2dc96, 0.7), css(0xa8733c, 0.35)], 0.04, 0.14);
-    // ---- the street, the lanes and the yards
-    soft(ST.minX - 0.1, -29, ST.maxX + 0.1, 19.5, DIRT, 1, 0.45, 0.4);
-    soft(-12.9, 9.3, ST.minX + 0.5, 14.0, DIRT, 1, 0.5, 0.9);                       // mill lane
-    soft(ST.maxX - 0.5, 7.0, 8.7, 14.4, DIRT, 1, 0.5, 0.9);                         // bakery lane
-    soft(6.6, 8.6, 10.6, 10.5, DIRT, 1, 0.4, 0.5);
-    soft(ST.maxX - 0.5, -6.2, 10.5, 2.6, DIRT, 1, 0.5, 0.9);                        // the stall's apron
-    soft(-3.8, 15.5, 9.4, 19.6, DIRT, 1, 0.5, 0.9);                                 // platform approach
-    soft(ST.maxX - 0.5, -12.6, 7.0, -9.2, DIRT, 1, 0.5, 0.7);                       // creamery door
-    soft(6.9, -17.4, 11.5, -12.4, DIRT, 1, 0.5, 0.9);                               // milk bay
-    strip([[ST.maxX, -15.5], [7.4, -15.6]], 2.2, DIRT);
-    strip([[10.3, 0], [19.9, 0.1]], 2.6, DIRT);                                     // the queue
-    strip([[7.6, -6], [11.7, -8]], 2.3, DIRT);                                      // to the trough
-    strip([[ST.minX, -7.6], [-7.2, -7.7]], 2.4, DIRT);                              // to the pumpkin patch
-    strip([[-8, 9.4], [-8.2, 7.2]], 2.6, DIRT, 0.8);
-    strip([[-11.2, 9.6], [-13.4, 8.2], [-15.8, 8.4]], 2.6, DIRT, 0.9);             // the combine's corner
-    strip(truckPath, 2.5, DIRT);
-    for (const [x, z, rad] of [[3.3, 3.6, 2], [-3, 7.9, 1.9], [14, -5.4, 1.9], [0.6, 14.4, 1.9], [15, 14.8, 2.0], [11, 16.8, 1.9], [14.6, 11, 1.8], [-5.5, -7.6, 1.8]]) blob(x, z, rad, DIRT, 0.75);
-    // wear and pebbles on the dirt only (fields and paddock are masked by redrawing their speckles after)
-    atop(-14.5, -29, 20.2, 19.8, () => {
-      for (let i = 0; i < 2600; i++) {
-        const x = -14 + r() * 34.2, z = -29 + r() * 48.8;
-        if (inRect(x, z, { minX: W.x0, maxX: W.x1, minZ: W.z0, maxZ: W.z1 }) || inRect(x, z, { minX: PP.x0, maxX: PP.x1, minZ: PP.z0, maxZ: PP.z1 }) || inRect(x, z, PD, 0.4)) continue;
-        const t = r();
-        ctx.fillStyle = t < 0.5 ? css(DIRT_D, 0.35) : t < 0.85 ? css(DIRT_L, 0.5) : css(0x9a8a78, 0.6);
-        const s = (0.03 + r() * 0.07) * k;
-        ctx.beginPath(); ctx.ellipse(X(x), Z(z), s, s * (0.6 + r() * 0.4), r() * 3, 0, 6.3); ctx.fill();
-      }
-      // two soft wheel ruts down the street
-      for (const x of [ST.minX + 1.1, ST.maxX - 1.1]) { ctx.fillStyle = css(DIRT_D, 0.16); ctx.fillRect(X(x - 0.18), Z(-29), 0.36 * k, 48.4 * k); }
-    });
+    draw(T);
   });
 }
 
@@ -152,9 +104,9 @@ function paintGround(LAY, truckPath) {
 function wheatTexture() {
   return canvasTex(256, 256, (ctx, w, h) => {
     const r = rng(8);
-    ctx.fillStyle = '#d9a83c'; ctx.fillRect(0, 0, w, h);
-    for (let y = 0; y < h; y += 32) { ctx.fillStyle = 'rgba(160,112,36,0.5)'; ctx.fillRect(0, y + 26, w, 6); ctx.fillStyle = 'rgba(255,226,130,0.45)'; ctx.fillRect(0, y + 6, w, 12); }
-    for (let i = 0; i < 700; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(255,236,160,0.7)' : 'rgba(190,140,50,0.6)'; ctx.fillRect(r() * w, r() * h, 2 + r() * 3, 2); }
+    ctx.fillStyle = '#c9aa6c'; ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 32) { ctx.fillStyle = 'rgba(150,118,66,0.5)'; ctx.fillRect(0, y + 26, w, 6); ctx.fillStyle = 'rgba(236,214,160,0.5)'; ctx.fillRect(0, y + 6, w, 12); }
+    for (let i = 0; i < 700; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(244,228,180,0.7)' : 'rgba(170,136,80,0.6)'; ctx.fillRect(r() * w, r() * h, 2 + r() * 3, 2); }
   }, { repeat: true });
 }
 
@@ -204,21 +156,130 @@ export function createScene(G) {
 
   // ---------------------------------------------------------------- ground --
   const truckPath = (() => { const p = G.world.workers.vendor.path; return [...p.in.slice(1), p.stop, ...p.out.slice(0, -1)].map((q) => [q.x, q.z]); })();
+  const fades = [];        // ground layers wearing in
+  /** A painted ground layer; `shown` false = hidden until layer.show(live). */
+  const layer = (R, seed, draw, shown = true) => {
+    const mat = litMaterial({ map: paintLayer(R, seed, draw), transparent: true, depthWrite: false });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(R.x1 - R.x0, R.z1 - R.z0), mat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set((R.x0 + R.x1) / 2, 0.014, (R.z0 + R.z1) / 2);
+    m.receiveShadow = true; m.renderOrder = 1;
+    m.visible = shown;
+    root.add(fixed(m));
+    return {
+      mesh: m,
+      show(live) {
+        if (m.visible) return;
+        if (!live) { m.visible = true; return; }
+        mat.opacity = 0;
+        const go = () => { m.visible = true; fades.push(mat); };
+        if (G.fx && G.fx.defer) G.fx.defer(go); else go();
+      },
+    };
+  };
+  const SS = LAY.street;
+  const padBlob = (T, id, rad = 1.9) => { const p = G.pads.get(id); if (p) T.blob(p.pos.x, p.pos.z, rad, DIRT, 0.7); };
   {
     const gb = LAY.ground;
-    const grass = makeGround('grass', gb.maxX - gb.minX, gb.maxZ - gb.minZ, { color: 0x86ab3a, tile: 7, seed: 5 });
+    const grass = makeGround('grass', gb.maxX - gb.minX, gb.maxZ - gb.minZ, { color: 0x79a65a, tile: 7, seed: 5 });
     grass.position.set((gb.minX + gb.maxX) / 2, 0, (gb.minZ + gb.maxZ) / 2);
     root.add(fixed(grass));
-    // the dirt road (east) under the level crossing, and the ballast under the rails
-    const road = makeGround('soil', 3.9, gb.maxZ - gb.minZ, { color: 0xc9a672, tile: 5, seed: 12, y: 0.008 });
+    // the dirt road (east) under the level crossing
+    const road = makeGround('soil', 3.9, gb.maxZ - gb.minZ, { color: 0xd6c09a, tile: 5, seed: 12, y: 0.008 });
     road.position.set(LAY.roadX, 0.008, (gb.minZ + gb.maxZ) / 2);
     root.add(fixed(road));
-    const paint = new THREE.Mesh(new THREE.PlaneGeometry(PAINT.size, PAINT.size), litMaterial({ map: paintGround(LAY, truckPath), transparent: true, depthWrite: false }));
-    paint.rotation.x = -Math.PI / 2;
-    paint.position.set(PAINT.x0 + PAINT.size / 2, 0.014, PAINT.z0 + PAINT.size / 2);
-    paint.receiveShadow = true; paint.renderOrder = 1;
-    root.add(fixed(paint));
+
+    // the first day: the street, the wheat field, the stall's apron and the queue
+    const wf = LAY.wheat;
+    const W = { x0: wf.x0 - 0.9, x1: wf.x0 + (wf.cols - 1) * wf.dx + 0.75, z0: wf.z0 - 0.9, z1: wf.z0 + (wf.rows - 1) * wf.dz + 0.9 };
+    const inField = (x, z) => x > W.x0 - 0.3 && x < W.x1 + 0.3 && z > W.z0 - 0.3 && z < W.z1 + 0.3;
+    layer({ x0: -15, z0: -30, x1: 21.5, z1: 20.4 }, 41, (T) => {
+      const SOIL = 0xb9966a, SOIL_D = 0x8f6c46;
+      T.soft(W.x0, W.z0, W.x1, W.z1, SOIL, 1, 0.35, 0.5);
+      T.ragged(W.x0, W.z0, W.x1, W.z1, SOIL, 0.7, 0.55);
+      T.atop(W.x0 - 1, W.z0 - 1, W.x1 + 1, W.z1 + 1, () => {
+        for (let i = 0; i < wf.rows; i++) {                                // straw-gold rows with dark furrows between
+          const z = wf.z0 + i * wf.dz;
+          T.ctx.fillStyle = css(0xdcc080, 0.5); T.ctx.fillRect(T.X(W.x0 - 1), T.Z(z - 0.3), (W.x1 - W.x0 + 2) * T.k, 0.6 * T.k);
+          T.ctx.fillStyle = css(SOIL_D, 0.45); T.ctx.fillRect(T.X(W.x0 - 1), T.Z(z + 0.42), (W.x1 - W.x0 + 2) * T.k, 0.16 * T.k);
+        }
+      });
+      T.speckle(W.x0, W.z0, W.x1, W.z1, 800, [css(SOIL_D, 0.4), css(0xf0dca0, 0.6), css(0x7a5a38, 0.3)]);
+      T.soft(SS.minX - 0.1, -30, SS.maxX + 0.1, 19.6, DIRT, 1, 0.45, 0.4);
+      T.soft(SS.maxX - 0.5, -6.2, 10.5, 2.6, DIRT, 1, 0.5, 0.9);                    // the stall's apron
+      T.strip([[10.3, 0], [20.6, 0.1]], 2.6, DIRT);                                 // the queue
+      for (const id of ['keeper', 'scythe', 'hand1']) padBlob(T, id);
+      T.wear(1.5, inField);
+      // two soft wheel ruts down the street
+      T.atop(SS.minX, -30, SS.maxX, 19.6, () => { for (const x of [SS.minX + 1.1, SS.maxX - 1.1]) { T.ctx.fillStyle = css(DIRT_D, 0.2); T.ctx.fillRect(T.X(x - 0.18), T.Z(-30), 0.36 * T.k, 49.6 * T.k); } });
+    });
   }
+  const groundMill = layer({ x0: -17.5, z0: 6.0, x1: 2.2, z1: 14.8 }, 42, (T) => {
+    T.soft(-12.9, 9.3, SS.minX + 0.5, 14.0, DIRT, 1, 0.5, 0.9);
+    T.strip([[-8, 9.4], [-8.2, 7.4]], 2.6, DIRT, 0.85);
+    T.strip([[-11.2, 9.6], [-13.4, 8.2], [-15.8, 8.4]], 2.6, DIRT, 0.9);            // the combine's corner
+    padBlob(T, 'mill'); T.wear();
+  }, false);
+  const groundBakery = layer({ x0: 4.2, z0: 6.2, x1: 11.4, z1: 15.2 }, 43, (T) => {
+    T.soft(SS.maxX - 0.5, 7.0, 8.7, 14.4, DIRT, 1, 0.5, 0.9);
+    T.soft(6.6, 8.6, 10.6, 10.5, DIRT, 1, 0.4, 0.5);
+    T.wear();
+  }, false);
+  const groundTruck = layer({ x0: 6.8, z0: -0.8, x1: 24, z1: 13.2 }, 44, (T) => {
+    T.strip(truckPath, 2.5, DIRT);
+    const tc = ST.get('truckcash').def.cashPile;
+    T.blob(tc.x, tc.z, 1.9, DIRT, 0.75);
+    T.wear();
+    T.atop(6.8, -0.8, 24, 13.2, () => {                                             // tyre tracks
+      for (const s of [-0.55, 0.55]) {
+        T.ctx.strokeStyle = css(DIRT_D, 0.28); T.ctx.lineWidth = 0.3 * T.k; T.ctx.lineJoin = 'round'; T.ctx.beginPath();
+        truckPath.forEach(([x, z], i) => { if (i) T.ctx.lineTo(T.X(x + s * 0.3), T.Z(z + s)); else T.ctx.moveTo(T.X(x + s * 0.3), T.Z(z + s)); });
+        T.ctx.stroke();
+      }
+    });
+  }, false);
+  const PDK = LAY.paddock;
+  const groundDairy = layer({ x0: 4.4, z0: -20.6, x1: 21, z1: -4.8 }, 45, (T) => {
+    const STRAW = 0xe9d8a4;
+    const inPad = (x, z) => inRect(x, z, PDK, 0.5);
+    T.soft(SS.maxX - 0.5, -12.6, 7.0, -9.2, DIRT, 1, 0.5, 0.7);                     // creamery door
+    T.soft(6.9, -17.4, 11.5, -12.4, DIRT, 1, 0.5, 0.9);                             // milk bay
+    T.strip([[SS.maxX, -15.5], [7.4, -15.6]], 2.2, DIRT);
+    T.strip([[7.6, -6], [11.7, -8]], 2.3, DIRT);                                    // to the trough
+    padBlob(T, 'dairy');
+    T.wear(1.6, inPad);
+    T.soft(PDK.minX, PDK.minZ, PDK.maxX + 0.5, PDK.maxZ - 0.2, STRAW, 0.97, 0.5, 0.8);
+    T.ragged(PDK.minX, PDK.minZ, PDK.maxX + 0.5, PDK.maxZ - 0.2, STRAW, 0.6, 0.7);
+    T.speckle(PDK.minX - 0.5, PDK.minZ - 0.5, PDK.maxX + 1, PDK.maxZ, 800, [css(0xcfb26a, 0.6), css(0xfbf0c8, 0.75), css(0xb89468, 0.3)], 0.04, 0.14, (x, z) => !inPad(x, z));
+  }, false);
+  const groundPatch = layer({ x0: -14.2, z0: -19.2, x1: 2.4, z1: -5.9 }, 46, (T) => {
+    const pf = LAY.pumpkins, SOIL = 0xab8b68;
+    const PP = { x0: pf.x0 - 1.0, x1: pf.x0 + (pf.cols - 1) * pf.dx + 0.9, z0: pf.z0 - 1.0, z1: pf.z0 + (pf.rows - 1) * pf.dz + 0.9 };
+    T.strip([[SS.minX, -7.6], [-7.2, -7.7]], 2.4, DIRT);                            // the lane to the patch
+    T.wear();
+    T.soft(PP.x0, PP.z0, PP.x1, PP.z1, SOIL, 1, 0.35, 0.5);
+    T.ragged(PP.x0, PP.z0, PP.x1, PP.z1, SOIL, 0.7, 0.55);
+    T.atop(PP.x0 - 1, PP.z0 - 1, PP.x1 + 1, PP.z1 + 1, () => {
+      for (let i = 0; i < pf.rows; i++) for (let j = 0; j < pf.cols; j++) {       // a mound under every vine
+        const cx = pf.x0 + j * pf.dx, cz = pf.z0 + i * pf.dz;
+        const g = T.ctx.createRadialGradient(T.X(cx), T.Z(cz), 0, T.X(cx), T.Z(cz), 0.62 * T.k);
+        g.addColorStop(0, css(0xc9aa80, 0.9)); g.addColorStop(1, css(0xc9aa80, 0));
+        T.ctx.fillStyle = g; T.ctx.fillRect(T.X(cx - 0.7), T.Z(cz - 0.7), 1.4 * T.k, 1.4 * T.k);
+      }
+    });
+    T.speckle(PP.x0, PP.z0, PP.x1, PP.z1, 420, [css(0x8a6a4a, 0.45), css(0xd9bf96, 0.5)]);
+  }, false);
+  const groundJunction = layer({ x0: -5, z0: 12.6, x1: 17.4, z1: 20.2 }, 47, (T) => {
+    T.soft(-3.8, 15.5, 9.4, 19.7, DIRT, 1, 0.5, 0.9);
+    for (const id of ['junction', 'porter1', 'town', 'clock']) padBlob(T, id);
+    T.wear();
+  }, false);
+  ST.onOpen('mill', (live) => groundMill.show(live));
+  ST.onOpen('bakery', (live) => groundBakery.show(live));
+  ST.onOpen('truckcash', (live) => groundTruck.show(live));
+  ST.onOpen('trough', (live) => groundDairy.show(live));
+  ST.onOpen('pumpkins', (live) => groundPatch.show(live));
+  ST.onOpen('platform', (live) => groundJunction.show(live));
 
   // ------------------------------------------------- rails, crossing, backdrop --
   const RZ = LAY.railZ;
@@ -521,8 +582,8 @@ export function createScene(G) {
   {
     const TREES = [
       ['nature-kit/tree_default', 4.6, 0.75, 0xfff0c0], ['nature-kit/tree_oak', 4.2, 0.9, 0xfff0c0], ['nature-kit/tree_fat', 3.6, 0.8, 0xfff2c8],
-      ['nature-kit/tree_oak_fall', 4.3, 0.9, 0xffffff], ['nature-kit/tree_default', 5.2, 0.8, 0xffd27a], ['nature-kit/tree_thin', 4.8, 0.6, 0xfff0c0],
-      ['nature-kit/tree_small', 3.2, 0.5, 0xffdc8c], ['nature-kit/tree_oak_fall', 3.6, 0.8, 0xfff4d8],
+      ['nature-kit/tree_oak_fall', 4.3, 0.9, 0xffb060], ['nature-kit/tree_default', 5.2, 0.8, 0xffd27a], ['nature-kit/tree_thin', 4.8, 0.6, 0xfff0c0],
+      ['nature-kit/tree_small', 3.2, 0.5, 0xffdc8c], ['nature-kit/tree_oak_fall', 3.6, 0.8, 0xffc878],
     ];
     const hi = [new Parts(), new Parts(), new Parts(), new Parts()], lo = [new Parts(), new Parts(), new Parts(), new Parts()];
     const quad = (x, z) => (x > 3 ? 1 : 0) + (z > 2 ? 2 : 0);
@@ -733,6 +794,7 @@ export function createScene(G) {
     root,
     update(dt) {
       T += dt;
+      for (let i = fades.length - 1; i >= 0; i--) { const m = fades[i]; m.opacity = Math.min(1, m.opacity + dt * 1.4); if (m.opacity >= 1) fades.splice(i, 1); }
       // the windmill turns, faster while it grinds
       if (millG.visible) millG.userData.sails.rotation.z -= dt * (mill.running ? 1.5 : 0.45);
       // the bakery chimney smokes while the oven is busy

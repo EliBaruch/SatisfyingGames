@@ -167,8 +167,8 @@ export default {
   // golden hour: a low warm sun, long soft shadows
   lighting: {
     variant: 'outdoor', background: 0xffe3b0,
-    hemi: { sky: 0xfff3dc, ground: 0xe6d49a, intensity: 1.75 },
-    sun: { color: 0xffe0a8, intensity: 1.45, dir: [11, 15, -8] },
+    hemi: { sky: 0xfff6e6, ground: 0xe4dcb8, intensity: 1.75 },
+    sun: { color: 0xffe9c6, intensity: 1.4, dir: [11, 15, -8] },
     fill: { color: 0xffd9c4, intensity: 0.6 },
   },
   bounds: { minX: -19.6, maxX: 19.7, minZ: -19.4, maxZ: 19.0 },
