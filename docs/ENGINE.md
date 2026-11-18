@@ -23,7 +23,7 @@ src/engine/
   transfer.js                 flyToStack / flyToDrop / inZone: allocation-free item moves
   player.js                   movement + generic loop over station capabilities
   stations/index.js           G.stations (built-ins: source.js, shop.js; pile, converter, trough, shelf,
-                              checkout, cashpile; opt-in: belt, carline, solid, herd: see docs/STATIONS.md)
+                              checkout, cashpile; opt-in: belt, carline, solid, herd, depot: see docs/STATIONS.md)
   workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
   thrills/                    events, fever, stars and perks on top of the core loop (section 13)
@@ -139,6 +139,17 @@ small helpers (the flower world mirrors plot-local coordinates with `L(plot, lx,
 Flower world summary: 3 plots, each `source` (`roses`) + `shop` (`shop-roses`); pads `cashier0`
 -> cutters -> upgrades -> `tractor0` -> `farm1` (`open` tulips) -> ... -> `greenhouse` (`win`) ->
 `travel` (free, appears after the win). Bot time to win: about 6:10.
+
+Town world summary (`src/worlds/town/`, the sixth and last world, "Wheatwhistle Junction"): one street along z with
+everything hanging off it. Five stages on the stage bar. FIELD: `wheat` (`source`, 14 x 12) + `stall` (`shop`).
+FARM: `mill` (`converter`, 3 wheat -> flour), `bakery` (2 flour -> bread), farmhands (`hauler` lists), a combine
+(`harvester`), a bakery truck (`vendor` onto `truckcash`). DAIRY: `trough` (takes wheat, boosts the `milk` source x3),
+`creamery` (2 milk -> cheese), `pumpkins` (`source`). JUNCTION: `platform` (opt-in `depot`) + `traincash`, and the
+freight train (opt-in `train` role: wagons for bread, cheese and pumpkins, a bonus for a full train). TOWN: price and
+train upgrades that build cottages, a square and a clock tower, then `fair` (`win`) and a `worlds` pad. 33 pads in one
+chain; bot time to win about 10 minutes. scene.js makes the stall refuse raw goods while the machine that wants
+them has room (the frost world's trick), paints the ground in layers that appear with each area, and adds a
+blocker for every solid prop to the `scenery` / `paddock` / `square` `solid` stations.
 
 ## 4. Stations
 

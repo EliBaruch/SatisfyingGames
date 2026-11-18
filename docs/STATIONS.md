@@ -440,6 +440,57 @@ flight. It holds fire while `to` is full. Options (`world.workers.turret` < `eff
 `range`, `damage`, `damageStat`, `bolt` (colour), `model: () => Object3D` (`userData.head` turns to the
 target, `userData.muzzle` is where the shot leaves, in the head's frame).
 
+### `depot`: a goods platform (the town world)
+
+`modules: ['../../engine/stations/depot.js']`.
+
+```js
+{ id: 'platform', type: 'depot', name: 'PLATFORM', open: false, x: 3.2, z: 20.7, items: ['bread', 'cheese', 'pumpkin'],
+  capacity: 54, kindCap: { bread: 22, cheese: 16, pumpkin: 16 },   // so one kind never crowds out the others
+  layout: { x: 3.2, z: 20.7, y: 0.36, cols: 8, rows: 2 },          // where the goods are drawn (on the deck)
+  dropZone: { x: 3.2, z: 17.3, r: 1.6 }, workerSpot: { x: 3.2, z: 16.5 } }   // dropZone is required
+```
+
+A `pile` that goods only go IN to by hand. The player and haulers unload at its drop zone (the usual `drop`
+capability with `roomFor(kind)`); the stock is drawn where `layout` says. It has **no `pickup`**: the same
+capability is exposed as `station.freight` (`available`, `take(accept)`, `has`, `count(kind)`, `from(out)`), which
+only a vehicle role reads. So hints, the test bot and haulers never treat it as a source, and nobody carries the
+goods back off the platform to sell them somewhere else. It takes every `pile` option (`start`, `supply`, `pallet`,
+`markers`, `label`); `zone` is unused. **Save:** the pile's.
+
+### `train` role: a freight train with wagons that fill
+
+`modules: ['../../engine/workers/train.js']`.
+
+```js
+effect: { type: 'hire', role: 'train', from: 'platform', to: 'traincash' }      // from: a depot (or any pickup); to: a cashpile
+workers: { train: {
+  path: { in: [{ x: 66, z: 23 }], stop: { x: -7.2, z: 23 }, out: [{ x: -62, z: 23 }] },   // REQUIRED: the rails, a polyline
+  model: () => ({ loco: Object3D, wagons: [Object3D, ...] }),   // REQUIRED: all face +Z, origin on the rails;
+         // loco.userData { wheels: [Object3D] (spun about X), wheelR, funnel: { x, y, z } }, wagon.userData.bedAnchor
+  wagons: [{ kinds: ['bread'], capacity: 16 }, { kinds: ['cheese'], capacity: 12 }, { kinds: ['pumpkin'], capacity: 12 }],
+  countStat: 'wagons',          // G.stats key: how many wagons are coupled (a `stat` pad adds one)
+  every: 26, first: 2,          // seconds away between visits; before the first one
+  rateStat: 'trainRate',        // G.stats key: the trains come that much more often
+  dwell: 11,                    // seconds it waits at the platform at most; it leaves at once when full
+  loadInterval: 0.08, speed: 11, accel: 5, lead: 4.35, spacing: 4.3,   // lead: locomotive middle to first wagon middle
+  priceMult: 1.5, priceStat: 'trainPrice',   // pay = value x priceMult x G.stats.priceMult x G.stats[priceStat]
+  bonus: 0.3,                   // extra share of the visit's pay when every wagon left full
+  perColumn: 4, columnGap: 0.6, sounds: { whistle: 'whistle', chuff: 'chuff' },
+} }
+```
+
+A visit: the locomotive appears at `in[0]` with a whistle, brakes so that its middle stops at `stop`, and loads.
+Each item goes to the first coupled wagon that takes its kind and has room (a wagon without `kinds` takes
+anything), flies onto that wagon's own stack, and is paid for at once onto the `to` pile, so a reload never loses
+money. When every wagon is full the bonus is paid, `'train' { phase: 'full', bonus }` fires and it leaves; otherwise
+it leaves when `dwell` is up. Cars follow the polyline at their own distance along it, so the rails may bend.
+Events: `'train' { worker, phase: 'arrive' | 'stop' | 'full' | 'leave', loaded, amount, bonus }` (payload reused) and
+one `'sale'` per visit. Readable: `state` (`'away' | 'in' | 'load' | 'out'`), `t` (seconds to the next arrival while
+away), `dwellLeft`, `loaded`, `capacity`, `wagons [{ stack, capacity, kinds, group }]`, `visits`, `totalItems`,
+`totalPaid`. **Save:** `{ state, t, s, dwell, loaded, amount, visits, n, loads: [[kind, ...] per wagon] }`: a train
+at the platform is still there after a reload, with its load.
+
 ### Smaller additions
 
 - `source`: `grid.jitter` moves every cell up to that far from its grid point (the same way on every load),
