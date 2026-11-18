@@ -29,6 +29,12 @@ const ICON = {
   frost: '<path d="M24 5l11 15h-6l9 12H10l9-12h-6z" fill="#fff"/><rect x="21.5" y="32" width="5" height="9" rx="1.5" fill="#8a5a2a"/>'
     + '<path d="M24 5l5 7c-3 1.5-7 1.5-10 0z" fill="#dff6ff"/><circle cx="38" cy="10" r="2" fill="#fff"/><circle cx="9" cy="14" r="1.6" fill="#fff"/>'
     + '<circle cx="40" cy="24" r="1.4" fill="#fff"/>',
+  town: '<path d="M24 40V17" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'
+    + '<g fill="#fff"><ellipse cx="24" cy="9" rx="3.6" ry="6"/><ellipse cx="17.5" cy="15.5" rx="3.4" ry="5.6" transform="rotate(-32 17.5 15.5)"/>'
+    + '<ellipse cx="30.5" cy="15.5" rx="3.4" ry="5.6" transform="rotate(32 30.5 15.5)"/><ellipse cx="17" cy="24.5" rx="3.4" ry="5.6" transform="rotate(-32 17 24.5)"/>'
+    + '<ellipse cx="31" cy="24.5" rx="3.4" ry="5.6" transform="rotate(32 31 24.5)"/></g>'
+    + '<path d="M6 39.5h36M6 44h36" stroke="#7a4a17" stroke-width="2.4" stroke-linecap="round"/>'
+    + '<path d="M11 37.5v8.5M19.5 37.5v8.5M28.5 37.5v8.5M37 37.5v8.5" stroke="#7a4a17" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>',
   generic: '<path d="M24 8l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="#fff"/>',
 };
 const LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10.5" rx="3" fill="currentColor"/>'

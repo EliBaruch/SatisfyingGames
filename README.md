@@ -1,6 +1,6 @@
 # Bloom Rush
 
-A mobile-first idle arcade tycoon in five worlds. Run around, gather goods,
+A mobile-first idle arcade tycoon in six worlds. Run around, gather goods,
 stack them on your back, sell them, collect the cash and spend it on pads that
 hire workers, buy vehicles, add upgrades and open new areas. Finish a world to
 unlock the next one and carry a small perk with you.
@@ -16,6 +16,10 @@ unlock the next one and carry a small perk with you.
 5. **Frostpine Camp**: alone in a snowy clearing with an axe. Chop pines, hunt the woolly tuskers,
    sell to the villagers at the trading post, raise a palisade, roast meat over the cook fire, hire
    woodcutters, hunters and carriers, build watchtowers that hunt for you, and light the Great Beacon.
+6. **Wheatwhistle Junction**: alone in a golden wheat field with a scythe. Sell at the market stall, raise a
+   windmill and a bakery, hire farmhands and a combine harvester, feed the cows and make cheese, grow
+   pumpkins, then build a station on the old railway: the freight train comes on a schedule, every wagon
+   wants its own goods and a full train pays a bonus. A town grows round the tracks and the Harvest Fair opens.
 
 On top of that loop the game keeps throwing things at you: a fever meter that doubles your sales
 when you keep busy, lucky drops with a choice of prizes, rush orders against the clock, coin trails,
@@ -52,7 +56,7 @@ Then open http://localhost:8100/ in a browser.
 
 Debug flags (add to the URL):
 
-- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`, `factory`, `frost`) if your save has
+- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`, `factory`, `frost`, `town`) if your save has
   unlocked it; add `&unlock=1` to open it anyway (development and tests).
 - `?worldUrl=<same-origin path to a world.js>` loads a world under development.
 - `?autoplay` runs a test bot that plays the game.
@@ -78,8 +82,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
   player.js, stack.js      the player and the item tower on its back
   pads.js, pad-effects.js  purchase pads and what they do
   stations/                station types: source, shop, pile, converter, trough, shelf,
-                           checkout, cashpile; opt-in: belt, line, lot, solid, herd (docs/STATIONS.md)
-  workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator, turret
+                           checkout, cashpile; opt-in: belt, line, lot, solid, herd, depot (docs/STATIONS.md)
+  workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator, turret, train
   thrills/                 fever, lucky drops, rush orders, coin trails, the piggy bank, flash sales,
                            stars and perk gates (docs/ENGINE.md section 13)
   progress/                the player level and XP, missions, trophies, the welcome-back bonus
