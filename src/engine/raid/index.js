@@ -834,7 +834,7 @@ export function createRaid(G) {
       big.position.set(px[BIG], y, pz[BIG]);
       big.rotation.y = yw[BIG];
       big.scale.set(k * sxz, k * sy, k * sxz);
-      big.material.emissive.setScalar(fl[BIG] * 0.55);
+      big.material.emissive.setScalar(fl[BIG] * fl[BIG] * 0.4);
       const sh = BIG_SCALE * 0.85 * Math.max(0.25, 1 - y * 0.05);
       _m.compose(_p.set(px[BIG], 0.03, pz[BIG]), IDQ, _s.set(sh, 1, sh));
       a.blobs.setMatrixAt(n++, _m);
