@@ -44,7 +44,7 @@ export const TUNE = {
   events: { drop: 4, order: 4, coins: 3, pig: 2, deal: 2, escort: 2, portal: 2 },   // how often each is picked (0 = never)
   starsPerPerk: 3,
   // fever
-  feverFill: 62,          // seconds of steady work to fill the meter
+  feverFill: 70,          // seconds of steady work to fill the meter
   feverTime: 12,
   feverPrice: 2,
   feverSpeed: 1.2,
@@ -53,7 +53,7 @@ export const TUNE = {
   turboTime: 25, turboSpeed: 1.45,
   crewTime: 25, crewSpeed: 1.8,
   // rewards, in units of unit(): max(floor, share of the cheapest pad, seconds of income)
-  unitFloor: 15, unitPad: 0.2, unitIncome: 12,
+  unitFloor: 15, unitPad: 0.16, unitIncome: 10,
   dropCash: 1, jackpot: 5, orderPay: 1.5, pigPay: 2,
   fullLoadTip: 0.12, fullLoadAt: 0.9,
   dropTtl: 20,

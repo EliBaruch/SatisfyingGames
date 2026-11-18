@@ -481,7 +481,7 @@ export function createRun(G) {
     const newBest = !first && c > rec.best;
     // a first finish and every new star pay in full; running a beaten level again pays half
     const replay = !first && newStars === 0;
-    const cash = nice(unit() * (0.9 + 0.6 * mult + 0.25 * stars) * (replay ? 0.5 : 1));
+    const cash = nice(unit() * (0.6 + 0.35 * mult + 0.15 * stars) * (replay ? 0.5 : 1));      // 1.1 to 2.8 units
     if (stars > rec.stars) rec.stars = stars;
     if (c > rec.best) rec.best = c;
     if (G.save && G.save.meta) G.save.meta.runStars = totalStars();

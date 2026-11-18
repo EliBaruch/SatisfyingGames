@@ -152,7 +152,7 @@ export function createProgress(G) {
     // paid out in update(), outside whatever event handler earned the XP
     const n = pendingLevels;
     pendingLevels = 0;
-    const cash = payCash(nice(unit() * (0.8 + 0.4 * n)), 'LEVEL UP');
+    const cash = payCash(nice(unit() * (0.5 + 0.3 * n)), 'LEVEL UP');
     const bonus = L.level - 1 <= LEVEL_CAP_BONUS;
     showBanner('LEVEL ' + L.level + '!', '+$' + fmtMoney(cash) + (bonus ? '  ·  prices +' + Math.round(PRICE_PER_LEVEL * 100 * n) + '% for good' : ''));
     if (G.audio && G.audio.play) G.audio.play('perk');

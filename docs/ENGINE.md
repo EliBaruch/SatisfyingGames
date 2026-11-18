@@ -584,6 +584,8 @@ anything from the player and nothing opens a dialog: every choice is made by wal
 | coin rush | a winding trail of coins; all of them before they fade = bonus and a star | `coins.js` |
 | piggy bank | a golden pig runs from the player, drops coins while chased and tires; catching it pays well and gives a star | `piggy.js` |
 | flash sale | two gates with price tags (a perk outright, or a star / boost); buy one with the money in hand or walk past | `deal.js` |
+| VIP escort | someone waves from a little way off; touch them and they follow; lead them to the flag (the nearest cash desk, or `world.thrills.escort.to`) for a tip and a star. `world.thrills.escort = { tag, toast, tip, to, done }` re-dresses it (the frost camp: a freezing traveller to the fire) | `escort.js` |
+| bonus run | a single gate that starts the next Gate Run level with stars left to win (section 15); only offered while one exists | `portal.js` |
 | stars and perks | orders, coin trails, pigs, star gates and every `big` pad give a star; three stars open the perk gates: one of two permanent perks for this world (`perks.js`: speed, stack, prices, crew speed, reach, cash magnet, fever, luck, order pay, and trade-offs such as PACK MULE) | `index.js`, `perks.js` |
 | full load | handing in at least 90% of a full stack in one go pays a 12% tip | `index.js` |
 
@@ -595,7 +597,7 @@ The director (`index.js`) runs one event at a time: the first after `firstAt` se
 then one every `gap` seconds, picked by the `events` weights (the kind that just ran is less likely). It only counts
 down while the player is moving, so nothing starts on the title screen or for an idle player. An event that finds
 no room (a small or crowded hall) is retried a few seconds later. Rewards are multiples of `unit()` = the largest of
-a floor, 20% of the cheapest visible pad and 12 s of recent income (bonus money is kept out of that income, so
+a floor, 16% of the cheapest visible pad and 10 s of recent income (bonus money is kept out of that income, so
 rewards do not feed on themselves). Randomness comes from a seeded stream kept in the save.
 
 Stats: after every `computeStats`, `applyStats()` remembers the pad-and-perk base and writes
