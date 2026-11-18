@@ -134,7 +134,7 @@
   .rush-clock { grid-column: 2; padding: 2px 14px 3px 9px; }
   .rush-clock b { font-size: 26px; }
   .rush-combo { grid-column: 4; }
-  .rush-count { left: auto; right: calc(env(safe-area-inset-right, 0px) + 96px); top: calc(env(safe-area-inset-top, 0px) + 6px); justify-items: end; }
+  .rush-count { left: auto; right: calc(env(safe-area-inset-right, 0px) + 112px); top: calc(env(safe-area-inset-top, 0px) + 6px); justify-items: end; }
   .rush-count b { font-size: 40px; }
   .rush-count span { margin-top: 2px; font-size: 10px; }
   .rush-chips { top: calc(env(safe-area-inset-top, 0px) + 10px); left: 180px; right: auto; }
@@ -143,7 +143,7 @@
   .rush-chip b { font-size: 18px; }
   .rush-trucks { top: calc(env(safe-area-inset-top, 0px) + 10px); left: 70px; right: auto; }
   .rush-truck { width: 60px; height: 46px; }
-  .rush-hud.tally .rush-count { top: calc(env(safe-area-inset-top, 0px) + 6px); transform: none; }
+  .rush-hud.tally .rush-count { top: calc(env(safe-area-inset-top, 0px) + 6px); right: calc(env(safe-area-inset-right, 0px) + 18px); transform: none; }
   .rush-banner { top: 42%; font-size: clamp(36px, 18vh, 70px); }
 }
 

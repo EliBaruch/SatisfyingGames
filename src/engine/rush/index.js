@@ -115,7 +115,7 @@ export function createRush(G) {
   // ------------------------------------------------------------------ state
   // numbers that change every step live on objects and typed arrays: no per-step allocation
   const S = {
-    phase: 'idle', t: 0, time: 0, n: 0, level: null, W: 0, H: 0, sinE: 0.67, hudF: 0.15,
+    phase: 'idle', t: 0, time: 0, n: 0, level: null, W: 0, H: 0, sinE: 0.67, hudF: 0.15, safe: 1,
     a: 0, b: 0, va: 0, vb: 0, h: 0, sp: 0, inMud: false,          // the hero
     ca: 0, cb: 0, ch: 0, bounce: 0,                                // the cart
     sa: 0, sb: 0, R: 1.9, pulse: 0, la: 0, lb: 0,                  // the sweep circle, the last trail stamp
@@ -196,8 +196,11 @@ export function createRush(G) {
     S.truckB = H / 2 + 1.15 + TRUCK.len / 2;
     S.dockB = H / 2 - 2.5;
     // what the camera has to show: the field, the trucks beyond its top edge, room for the HUD
+    // (a perspective camera shows less of the near ground than its view size says: fit with room to spare)
+    const persp = !!G.camera.isPerspectiveCamera;
+    S.safe = persp ? 0.62 : 1;
     const fitA = (W + 2.4) / asp, fitB = ((H + 8.8) * sinE) / (1 - S.hudF);
-    S.vFit = Math.max(fitA, fitB);
+    S.vFit = Math.max(fitA, fitB) * (persp ? 1.25 : 1);
     S.vPlay = Math.min(S.vFit, asp < 1 ? T.view.portrait : T.view.landscape);
     S.vDock = clamp(Math.max((2 * S.truckGap + TRUCK.wid + 3.4) / asp, (13.5 * sinE) / (1 - S.hudF)), 15, S.vPlay);
     lanes();
@@ -460,6 +463,8 @@ export function createRush(G) {
     }
     if (S.clock <= 0 || S.items >= lv.count) {
       S.phase = 'dash'; S.t = 0;
+      // a bare field before the whistle: the seconds left are worth a little each
+      if (S.clock > 0) { S.count += Math.ceil(S.clock) * Math.round(lv.count * 0.03); hud.count(S.count, true); }
       hud.banner(S.clock <= 0 ? 'TIME UP!' : 'ALL CLEAR!', S.clock <= 0 ? 'stop' : 'double');
       S.bannerT = 1.3;
       play('rushWhistle');
@@ -605,6 +610,10 @@ export function createRush(G) {
       ta = (S.a / (S.W / 2)) * pan;
       const lo = -S.H / 2 - 1.7 + gh / 2, hi = S.truckB + TRUCK.len / 2 + 0.5 - gh / 2 + S.hudF * gh;
       tb = lo >= hi ? (lo + hi) / 2 : lo + (hi - lo) * clamp((S.b + S.H / 2) / S.H, 0, 1);
+      // whatever the field and the camera: the hero stays well inside the screen
+      const sx = gw * 0.34 * S.safe, up = gh * (0.4 - S.hudF) * S.safe, dn = gh * 0.36 * S.safe;
+      ta = clamp(ta, S.a - sx, S.a + sx);
+      tb = clamp(tb, S.b - up, S.b + dn);
     } else tb = S.H / 2 + 1.0 + (S.view / S.sinE) * S.hudF * 0.5;
     S.fa += (ta - S.fa) * k; S.fb += (tb - S.fb) * k;
     modes.follow(origin.x + (S.fb - S.fa) * S2, origin.z + (S.fa + S.fb) * S2, modes.zoomFor(S.view));

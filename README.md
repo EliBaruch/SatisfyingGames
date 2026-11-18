@@ -29,6 +29,7 @@ world, a mission to work on at all times, trophies to earn, and a bonus waiting 
 Finished worlds can be played again to beat your best time.
 Every world also has three Gate Run bonus levels (the flag button, bottom right): run up a floating runway,
 steer through the better gate, stack your goods absurdly high and cash the tower in on the scale.
+And three Harvest Rush levels: a fenced field carpeted with the world's goods, a plough, a clock and three trucks to fill (`?norush` turns them off; `node tools/rushtest.js` checks them).
 
 ## How to play
 
