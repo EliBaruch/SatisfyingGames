@@ -15,6 +15,7 @@ const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sel
   press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
   thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2,
   runPick: 0.03, runGate: 0.15, runBad: 0.15, runHit: 0.15, runTick: 0.035, runMult: 0.08, runWin: 1.0, runGo: 0.3,
+  raidBop: 0.05, raidCoin: 0.035, raidGrab: 0.12, raidBack: 0.06, raidLost: 0.25, raidWave: 0.6, raidBoss: 0.3, raidBuild: 0.3, raidToss: 0.08, raidWin: 1.0, raidFail: 1.0,
   whistle: 1.5, chuff: 0.12, creak: 0.6, moo: 1.2 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk', 'fever', 'orderDone', 'jackpot', 'thrillDrop']);
 
@@ -369,6 +370,63 @@ const SOUNDS = {
   moo(k) {             // a contented cow
     tone(k, { type: 'sawtooth', f0: 150, f1: 118, dur: 0.6, vol: 0.07, atk: 0.08, filter: 520, q: 2 });
     tone(k, { type: 'triangle', f0: 300, f1: 236, dur: 0.55, vol: 0.03, atk: 0.1, filter: 900 });
+  },
+  // ---- raid (engine/raid): the caller passes a rising pitch for bops and coins
+  raidBop(k) {         // the sweep lands: a soft springy pop
+    tone(k, { type: 'sine', f0: 420, f1: 760, dur: 0.07, vol: 0.2, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 840, f1: 1180, t: 0.015, dur: 0.06, vol: 0.07, atk: 0.003 });
+    noise(k, { type: 'bandpass', f0: 1800, dur: 0.035, vol: 0.07, q: 1.2, atk: 0.002 });
+  },
+  raidCoin(k) {        // a coin reaches the hero: a bright double chime
+    tone(k, { type: 'triangle', f0: 1175, dur: 0.06, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.045, dur: 0.14, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.045, dur: 0.1, vol: 0.025 });
+  },
+  raidGrab(k) {        // a pest takes an item: a cheeky two-note "uh-oh"
+    tone(k, { type: 'triangle', f0: 392, dur: 0.08, vol: 0.12, atk: 0.005 });
+    tone(k, { type: 'triangle', f0: 311, t: 0.09, dur: 0.14, vol: 0.12, atk: 0.005 });
+  },
+  raidBack(k) {        // an item lands back on the pile
+    tone(k, { type: 'triangle', f0: 587, f1: 880, dur: 0.09, vol: 0.1, atk: 0.004 });
+    noise(k, { type: 'lowpass', f0: 700, dur: 0.04, vol: 0.05, atk: 0.002 });
+  },
+  raidLost(k) {        // an item is gone down a burrow: three notes down
+    for (let i = 0; i < 3; i++) tone(k, { type: 'sawtooth', f0: 330 - i * 52, f1: 300 - i * 52, t: i * 0.09, dur: 0.13, vol: 0.06, atk: 0.008, filter: 1200 });
+    tone(k, { type: 'sine', f0: 130, f1: 70, dur: 0.22, vol: 0.2 });
+  },
+  raidWave(k) {        // a wave is called: a little horn, a fourth up
+    for (const [f, t, dur] of [[392, 0, 0.14], [523, 0.15, 0.34]]) {
+      tone(k, { type: 'sawtooth', f0: f, t, dur, vol: 0.07, atk: 0.02, filter: 1500 });
+      tone(k, { type: 'triangle', f0: f * 2, t, dur, vol: 0.06, atk: 0.02 });
+    }
+  },
+  raidBoss(k) {        // the big one lands (or pops, an octave up): a deep thump and a rumble
+    tone(k, { type: 'sine', f0: 140, f1: 38, dur: 0.42, vol: 0.5, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 500, f1: 120, dur: 0.4, vol: 0.22, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 220, f1: 110, t: 0.03, dur: 0.2, vol: 0.1 });
+  },
+  raidBuild(k) {       // a helper comes up: four quick notes and a sparkle
+    const notes = [67, 72, 76, 79];
+    for (let i = 0; i < notes.length; i++) tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.055, dur: i === 3 ? 0.3 : 0.1, vol: 0.13 });
+    tone(k, { type: 'sine', f0: midi(91), t: 0.17, dur: 0.2, vol: 0.03 });
+  },
+  raidToss(k) {        // a helper tosses something: a short soft whoosh
+    noise(k, { type: 'bandpass', f0: 700, f1: 2200, dur: 0.11, vol: 0.07, q: 1, atk: 0.02 });
+    tone(k, { type: 'sine', f0: 300, f1: 520, dur: 0.08, vol: 0.05, atk: 0.01 });
+  },
+  raidWin(k) {         // the last wave is cleared: a short fanfare
+    const notes = [67, 72, 76, 79, 84];
+    for (let i = 0; i < notes.length; i++) {
+      tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.08, dur: i === notes.length - 1 ? 0.7 : 0.16, vol: 0.14 });
+      tone(k, { type: 'sine', f0: midi(notes[i] + 12), t: i * 0.08, dur: 0.14, vol: 0.03 });
+    }
+    tone(k, { type: 'triangle', f0: midi(76), t: 0.32, dur: 0.7, vol: 0.09 });
+    tone(k, { type: 'sine', f0: 120, f1: 55, dur: 0.3, vol: 0.24 });
+  },
+  raidFail(k) {        // the pile is empty: a soft slide down
+    tone(k, { type: 'triangle', f0: 392, f1: 370, dur: 0.2, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'triangle', f0: 311, f1: 294, t: 0.2, dur: 0.22, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'triangle', f0: 233, f1: 175, t: 0.42, dur: 0.5, vol: 0.12, atk: 0.01 });
   },
 };
 
