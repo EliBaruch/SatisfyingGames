@@ -84,6 +84,7 @@ src/worlds/<id>/models.js     the world's model factories
 | `hints` | `current {kind, text, x, z, target}`, `compute()` | after workers |
 | `thrills` | events, fever, perks (section 13); `null` with `?nothrills` or `world.thrills.off` | before player |
 | `modes`, `run`, `raid` | mini-mode host, the Gate Run and the Raid (section 15); `null` with `?nomodes` / `?norun` / `?noraid` | before player |
+| `modes`, `run`, `rush` | mini-mode host, the Gate Run and the Harvest Rush (section 15); `null` with `?nomodes` / `?norun` / `?norush` | before player |
 | `refresh(live)`, `saveNow()`, `travel(id)`, `replay(id)`, `step(dt)` | see sections 7, 9, 11 | ready |
 
 `window.__game === G`.
@@ -749,3 +750,51 @@ once per rendered frame in the mode's `frame()`). New sounds are prefixed `raid`
 Testing: `node tools/raidtest.js --url=http://localhost:8100/` plays levels 1 to 3 with the bot in all six worlds and
 checks the results (stars 0 to 3, cash, records), the frozen and resumed world, `G.modes.active`, the render budget,
 leaks over 10 restarts and console errors. By hand: `G.raid.debugUnlock(); G.raid.start(1)`.
+
+### The Harvest Rush: `G.rush`
+
+The host's second client (`src/engine/rush/`, `styles/rush.css`, arena 2; off with `?norush`). A fenced field is
+carpeted with 1,300 to 2,000 copies of the world's item (the Gate Run's theme item) in rows, spirals and drifts.
+The world's character walks freely (the stick maps straight to the field: x across, y up the screen) behind a
+plough; everything inside the sweep circle hops up and flies into the cart on its tow bar, the swept ground stays
+bare. When the clock (30 / 35 / 40 s) runs out the hero runs to the top fence and the cart is emptied into three
+trucks; each truck that fills drives off and is a star. Three levels per world, seeded by world id + level.
+
+| call | what |
+|---|---|
+| `levels()` | as the run's. Level 1 opens after 5 bought pads, level 2 at 60% of the world's paid pads, level 3 after the win. |
+| `start(n)`, `next()`, `leave()`, `retry(n?)`, `active`, `debugUnlock(on)` | as the run's. `phase`: `'ready' | 'run' | 'dash' | 'unload' | 'cheer' | 'result'`. |
+| `botSteer() -> { x, y }` | the stick a competent player would hold (a reused object): lanes one sweep wide along the long side, a short detour to a close pick-up, round the bales, then whatever is left. `src/autoplay.js` drives with it like it does the run (`__autoplay.noRuns` stops the starting). |
+| `state`, `tune`, `theme`, `proxyTris` | tests: the live rush (`clock`, `count`, `items`, `combo`, `level`), `TUNE`, the theme, triangles per carpet item. |
+
+Events: `'rush:start' { level }`, `'rush:done' { level, stars, newStars, cash, count, cleared }` (payloads are reused).
+State: `levels.<world>.rushes = { '<n>': { stars, best } }` (validated on load), `meta.rushStars` = stars over all worlds.
+
+- **Count.** Every item counts once, times the combo (x1 to x3: collecting with no gap longer than a second climbs a
+  step every 3 s, a stall drains it at 1.5 steps a second), times two while DOUBLE runs. Pick-ups (4 to 6 floating
+  badges): WIDER (sweep radius x1.65 for 6 s), MAGNET (items within 3.9 fly in for 5 s), x2 (5 s), +5 s. Mud patches
+  halve the speed and bales have to be walked round on levels 2 and 3; nothing ends a rush early except a bare field
+  (the seconds left are then worth 3% of the field each).
+- **Stars and pay.** The trucks fill at 0.4, 1.15 and 2.05 times the number of items (`STARS` in `level.js`): a wander
+  is one star, a deliberate sweep two, a near-clean one with the combo held three. Cash is `unit()` times
+  `0.6 + 0.35 x factor + 0.15 x stars`, where factor is 1 to 5 by the fifth of the field that was cleared; half for
+  a beaten level swept again without a new star. Paid like the run's (`G.thrills.pay`, `addStar` per new star).
+- **Field size.** The area is fixed per level (780 / 900 / 1020 square units); the shape follows the screen (about
+  18.5 x 42 on an upright phone, 35 x 22 in landscape) and the camera shows as much of it as keeps the hero readable
+  (at most 34 / 20 world units vertically, panning with the hero, pulling back 4% per combo step), computed from the
+  aspect ratio and the camera's tilt in `prepare()`.
+- **Rendering.** The carpet is ONE InstancedMesh (`field.js`). Its geometry is a proxy of the item made by
+  `proxyGeometry()`: vertices snapped to a coarse grid, cells averaged with their vertex colours, collapsed triangles
+  dropped, at most 44 triangles (22 to 40 in the built-in worlds), no shadow casting. A swept item animates in place
+  (the same instance hops and arcs to the cart) and is then scaled to nothing. The mound in the cart and the truck
+  loads are small InstancedMeshes with fixed slots whose `count` changes; the trail is a 256 px canvas stamped with a
+  soft brush and uploaded once per rendered frame; fence, bales, mud and ground rings are instanced. About 30 to 55
+  draw calls and 60k to 125k triangles in view. Everything is built on the first rush and re-laid afterwards.
+- Files: `level.js` (seeded carpet, pick-ups, obstacles, truck thresholds), `field.js` (all 3D), `theme.js` (ground
+  colours per world over the run's theme; `world.rush = { ground: { out, field, trail, edge, mud, fence, ring }, obstacle }`
+  overrides), `hud.js` (clock, count, combo, chips, truck chips, banner), `index.js` (the rush, the bot).
+
+Testing: `node tools/rushtest.js --url=http://localhost:8100/` unlocks and plays levels 1 to 3 in all six worlds with
+the bot and checks the result, the frozen and resumed world, `G.modes.active`, the render budget, leaks over 10
+restarts and console errors. By hand: `G.rush.debugUnlock(); G.rush.start(1)`, then step with
+`const s = G.rush.botSteer(); G.input.override = { x: s.x, y: s.y }`.

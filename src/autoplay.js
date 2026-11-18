@@ -615,6 +615,32 @@ export function startAutoplay(G) {
     return false;
   }
 
+  // ------------------------------------------------------------ harvest rush (engine/rush)
+  // The same deal as the gate run: the bot holds the stick G.rush.botSteer() gives, presses CONTINUE on
+  // the result card and starts each level once when it unlocks (never in the step a gate run may start).
+  const rushTried = {};
+  G.events.on('rush:done', (e) => push({ t: T1(), event: 'rush', level: e.level, stars: e.stars, count: e.count, cash: e.cash }));
+  function rushBot() {
+    const R = G.rush;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      const s = R.botSteer();
+      G.input.override = { x: s.x, y: s.y };
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 45 && !ap.noRuns && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      for (const l of R.levels()) {
+        if (!l.unlocked || rushTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) rushTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
   // ------------------------------------------------------------ hook
   function tick() {
     if (!G.player || !G.player.stack || !G.stations) return;
@@ -622,6 +648,7 @@ export function startAutoplay(G) {
     steps++;
     if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
     if (runBot() || raidBot()) return;
+    if (rushBot()) return;
     if (steps % DECIDE_EVERY === 1) decide();
     stuckCheck();
     G.input.override = drive();

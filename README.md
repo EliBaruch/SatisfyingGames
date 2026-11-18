@@ -30,6 +30,7 @@ Finished worlds can be played again to beat your best time.
 Every world also has three Gate Run bonus levels (the flag button, bottom right): run up a floating runway,
 steer through the better gate, stack your goods absurdly high and cash the tower in on the scale.
 The same sheet lists three Raid levels: defend a pallet of your goods from waves of cute pests and buy scarecrow helpers with the coins they drop (`src/engine/raid/`, `?noraid` turns them off, `node tools/raidtest.js` checks them).
+And three Harvest Rush levels: a fenced field carpeted with the world's goods, a plough, a clock and three trucks to fill (`?norush` turns them off; `node tools/rushtest.js` checks them).
 
 ## How to play
 
