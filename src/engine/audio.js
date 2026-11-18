@@ -13,7 +13,8 @@ const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
   egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
   press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
-  thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2 };
+  thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2,
+  runPick: 0.03, runGate: 0.15, runBad: 0.15, runHit: 0.15, runTick: 0.035, runMult: 0.08, runWin: 1.0, runGo: 0.3 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk', 'fever', 'orderDone', 'jackpot', 'thrillDrop']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -302,6 +303,50 @@ const SOUNDS = {
   oink(k) {
     tone(k, { type: 'sawtooth', f0: 260, f1: 180, dur: 0.11, vol: 0.07, atk: 0.01, filter: 1100 });
     tone(k, { type: 'sawtooth', f0: 300, f1: 190, t: 0.13, dur: 0.14, vol: 0.07, atk: 0.01, filter: 1100 });
+  },
+  // ---- gate run (engine/run): the caller passes a rising pitch for pickups, counter ticks and bonus steps
+  runPick(k) {         // a pickup: a short bright chime
+    tone(k, { type: 'triangle', f0: 880, dur: 0.07, vol: 0.11, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 1760, t: 0.012, dur: 0.12, vol: 0.07, atk: 0.003 });
+  },
+  runGate(k) {         // through a good gate: a whoosh and three notes up
+    noise(k, { type: 'bandpass', f0: 500, f1: 3400, dur: 0.24, vol: 0.12, q: 0.8, atk: 0.03 });
+    tone(k, { type: 'triangle', f0: 659, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 880, t: 0.06, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.12, dur: 0.26, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 2637, t: 0.12, dur: 0.16, vol: 0.03 });
+  },
+  runBad(k) {          // through a red gate: a whoosh and two notes down
+    noise(k, { type: 'bandpass', f0: 2600, f1: 380, dur: 0.26, vol: 0.12, q: 0.8, atk: 0.02 });
+    tone(k, { type: 'sawtooth', f0: 330, f1: 262, dur: 0.14, vol: 0.07, atk: 0.008, filter: 1300 });
+    tone(k, { type: 'sawtooth', f0: 233, f1: 165, t: 0.13, dur: 0.24, vol: 0.08, atk: 0.008, filter: 1100 });
+  },
+  runHit(k) {          // into a hazard: a soft thud, things scatter
+    tone(k, { type: 'sine', f0: 170, f1: 60, dur: 0.2, vol: 0.36, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 900, dur: 0.1, vol: 0.14, atk: 0.002 });
+    for (let i = 0; i < 3; i++) tone(k, { type: 'triangle', f0: 700 - i * 130, t: 0.05 + i * 0.05, dur: 0.07, vol: 0.05, atk: 0.003 });
+  },
+  runTick(k) {         // the counter at the scale: one tick of a roll
+    tone(k, { type: 'triangle', f0: 600, f1: 560, dur: 0.04, vol: 0.1, atk: 0.002 });
+    noise(k, { type: 'highpass', f0: 4200, dur: 0.02, vol: 0.03, q: 0.6, atk: 0.001 });
+  },
+  runMult(k) {         // the bonus meter reaches the next step
+    tone(k, { type: 'triangle', f0: 1047, dur: 0.09, vol: 0.14, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.07, dur: 0.3, vol: 0.14, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.07, dur: 0.16, vol: 0.03 });
+  },
+  runWin(k) {          // everything is on the scale: a short fanfare over a low thump
+    const notes = [72, 76, 79, 84, 88];
+    for (let i = 0; i < notes.length; i++) {
+      tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.07, dur: i === notes.length - 1 ? 0.6 : 0.16, vol: 0.14 });
+      tone(k, { type: 'sine', f0: midi(notes[i] + 12), t: i * 0.07, dur: 0.14, vol: 0.03 });
+    }
+    tone(k, { type: 'triangle', f0: midi(79), t: 0.28, dur: 0.6, vol: 0.1 });
+    tone(k, { type: 'sine', f0: 120, f1: 55, dur: 0.3, vol: 0.26 });
+  },
+  runGo(k) {           // the start
+    tone(k, { type: 'triangle', f0: 784, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1175, t: 0.09, dur: 0.3, vol: 0.14 });
   },
 };
 

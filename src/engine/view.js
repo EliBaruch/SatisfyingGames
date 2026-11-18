@@ -152,6 +152,8 @@ export function createView(canvas, camDef) {
     get zoom() { return Z.cur; },
     /** cinematic: look at (x, z) instead of the player, with `zoom` as a factor on the current zoom; setCine(null) hands the camera back */
     setCine(p, zoom = 1) { if (p) { C.on = true; C.x = p.x; C.z = p.z; C.to = zoom > 0 ? zoom : 1; } else { C.on = false; C.to = 1; } },
+    /** cut: look at (x, z) right now, with no pan across the map and the cinematic zoom already in (engine/modes) */
+    snapTo(x, z) { focus.set(x, 0, z); glide.dur = 0; if (C.mul !== C.to) { C.mul = C.to; applyProjection(); } },
     /** the point the camera is looking at right now */
     get focus() { return focus; },
     /** world units visible vertically at the focus point right now */

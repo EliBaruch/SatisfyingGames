@@ -114,6 +114,7 @@ const G = {
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
   scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null,
+  modes: null, run: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -228,6 +229,21 @@ if (!params.has('nothrills') && !(def.thrills && def.thrills.off)) {
     if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title lists this world's perks
   } catch (err) { console.error('[boot] thrills failed:', err); G.failed.push('thrills'); G.thrills = null; }
 }
+// mini-modes (engine/modes): the host for bonus levels played away from the world, and its first
+// client, the Gate Run (engine/run). Optional like the thrills: a failure leaves the plain game.
+// ?nomodes turns the host (and every mode) off, ?norun only the Gate Run.
+if (!params.has('nomodes')) {
+  try {
+    const { createModes } = await import('./engine/modes/index.js');
+    G.modes = createModes(G);
+  } catch (err) { console.error('[boot] modes failed:', err); G.failed.push('modes'); G.modes = null; }
+}
+if (G.modes && !params.has('norun')) {
+  try {
+    const { createRun } = await import('./engine/run/index.js');
+    G.run = createRun(G);
+  } catch (err) { console.error('[boot] run failed:', err); G.failed.push('run'); G.run = null; }
+}
 G.player = createPlayer(G);
 G.workers = createWorkers(G);
 G.workers.sync(false);
@@ -293,15 +309,18 @@ const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'thrills
 // then the world runs again without the player until the camera is back
 const CINE_FROZEN = ['pads', 'scenery', 'fx', 'hud'];
 const CINE_RUN = ['stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
+// while a mini-mode runs (engine/modes: the Gate Run, ...) the world stands still and its clock stops
+const MODE_ORDER = ['input', 'modes', 'fx', 'hud'];
 const errCount = {};
 function step(dt) {
   G.time += dt;
   let order = UPDATE_ORDER;
-  if (G.reveal) {
+  if (G.modes && G.modes.active) order = MODE_ORDER;
+  else if (G.reveal) {
     try { G.reveal.update(dt); } catch (err) { console.error('[loop] reveal.update failed:', err); try { G.reveal.skip(); } catch (e) { /* ignore */ } }
     if (G.reveal.active) order = G.reveal.frozen ? CINE_FROZEN : CINE_RUN;
   }
-  if (order !== CINE_FROZEN) { G.state.playTime += dt; save.meta.playTime += dt; }
+  if (order !== CINE_FROZEN && order !== MODE_ORDER) { G.state.playTime += dt; save.meta.playTime += dt; }
   for (let i = 0; i < order.length; i++) {
     const name = order[i];
     const m = G[name];
@@ -333,6 +352,7 @@ function frame(now) {
   }
   G.hints.frame(realDt);
   if (G.thrills) G.thrills.frame(realDt);
+  if (G.modes) G.modes.frame(realDt);
   view.frame(realDt);
   G.frames++;
 }
