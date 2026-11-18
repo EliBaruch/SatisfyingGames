@@ -15,7 +15,8 @@ const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sel
   press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
   thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2,
   runPick: 0.03, runGate: 0.15, runBad: 0.15, runHit: 0.15, runTick: 0.035, runMult: 0.08, runWin: 1.0, runGo: 0.3,
-  whistle: 1.5, chuff: 0.12, creak: 0.6, moo: 1.2 };
+  whistle: 1.5, chuff: 0.12, creak: 0.6, moo: 1.2,
+  rushPick: 0.045, rushPower: 0.2, rushCombo: 0.2, rushTick: 0.3, rushTock: 0.3, rushWhistle: 1.0, rushHonk: 0.25, rushLoad: 0.04, rushMud: 0.3 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk', 'fever', 'orderDone', 'jackpot', 'thrillDrop']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -369,6 +370,57 @@ const SOUNDS = {
   moo(k) {             // a contented cow
     tone(k, { type: 'sawtooth', f0: 150, f1: 118, dur: 0.6, vol: 0.07, atk: 0.08, filter: 520, q: 2 });
     tone(k, { type: 'triangle', f0: 300, f1: 236, dur: 0.55, vol: 0.03, atk: 0.1, filter: 900 });
+  },
+  // ---- harvest rush (engine/rush): the caller passes a rising pitch for the sweep chime and the tally
+  rushPick(k) {        // items swept up: a soft pluck (it repeats fast, so it is short and quiet)
+    tone(k, { type: 'triangle', f0: 660, dur: 0.06, vol: 0.085, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 1320, t: 0.01, dur: 0.09, vol: 0.045, atk: 0.003 });
+  },
+  rushPower(k) {       // a pick-up: a sweep up and a bright chord
+    noise(k, { type: 'bandpass', f0: 600, f1: 4200, dur: 0.22, vol: 0.1, q: 0.8, atk: 0.02 });
+    tone(k, { type: 'triangle', f0: 523, f1: 1047, dur: 0.14, vol: 0.12, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.1, dur: 0.3, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.1, dur: 0.3, vol: 0.1 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.1, dur: 0.18, vol: 0.03 });
+  },
+  rushCombo(k) {       // the combo climbs a step
+    tone(k, { type: 'triangle', f0: 784, dur: 0.08, vol: 0.13, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1175, t: 0.06, dur: 0.08, vol: 0.13, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.12, dur: 0.24, vol: 0.14, atk: 0.003 });
+  },
+  rushTick(k) {        // the last seconds: tick ...
+    tone(k, { type: 'square', f0: 1400, dur: 0.035, vol: 0.07, atk: 0.001, filter: 3200 });
+    noise(k, { type: 'highpass', f0: 3600, dur: 0.02, vol: 0.05, q: 0.6, atk: 0.001 });
+    tone(k, { type: 'sine', f0: 220, f1: 180, dur: 0.09, vol: 0.12, atk: 0.002 });
+  },
+  rushTock(k) {        // ... tock
+    tone(k, { type: 'square', f0: 990, dur: 0.04, vol: 0.07, atk: 0.001, filter: 2600 });
+    noise(k, { type: 'highpass', f0: 2800, dur: 0.02, vol: 0.05, q: 0.6, atk: 0.001 });
+    tone(k, { type: 'sine', f0: 180, f1: 150, dur: 0.1, vol: 0.12, atk: 0.002 });
+  },
+  rushWhistle(k) {     // time up: a referee's whistle, two short blasts and a long one, with the pea's trill
+    for (const [t, dur] of [[0, 0.11], [0.16, 0.11], [0.32, 0.5]]) {
+      tone(k, { type: 'square', f0: 2350, f1: 2300, t, dur, vol: 0.05, atk: 0.008, filter: 4200 });
+      tone(k, { type: 'sine', f0: 2520, f1: 2460, t, dur, vol: 0.07, atk: 0.008 });
+      noise(k, { type: 'bandpass', f0: 2900, t, dur, vol: 0.05, q: 2.5, atk: 0.008 });
+      for (let i = 0; i < dur / 0.035; i++) tone(k, { type: 'sine', f0: 2700, t: t + i * 0.035, dur: 0.02, vol: 0.03, atk: 0.004 });
+    }
+  },
+  rushHonk(k) {        // a full truck leaves: two notes of a horn and the engine pulling away
+    for (const [t, dur] of [[0, 0.13], [0.17, 0.3]]) {
+      tone(k, { type: 'sawtooth', f0: 311, t, dur, vol: 0.07, atk: 0.01, filter: 1500 });
+      tone(k, { type: 'sawtooth', f0: 392, t, dur, vol: 0.06, atk: 0.01, filter: 1500 });
+    }
+    tone(k, { type: 'sawtooth', f0: 70, f1: 150, t: 0.2, dur: 0.6, vol: 0.06, atk: 0.05, filter: 420 });
+    noise(k, { type: 'lowpass', f0: 500, f1: 1100, t: 0.2, dur: 0.6, vol: 0.05, atk: 0.08 });
+  },
+  rushLoad(k) {        // the tally: one item lands in a truck
+    tone(k, { type: 'triangle', f0: 520, f1: 470, dur: 0.04, vol: 0.09, atk: 0.002 });
+    noise(k, { type: 'lowpass', f0: 1400, dur: 0.03, vol: 0.05, atk: 0.001 });
+  },
+  rushMud(k) {         // into a slow patch: a wet squelch
+    noise(k, { type: 'lowpass', f0: 900, f1: 260, dur: 0.2, vol: 0.16, atk: 0.01 });
+    tone(k, { type: 'sine', f0: 190, f1: 80, dur: 0.18, vol: 0.14, atk: 0.006 });
   },
 };
 

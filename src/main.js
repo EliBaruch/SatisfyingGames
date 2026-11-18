@@ -119,7 +119,7 @@ const G = {
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
   scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null, progress: null,
-  modes: null, run: null,
+  modes: null, run: null, rush: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -256,6 +256,13 @@ if (G.modes && !params.has('norun')) {
     const { createRun } = await import('./engine/run/index.js');
     G.run = createRun(G);
   } catch (err) { console.error('[boot] run failed:', err); G.failed.push('run'); G.run = null; }
+}
+// Harvest Rush (engine/rush): the mass-harvest sweep, the host's second client. ?norush turns it off.
+if (G.modes && !params.has('norush')) {
+  try {
+    const { createRush } = await import('./engine/rush/index.js');
+    G.rush = createRush(G);
+  } catch (err) { console.error('[boot] rush failed:', err); G.failed.push('rush'); G.rush = null; }
 }
 if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title shows the level, trophies and this world's perks
 G.player = createPlayer(G);
