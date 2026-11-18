@@ -155,7 +155,7 @@ export function makeCheeseGeometry() {
 function pumpkinParts(b, k = 1, y0 = 0) {
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    b.sph(i % 2 ? C.pumpkin : C.pumpkinLight, 0.16 * k, [Math.cos(a) * 0.1 * k, y0 + 0.16 * k, Math.sin(a) * 0.1 * k], [1, 1.02, 1], [0, -a, 0], 6, 5);
+    b.sph(i % 2 ? C.pumpkin : C.pumpkinLight, 0.16 * k, [Math.cos(a) * 0.1 * k, y0 + 0.16 * k, Math.sin(a) * 0.1 * k], [1, 1.02, 1], [0, -a, 0], 5, 4);
   }
   b.sph(C.pumpkinDark, 0.1 * k, [0, y0 + 0.26 * k, 0], [1.2, 0.5, 1.2], null, 6, 4);
   b.cyl(C.stem, 0.025 * k, 0.04 * k, 0.12 * k, [0.01 * k, y0 + 0.34 * k, 0], [0, 0, 0.25], 5);
@@ -172,7 +172,7 @@ export function makePumpkinGeometry() {
 /** A tuft of ripe wheat (the field's `plant`): stalks with heavy heads. About 100 triangles. */
 export function makeWheatPlant() {
   const b = new Parts();
-  const N = 7;
+  const N = 6;
   for (let i = 0; i < N; i++) {
     const a = (i / N) * Math.PI * 2 + (i % 2) * 0.4, r = i === 0 ? 0 : 0.2 + (i % 3) * 0.07;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -199,7 +199,6 @@ function vineParts(b) {
   for (const [x, z, s, r] of [[0.34, 0.1, 1, 0.3], [-0.3, 0.22, 0.85, 2.1], [-0.12, -0.36, 0.95, 4.0], [0.3, -0.3, 0.7, 5.2]]) {
     b.sph(s > 0.9 ? C.leaf : C.leafDark, 0.2 * s, [x, 0.05, z], [1.25, 0.16, 1], [0, r, 0.15], 6, 3);
   }
-  b.torus(C.leafDark, 0.3, 0.022, [0, 0.03, 0], [Math.PI / 2, 0, 0], null, Math.PI * 1.5, 4, 10);
 }
 /** A fat pumpkin on its vine (the patch's `plant`). */
 export function makePumpkinPlant() {

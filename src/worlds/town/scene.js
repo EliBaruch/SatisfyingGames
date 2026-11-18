@@ -279,6 +279,7 @@ export function createScene(G) {
   ST.onOpen('truckcash', (live) => groundTruck.show(live));
   ST.onOpen('trough', (live) => groundDairy.show(live));
   ST.onOpen('pumpkins', (live) => groundPatch.show(live));
+  ST.get('pumpkins').meshes.flowers.castShadow = false;      // low on the ground, shaded by their baked AO
   ST.onOpen('platform', (live) => groundJunction.show(live));
 
   // ------------------------------------------------- rails, crossing, backdrop --
@@ -459,8 +460,8 @@ export function createScene(G) {
     b.box(COLORS.gold, dw - 0.3, 0.02, 0.16, [cx, DK.h + 0.011, DK.maxZ - 0.26]);                   // the safety line by the track
     for (let i = 0; i < 9; i++) b.box(0xc6baa4, 0.05, 0.012, dd - 0.1, [DK.minX + (i + 1) * dw / 10, DK.h + 0.007, cz]);
     // ramps down to the yard at both ends, a pallet under the goods, luggage, lamps
-    b.rbox(COLORS.woodLight, 7.6, 0.07, 1.25, 0.03, [LAY.platform.x, DK.h + 0.03, LAY.platform.z], null, null, 1);
-    for (let i = 0; i < 6; i++) b.box(COLORS.wood, 0.12, 0.071, 1.27, [LAY.platform.x - 3.2 + i * 1.28, DK.h + 0.031, LAY.platform.z]);
+    b.rbox(0xd8c6a2, 7.6, 0.07, 1.25, 0.03, [LAY.platform.x, DK.h + 0.03, LAY.platform.z], null, null, 1);
+    for (let i = 0; i < 6; i++) b.box(0xbfa77e, 0.12, 0.071, 1.27, [LAY.platform.x - 3.2 + i * 1.28, DK.h + 0.031, LAY.platform.z]);
     const up = new Parts();        // things standing on the deck
     addLamp(up, -8.2, DK.minZ + 0.3, 0.3, -1, 3.1); addLamp(up, -1.4, DK.maxZ - 0.5, 0.3, -1, 3.1); addLamp(up, 7.6, DK.minZ + 0.3, -0.3, -1, 3.1);
     addCrate(up, -5.4, 20.4, 0.6, 0.3); addCrate(up, -4.7, 20.9, 0.5, -0.2, COLORS.woodLight); addBarrel(up, -6.3, 20.9);
@@ -491,7 +492,7 @@ export function createScene(G) {
     for (const x of [-0.95, 0.95]) bp.cyl(COLORS.tealDark, 0.06, 0.08, 2.2, [x, 1.1, -0.06], null, 6);
     bp.sph(COLORS.gold, 0.1, [0, 3.44, -0.06], null, null, 6, 5);
     board.add(meshOf(bp.merged()));
-    place(board, 6.9, 18.9, FACE_CAMERA);
+    place(board, 5.7, 19.0, FACE_CAMERA);
     junction.add(board);
   }
   // before the railway: a sign on the old line
@@ -592,8 +593,16 @@ export function createScene(G) {
       ['nature-kit/tree_oak_fall', 4.3, 0.9, 0xffb060], ['nature-kit/tree_default', 5.2, 0.8, 0xffd27a], ['nature-kit/tree_thin', 4.8, 0.6, 0xfff0c0],
       ['nature-kit/tree_small', 3.2, 0.5, 0xffdc8c], ['nature-kit/tree_oak_fall', 3.6, 0.8, 0xffc878],
     ];
-    const hi = [new Parts(), new Parts(), new Parts(), new Parts()], lo = [new Parts(), new Parts(), new Parts(), new Parts()];
-    const quad = (x, z) => (x > 3 ? 1 : 0) + (z > 2 ? 2 : 0);
+    // merged per 22 m cell, so only what is near the view is drawn
+    const CH = 22;
+    const cells = (map) => (x, z) => {
+      const key = Math.floor((x + 110) / CH) + ',' + Math.floor((z + 110) / CH);
+      let c = map.get(key);
+      if (!c) { c = new Parts(); map.set(key, c); }
+      return c;
+    };
+    const hiM = new Map(), loM = new Map(), floraM = new Map();
+    const hi = cells(hiM), lo = cells(loM), flora = cells(floraM);
     let n = 0;
     for (let i = 0; i < 2600 && n < 190; i++) {
       const x = -50 + rnd() * 106, z = -48 + rnd() * 104;
@@ -603,13 +612,13 @@ export function createScene(G) {
       // dense near the play area, thinning with distance
       const d = Math.max(Math.abs(x), Math.abs(z)) - 24;
       if (d > 0 && rnd() < d / 30) continue;
-      hi[quad(x, z)].model(id, { height: h, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], tint });
+      hi(x, z).model(id, { height: h, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc], tint });
       claim(x, z, rad * sc + 0.9);
       n++;
     }
     // a hedgerow of bushes along the outside of the fences
     const BUSH = ['nature-kit/plant_bushLarge', 'nature-kit/plant_bushDetailed', 'nature-kit/plant_bush'];
-    const bush = (x, z, w) => { lo[quad(x, z)].model(BUSH[(rnd() * 3) | 0], { width: w, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], tint: rnd() < 0.3 ? 0xffd890 : 0xfff2c0 }); };
+    const bush = (x, z, w) => { lo(x, z).model(BUSH[(rnd() * 3) | 0], { width: w, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], tint: rnd() < 0.3 ? 0xffd890 : 0xfff2c0 }); };
     for (let z = -19; z < 6.5; z += 1.5 + rnd() * 0.7) if (rnd() < 0.8) bush(-15.2 + rnd() * 0.5, z, 1.5 + rnd() * 0.8);
     for (let x = -13; x < 19; x += 1.6 + rnd() * 0.8) if (rnd() < 0.8 && Math.abs(x - LAY.gate.x) > 3.2) bush(x, -20.9 - rnd() * 0.5, 1.5 + rnd() * 0.8);
     for (let i = 0; i < 150; i++) {
@@ -620,12 +629,11 @@ export function createScene(G) {
     for (let i = 0; i < 40; i++) {
       const x = -40 + rnd() * 84, z = -38 + rnd() * 84;
       if (!free(x, z, 1.0)) continue;
-      lo[quad(x, z)].model(rnd() < 0.3 ? 'nature-kit/rock_largeA' : rnd() < 0.5 ? 'nature-kit/rock_smallD' : 'nature-kit/rock_smallA', { width: 0.8 + rnd() * 1.0, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], tint: 0xffe8c8 });
+      lo(x, z).model(rnd() < 0.3 ? 'nature-kit/rock_largeA' : rnd() < 0.5 ? 'nature-kit/rock_smallD' : 'nature-kit/rock_smallA', { width: 0.8 + rnd() * 1.0, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], tint: 0xffe8c8 });
     }
-    for (let q = 0; q < 4; q++) {
-      if (hi[q].parts.length) addMesh(root, hi[q].merged({ ao: AO }), { cast: true, receive: false }).name = 'trees' + q;
-      if (lo[q].parts.length) addMesh(root, lo[q].merged({ ao: { ground: 0.2, groundH: 0.3, down: 0.08, noBoxes: true } }), { cast: false, receive: true }).name = 'bushes' + q;
-    }
+    let ci = 0;
+    for (const c of hiM.values()) addMesh(root, c.merged({ ao: AO }), { cast: true, receive: false }).name = 'trees' + ci++;
+    for (const c of loM.values()) addMesh(root, c.merged({ ao: { ground: 0.2, groundH: 0.3, down: 0.08, noBoxes: true } }), { cast: false, receive: true }).name = 'bushes' + ci++;
 
     // flowers and grass tufts on the grass, inside the play area too (they block nothing): instanced
     const onDirt = (x, z) => {
@@ -642,36 +650,20 @@ export function createScene(G) {
       for (const p of PLOTS) if (Math.hypot(x - p.x, z - p.z) < 2.6) return true;
       return false;
     };
-    const m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), s3 = new THREE.Vector3(), p3 = new THREE.Vector3();
-    const scatter = (id, opts, count, tries, sMin, sMax, near) => {
-      const geo = getGeometry(id, opts);
-      const spots = [];
-      for (let i = 0; i < tries && spots.length < count; i++) {
+    const scatter = (id, height, count, tries, sMin, sMax, near) => {
+      for (let i = 0, n = 0; i < tries && n < count; i++) {
         const x = near ? -24 + rnd() * 50 : -40 + rnd() * 84, z = near ? -24 + rnd() * 50 : -38 + rnd() * 84;
         if (onDirt(x, z)) continue;
-        spots.push([x, z, sMin + rnd() * (sMax - sMin), rnd() * 6.28]);
-      }
-      // four instanced meshes (quadrants) so they cull
-      for (let q = 0; q < 4; q++) {
-        const list = spots.filter(([x, z]) => quad(x, z) === q);
-        if (!list.length) continue;
-        const im = new THREE.InstancedMesh(geo, getSharedMaterial(), list.length);
-        const box = new THREE.Box3();
-        list.forEach(([x, z, sc, yaw], i) => {
-          im.setMatrixAt(i, m4.compose(p3.set(x, 0, z), q4.setFromAxisAngle(up, yaw), s3.set(sc, sc, sc)));
-          box.expandByPoint(p3.set(x, 0, z)); box.expandByPoint(p3.set(x, 1, z));
-        });
-        im.castShadow = false; im.receiveShadow = false;
-        im.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
-        im.boundingSphere.radius += 1;
-        fixed(im);
-        root.add(im);
+        const sc = sMin + rnd() * (sMax - sMin);
+        flora(x, z).model(id, { height, pos: [x, 0, z], rot: [0, rnd() * 6.28, 0], scl: [sc, sc, sc] });
+        n++;
       }
     };
-    scatter('nature-kit/grass', { height: 0.42 }, 520, 3000, 0.7, 1.4, false);
-    scatter('nature-kit/flower_yellowA', { height: 0.5 }, 150, 1200, 0.8, 1.3, true);
-    scatter('nature-kit/flower_redA', { height: 0.55 }, 110, 1000, 0.8, 1.3, true);
-    scatter('nature-kit/flower_purpleA', { height: 0.5 }, 90, 900, 0.8, 1.3, true);
+    scatter('nature-kit/grass', 0.42, 300, 2400, 0.7, 1.4, false);
+    scatter('nature-kit/flower_yellowA', 0.5, 110, 1000, 0.8, 1.3, true);
+    scatter('nature-kit/flower_redA', 0.55, 80, 800, 0.8, 1.3, true);
+    scatter('nature-kit/flower_purpleA', 0.5, 60, 700, 0.8, 1.3, true);
+    for (const c of floraM.values()) addMesh(root, c.merged(), { cast: false, receive: false }).name = 'flora' + ci++;
   }
 
   // ------------------------------------------------------------- the town --

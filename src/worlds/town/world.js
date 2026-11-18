@@ -56,8 +56,8 @@ const stage = (n) => ({ type: 'stage', stage: n });
 // pad slots: a bought pad disappears, so the same spot serves several pads in turn
 const S = {
   yard: [3.3, 3.6], yardS: [3.3, -3.6], oven: [3.3, 6.6], field: [-3.0, 7.9], mill: [-8.0, 8.4],
-  north: [0.6, 14.4], station: [7.2, 15.6], dairy: [14.0, -5.4], south: [3.3, -7.4], patch: [-5.5, -7.6],
-  town: [15.0, 14.8], clock: [11.0, 16.8], gate: [3.3, -16.6],
+  north: [0.6, 14.4], station: [10.8, 17.0], dairy: [14.0, -5.4], south: [3.3, -7.4], patch: [-5.5, -7.6],
+  town: [15.0, 14.8], clock: [15.0, 14.8], gate: [3.3, -16.6],
 };
 
 // the freight train: in from the east over the level crossing, out to the west
@@ -86,7 +86,7 @@ const REVEAL = {
   creamery: { title: 'THE CREAMERY', sub: 'Milk becomes wheels of cheese', zoom: 0.85, run: 1.4, shots: [{ at: [8, -11.5], show: ['*'], hold: 1.2 }] },
   patch: { title: 'PUMPKIN PATCH', sub: 'Fat pumpkins: the train will want them', zoom: 0.95, run: 1.0, shots: [{ at: [-5.5, -13], show: ['*'], hold: 1.3 }] },
   junction: { title: 'THE RAILWAY', sub: 'Load the platform: a full train pays a bonus', zoom: 1.05, run: 5.2,
-    shots: [{ at: [3, 19], show: ['scene'], hold: 1.0 }, { at: [3.2, 19.5], show: ['*'], hold: 0.8, zoom: 0.9 }] },
+    shots: [{ at: [7, 20.5], show: ['scene'], hold: 0.9, zoom: 1.5 }, { at: [1.5, 20.5], show: ['*'], hold: 0.8, zoom: 1.4 }] },
   town: { title: 'A TOWN IS BORN', sub: 'Townsfolk pay better for good food', zoom: 1.25, run: 1.0, shots: [{ at: [16, 22], show: ['*'], hold: 1.8 }] },
   square: { title: 'TOWN SQUARE', sub: 'A fountain, lamps and a busier market', zoom: 0.95, run: 1.0, shots: [{ at: [14.5, 0], show: ['*'], hold: 1.5 }] },
   clock: { title: 'CLOCK TOWER', sub: 'The trains now run on time: more of them', zoom: 1.05, run: 1.2, shots: [{ at: [12, 19], show: ['*'], hold: 1.5 }] },
@@ -123,7 +123,7 @@ const CHAIN = [
   // ---- stage 4: the junction
   ['junction', 'THE RAILWAY', 4200, S.north, multi(open('platform', 'traincash'), hire('train', 'platform', 'traincash'), stage(4)),
     { big: true, toast: 'THE TRAIN IS COMING!', focus: { x: 3.2, z: 20 }, reveal: REVEAL.junction }],
-  ['porter1', 'STATION PORTER', 2400, S.station, hire('hauler', ['bakery', 'creamery'], ['platform'], { home: { x: 6.4, z: 15.4 }, options: { look: 'porter', capacity: 14 } }), { toast: 'PORTER HIRED!' }],
+  ['porter1', 'STATION PORTER', 2400, S.station, hire('hauler', ['bakery', 'creamery'], ['platform'], { home: { x: 6.0, z: 15.2 }, options: { look: 'porter', capacity: 14 } }), { toast: 'PORTER HIRED!' }],
   ['wagon3', 'THIRD WAGON', 2800, S.north, stat('wagons', { set: 3 }), { toast: 'A PUMPKIN WAGON!' }],
   ['porter2', 'STATION PORTER', 3000, S.station, hire('hauler', ['creamery', 'bakery'], ['platform'], { home: { x: 6.4, z: 15.4 }, options: { look: 'porter', capacity: 14 } }), { toast: 'PORTER HIRED!' }],
   ['brand', 'FARM BRAND +30%', 3600, S.yard, stat('priceMult', { mul: 1.3 })],
@@ -172,7 +172,7 @@ export default {
     fill: { color: 0xffd9c4, intensity: 0.6 },
   },
   bounds: { minX: -19.6, maxX: 19.7, minZ: -19.4, maxZ: 19.0 },
-  player: { start: { x: 3.2, z: 0.4 }, speed: 6.6, capacity: 20, harvestRadius: 1.5, look: 'player' },
+  player: { start: { x: 4.4, z: 0.7 }, speed: 6.6, capacity: 20, harvestRadius: 1.5, look: 'player' },
 
   // regrow: seconds for wheat to grow back; pumpkinRegrow, milkRegrow likewise (the trough makes the
   // cows three times as fast); harvestRadius: the scythe's sweep; wagons: coupled wagons;
@@ -250,7 +250,7 @@ export default {
       layout: { x: PLATFORM.x, z: PLATFORM.z, y: LAY.deck.h + 0.02, cols: 8, rows: 2 },
       dropZone: { x: 3.2, z: 17.3, r: 1.6 }, workerSpot: { x: 3.2, z: 16.5 },
       pallet: false, placeholder: false, markers: false, hint: 'Load the platform for the train!' },
-    { id: 'traincash', type: 'cashpile', name: 'TRAIN CASH', open: false, cashPile: { x: -1.6, z: 17.4, r: 1.4 }, bundle: 80 },
+    { id: 'traincash', type: 'cashpile', name: 'TRAIN CASH', open: false, cashPile: { x: 8.0, z: 17.3, r: 1.4 }, bundle: 80 },
 
     // ---- things in the way: scene.js adds a circle for every tree, bale and building it stands inside the bounds
     { id: 'scenery', type: 'solid', name: 'SCENERY', open: true, blockers: [] },
