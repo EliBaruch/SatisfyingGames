@@ -1,6 +1,6 @@
 # Bloom Rush
 
-A mobile-first idle arcade tycoon in five worlds. Run around, gather goods,
+A mobile-first idle arcade tycoon in six worlds. Run around, gather goods,
 stack them on your back, sell them, collect the cash and spend it on pads that
 hire workers, buy vehicles, add upgrades and open new areas. Finish a world to
 unlock the next one and carry a small perk with you.
@@ -16,6 +16,12 @@ unlock the next one and carry a small perk with you.
 5. **Frostpine Camp**: alone in a snowy clearing with an axe. Chop pines, hunt the woolly tuskers,
    sell to the villagers at the trading post, raise a palisade, roast meat over the cook fire, hire
    woodcutters, hunters and carriers, build watchtowers that hunt for you, and light the Great Beacon.
+6. **Ironwall Keep**: a lone knight holds a walled keep against raiders that come in waves. Every raider
+   that falls pays a bounty into the war chest; raiders that reach the wall grab coins and run. Build
+   archer towers and keep them stocked with arrows from the fletcher, then crossbows (bolts from the
+   forge), fire arrows, ballistae that skewer whole lines, catapults throwing quarry stones, flaming
+   pitch and finally the great trebuchet, while shieldbearers, brutes, black knights and battering rams
+   join the waves. Crown it with the Citadel. The longest world: about 20-25 minutes.
 
 ## How to play
 
@@ -41,7 +47,7 @@ Then open http://localhost:8100/ in a browser.
 
 Debug flags (add to the URL):
 
-- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`, `factory`, `frost`) if your save has
+- `?world=<id>` opens a world (`flower`, `chicken`, `grocery`, `factory`, `frost`, `keep`) if your save has
   unlocked it; add `&unlock=1` to open it anyway (development and tests).
 - `?worldUrl=<same-origin path to a world.js>` loads a world under development.
 - `?autoplay` runs a test bot that plays the game.
@@ -63,7 +69,7 @@ src/engine/              the shared engine (docs/ENGINE.md)
   player.js, stack.js      the player and the item tower on its back
   pads.js, pad-effects.js  purchase pads and what they do
   stations/                station types: source, shop, pile, converter, trough, shelf,
-                           checkout, cashpile; opt-in: belt, line, lot, solid, herd (docs/STATIONS.md)
+                           checkout, cashpile; opt-in: belt, line, lot, solid, herd, horde, battery (docs/STATIONS.md)
   workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator, turret
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound

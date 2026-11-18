@@ -88,7 +88,7 @@ const CHAIN = [
   ['beacon', 'THE GREAT BEACON', 6500, S.beacon, { type: 'win' }, { big: true, toast: 'THE GREAT BEACON!' }],
 ];
 const pads = CHAIN.map(([id, label, cost, at, effect, extra], i) => ({ id, label, cost, at, requires: i ? [CHAIN[i - 1][0]] : [], effect, ...(extra || {}) }));
-pads.push({ id: 'travel', label: 'WORLD SELECT', cost: 0, at: S.gate, requires: ['beacon'], effect: { type: 'worlds' }, priceText: 'GO' });
+pads.push({ id: 'travel', label: 'NEXT WORLD', cost: 0, at: S.gate, requires: ['beacon'], effect: { type: 'travel', world: 'keep' }, priceText: 'GO' });
 
 // the palisade: solid wall runs between the gate openings (boxes for the 'walls' station)
 function wallBlockers() {
@@ -201,10 +201,10 @@ export default {
     drop: 'Sell at the trading post!',
     cash: 'Grab your coin!',
     buy: 'Buy: {label}',
-    travel: 'Visit your other worlds!',
+    travel: 'Next: Ironwall Keep!',
   },
 
-  finale: { pad: 'beacon', focus: LAY.beacon },
+  finale: { pad: 'beacon', focus: LAY.beacon, next: 'keep' },
 
   // the test bot delivers what it carries before gathering more, and finds its way round the walls
   autoplay: { chain: true },

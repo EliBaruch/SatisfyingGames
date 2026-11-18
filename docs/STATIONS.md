@@ -440,6 +440,58 @@ flight. It holds fire while `to` is full. Options (`world.workers.turret` < `eff
 `range`, `damage`, `damageStat`, `bolt` (colour), `model: () => Object3D` (`userData.head` turns to the
 target, `userData.muzzle` is where the shot leaves, in the head's frame).
 
+### `horde`: waves of raiders (the keep world)
+
+`modules: ['../../engine/stations/horde.js']`. Foes march across a field toward a wall (toward -z), bash it a few
+times, grab coins from a cash station and run back; every one that falls pays its bounty (plus any loot it carried)
+onto that cash station with a flying bill.
+
+```js
+{ id: 'raid', type: 'horde', name: 'RAIDERS', open: true,
+  area: { minX, maxX, minZ, maxZ },    // the field: lanes run across x
+  wallZ: 10.55, spawnZ: 41,            // where they stop to bash; where they appear
+  kinds: [{ id: 'raider', hp: 3, bounty: 6, speed: 1.6, radius: 0.45, height: 1.35, scale: [0.9, 1.08],
+            pool: 42, bash: 1.4, blows: 3, steal: 3, model: () => BufferGeometry, burst: [colours] }, ...],
+  waves: [null, { every: 6, mix: { raider: 3 } }, ...],   // indexed by G.stats[levelStat]; raise it with a stat pad
+  levelStat: 'raid', hpStat: null, cash: 'chest',
+  melee: { damageStat: 'heroDamage', swingTime: 0.32 },   // the player's blade, reach = G.stats.harvestRadius
+  alert: { count: 3, text: 'Raiders at the wall! Fight!' } }
+```
+
+It is a **harvest area** with `fight: true` that never hands out items: the player strikes whatever is within reach
+every step (even with a full stack) and the hints and the bot send the player to fight. It also has an **`alert`**
+capability (`{ active, x, z, r, text, nearest(x, z, out) }`): once `alert.count` foes bash the wall, the goal hint
+becomes the alert (after "carrying enough to deliver" and "a pad is affordable"), and the test bot goes to fight.
+Fleeing thieves are tinted gold. For ranged stations: `station.foes = { total, alive(i), pos(i, out), vz(i), height(i),
+pick(x, z, range, minRange, skip, nSkip), strike(i, dmg, burn), splash(x, z, r, dmg, burn), near(x, z, r, hitMask) }`;
+`pick` prefers the foe nearest the wall. Burning foes (`burn` seconds) take damage over time and glow. Readable:
+`alive`, `bashing`, `waves`, `nextWave`, `tally { spawned, kills, bounty, stolen, escaped, recovered }`. Events
+`'horde:kill' { station, stationId, kind, x, z, bounty }`, `'horde:wave' { station, stationId, level, n }` (payloads
+reused). Nothing is saved: a reload starts with an empty field.
+
+### `battery`: war engines that need ammunition (the keep world)
+
+`modules: ['../../engine/stations/battery.js']`. An archer tower, crossbow tower, ballista, catapult or trebuchet that
+shoots a horde, but only while it has ammunition: an item carried to its drop zone, each worth `shotsPer` shots.
+
+```js
+{ id: 'bow1', type: 'battery', open: false, foes: 'raid', x, z, yaw: 0,
+  model: () => Object3D,   // userData: head (turns), muzzle {x,y,z} (head frame), arm (swung about X: catapults),
+                           //   throwAngle, crew [Object3D] (shown one per volley shot), recoil
+  ammo: 'arrows', ammoCap: 8, shotsPer: 10, start: 0,
+  every: 0.7, rateStat: 'bowRate', range: 14.5, minRange: 0, damage: 1.5, damageStat: 'bowDamage',
+  volley: 1, volleyStat: 'archers',      // shots per salvo at different foes
+  shot: { geometry: () => BufferGeometry /* long axis +Z */, speed: 24, arc: 0.14, splash: 0, pierce: false,
+          spin: 0, fireStat: 'fireArrows', shake: 0, sound: 'bow', impact: null, dust: false, scale: 1 },
+  pool: 14, dropZone: { x, z, r }, store: { layout }, footprint: { w, d }, label: 'ARROWS', urgent: 0.7, hint }
+```
+
+Shots lead their target; plain shots home in a little, `splash` shots land on the ground and hurt everything in the
+radius (dust, ring, camera shake near the player), `pierce` shots fly on to the end of their range and skewer every
+foe they pass. With `G.stats[fireStat] > 0` shots burn (x1.5 damage, burning, a flame trail). Its **drop** has a
+`need` that rises as it empties, so the hints send the player with ammunition, and haulers can be bound to a list of
+engines. **Save:** `{ n: items, s: shots in hand }`. Event `'battery:fire' { station, stationId, x, z }`.
+
 ### Smaller additions
 
 - `source`: `grid.jitter` moves every cell up to that far from its grid point (the same way on every load),

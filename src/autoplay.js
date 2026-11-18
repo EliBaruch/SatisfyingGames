@@ -228,9 +228,17 @@ export function startAutoplay(G) {
     return best;
   }
 
-  // harvest stations ordered by item value, most valuable first
+  // harvest stations ordered by item value, most valuable first. A harvest whose items no open drop
+  // zone takes is skipped (nothing to do with them yet); a fight (harvest.fight: foes that yield no
+  // items) comes last, so the bot fights when there is nothing worth gathering.
+  function wanted(kind) {
+    for (const d of active('drop')) if (d.drop.accepts(kind) && (d.drop.roomFor ? d.drop.roomFor(kind) : d.drop.room()) > 0) return true;
+    return false;
+  }
   function harvestByValue() {
-    return active('harvest').sort((a, b) => ((getItem(b.harvest.kind) || {}).value || 0) - ((getItem(a.harvest.kind) || {}).value || 0));
+    const list = active('harvest').filter((s) => s.harvest.fight || wanted(s.harvest.kind) || !active('drop').length);
+    return list.sort((a, b) => (a.harvest.fight ? 1 : 0) - (b.harvest.fight ? 1 : 0)
+      || ((getItem(b.harvest.kind) || {}).value || 0) - ((getItem(a.harvest.kind) || {}).value || 0));
   }
   const tmp = { x: 0, z: 0 };
 
@@ -305,6 +313,8 @@ export function startAutoplay(G) {
     const np = nextPad();
     const rem = np ? remainingCost(np) : Infinity;
     if (np && money >= rem) return { kind: 'buy', key: 'buy:' + np.id, x: np.pos.x, z: np.pos.z, arrive: 0.25, padId: np.id };
+    const fight = alertTarget();
+    if (fight) return fight;
     const cap = G.stats.capacity, c = carried();
     // cash worth a detour
     const missing = np ? Math.max(0, rem - money) : Infinity;
@@ -334,6 +344,16 @@ export function startAutoplay(G) {
     return null;
   }
 
+  // a station raising an alert (foes bashing the wall): fight the nearest of them
+  function alertTarget() {
+    const p = pl().pos;
+    for (const s of stations) {
+      if (!s.active || !s.alert || !s.alert.active || !s.alert.nearest) continue;
+      if (s.alert.nearest(p.x, p.z, tmp)) return { kind: 'cut', key: 'fight:' + s.id, x: tmp.x, z: tmp.z, arrive: 0.6, st: s };
+    }
+    return null;
+  }
+
   function choose() {
     if (CHAIN) return chooseChain();
     const p = pl().pos;
@@ -346,6 +366,8 @@ export function startAutoplay(G) {
       return { kind: 'buy', key: 'buy:' + np.id, x: np.pos.x, z: np.pos.z, arrive: 0.25, padId: np.id };
     }
 
+    const fight = alertTarget();
+    if (fight) return fight;
     const cap = G.stats.capacity;
     const c = carried();
 

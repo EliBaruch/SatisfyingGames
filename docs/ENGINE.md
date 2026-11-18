@@ -392,7 +392,7 @@ The clock is the simulation's, so tests that call `G.step` directly play reveals
 Every 0.25 s (`engine/hints.js`): (1) carrying >= 60% of capacity (or full, or the harvest area
 you stand in is < 15% grown) and some active drop zone accepts a carried item -> that zone
 (preferring the one that takes the topmost item); (2) the cheapest visible pad is affordable ->
-the pad; (3) a station with a `serve` capability (checkout) that is unstaffed with >= 2 waiting ->
+the pad; (2b) a station's `alert` is active (foes bashing the keep's wall, docs/STATIONS.md `horde`) -> the alert; (3) a station with a `serve` capability (checkout) that is unstaffed with >= 2 waiting ->
 its serve zone; (4) a cash pile holds >= 20 or >= 25% of what is missing -> the richest pile;
 (5) an open drop zone whose `drop.need` >= 0.75 (empty shelf / trough) -> it if carrying what it
 accepts, else a pickup that has such items; (6) the most recently opened harvest station or

@@ -13,6 +13,7 @@ export const WORLDS = [
   { id: 'grocery', name: 'Grocery Store', order: 3, unlockedBy: 'chicken' },
   { id: 'factory', name: 'Volt Works', order: 4, unlockedBy: 'grocery' },
   { id: 'frost', name: 'Frostpine Camp', order: 5, unlockedBy: 'factory' },
+  { id: 'keep', name: 'Ironwall Keep', order: 6, unlockedBy: 'frost' },
 ];
 
 export function worldInfo(id) { return WORLDS.find((w) => w.id === id) || null; }

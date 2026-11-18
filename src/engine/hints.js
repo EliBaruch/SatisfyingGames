@@ -2,6 +2,7 @@
 // pointer at the player's feet. The goal is derived from station capabilities only:
 //   1. carrying enough of something a drop zone accepts  -> that drop zone
 //   2. a pad is affordable                                -> that pad
+//   2b. a station raises an alert (foes at the wall)    -> go there
 //   3. shoppers waiting at an unstaffed checkout (serve) -> its serve zone
 //   4. enough cash waiting on a pile                      -> that pile
 //   5. a drop zone with a high `need` (empty trough/shelf) -> it, or a pickup that supplies it
@@ -127,6 +128,14 @@ export function createHints(G) {
     }
     if (nextPad && money >= pads.remaining(nextPad)) {
       setHint('buy', fmt('buy', null, nextPad), nextPad.pos.x, nextPad.pos.z, PAD.radius, nextPad);
+      return;
+    }
+    // foes at the gates (a 'horde' station's alert): go and fight
+    for (let i = 0; i < stations.length; i++) {
+      const s = stations[i];
+      const al = s.alert;
+      if (!s.active || !al || !al.active) continue;
+      setHint('alert', al.text || fmt('harvest', s), al.x, al.z, al.r || 2.5, s);
       return;
     }
     // shoppers waiting at a checkout nobody serves

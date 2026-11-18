@@ -31,7 +31,7 @@ function fullId(m) {
 }
 
 /**
- * Looks. A look is { model, tool, scale }: model = one of MODELS, tool = null | 'scythe' | 'axe' | 'bucket' | 'basket',
+ * Looks. A look is { model, tool, scale }: model = one of MODELS, tool = null | 'scythe' | 'axe' | 'sword' | 'bucket' | 'basket',
  * scale = size multiplier (1 = 1.65 tall). Add your own: LOOKS.farmer = { model: 'male-e', tool: 'bucket' }.
  */
 export const LOOKS = {
@@ -90,6 +90,16 @@ function buildTool(kind) {
     b.rbox(0x6f7a8c, 0.2, 0.22, 0.1, 0.03, [-0.02, -0.56, 0]);
     b.rbox(0xe6edf7, 0.2, 0.34, 0.06, 0.025, [-0.17, -0.56, 0]);
     b.rbox(0xffffff, 0.05, 0.38, 0.035, 0.015, [-0.28, -0.56, 0]);
+    g.add(meshOf(b));
+    g.userData.aim = [0.12, -0.55, 0.83];
+  } else if (kind === 'sword') {
+    // a knight's sword: grip at the origin, blade along -Y with a gold crossguard
+    b.cyl(0x5a3b24, 0.04, 0.04, 0.26, [0, 0.08, 0], null, 8);
+    b.sph(0xffc42e, 0.06, [0, 0.24, 0], null, null, 8, 6);
+    b.rbox(0xffc42e, 0.34, 0.06, 0.08, 0.025, [0, -0.07, 0]);
+    b.rbox(0xdfe6f0, 0.11, 0.86, 0.035, 0.015, [0, -0.52, 0]);
+    b.rbox(0xffffff, 0.03, 0.8, 0.04, 0.01, [-0.045, -0.52, 0]);
+    b.cone(0xdfe6f0, 0.055, 0.14, [0, -1.02, 0], [Math.PI, 0, 0], 4, [1, 1, 0.35]);
     g.add(meshOf(b));
     g.userData.aim = [0.12, -0.55, 0.83];
   } else if (kind === 'bucket') {

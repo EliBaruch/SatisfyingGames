@@ -12,7 +12,8 @@ const COMBO_MAX_DEGREE = 10; // two octaves, then hold
 const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
   egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
-  press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4 };
+  press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
+  bow: 0.06, crossbow: 0.08, ballista: 0.15, catapult: 0.2, boom: 0.12, thud: 0.18, horn: 2.0 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -232,6 +233,39 @@ const SOUNDS = {
   step(k) {
     noise(k, { type: 'lowpass', f0: 600, dur: 0.035, vol: 0.05, atk: 0.003 });
   },
+  // keep world
+  bow(k) {       // a bowstring
+    tone(k, { type: 'triangle', f0: 260 * (0.95 + Math.random() * 0.1), f1: 140, dur: 0.09, vol: 0.09, atk: 0.002, filter: 1400 });
+    noise(k, { type: 'highpass', f0: 2600, f1: 5200, t: 0.01, dur: 0.12, vol: 0.035, q: 0.6, atk: 0.01 });
+  },
+  crossbow(k) {  // a heavier snap
+    tone(k, { type: 'square', f0: 180, f1: 90, dur: 0.06, vol: 0.06, atk: 0.002, filter: 1200 });
+    noise(k, { type: 'bandpass', f0: 1800, dur: 0.05, vol: 0.08, q: 1.5, atk: 0.002 });
+    noise(k, { type: 'highpass', f0: 3000, f1: 6000, t: 0.02, dur: 0.12, vol: 0.03, atk: 0.01 });
+  },
+  ballista(k) {  // a thrumming great bow
+    tone(k, { type: 'sawtooth', f0: 95, f1: 55, dur: 0.25, vol: 0.09, atk: 0.003, filter: 600 });
+    noise(k, { type: 'bandpass', f0: 900, f1: 2600, dur: 0.3, vol: 0.06, q: 0.8, atk: 0.02 });
+  },
+  catapult(k) {  // a creaking arm slamming into its stop
+    tone(k, { type: 'triangle', f0: 140, f1: 220, dur: 0.12, vol: 0.05, atk: 0.04, filter: 700 });
+    tone(k, { type: 'sine', f0: 110, f1: 50, t: 0.12, dur: 0.2, vol: 0.25, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 600, t: 0.12, dur: 0.1, vol: 0.1, atk: 0.003 });
+  },
+  boom(k) {      // a stone landing
+    tone(k, { type: 'sine', f0: 90, f1: 32, dur: 0.45, vol: 0.4, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 520, f1: 120, dur: 0.4, vol: 0.2, atk: 0.003 });
+    noise(k, { type: 'bandpass', f0: 1600, dur: 0.08, vol: 0.06, q: 1, atk: 0.002 });
+  },
+  thud(k) {      // a club on the wall
+    tone(k, { type: 'sine', f0: 130, f1: 70, dur: 0.12, vol: 0.18, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 380, dur: 0.07, vol: 0.08, atk: 0.002 });
+  },
+  horn(k) {      // the raiders' war horn: a new wave
+    tone(k, { type: 'sawtooth', f0: 110, dur: 0.9, vol: 0.05, atk: 0.12, filter: 520 });
+    tone(k, { type: 'sawtooth', f0: 110 * 1.5, t: 0.35, dur: 0.7, vol: 0.035, atk: 0.1, filter: 620 });
+    tone(k, { type: 'sine', f0: 55, dur: 1.1, vol: 0.06, atk: 0.2 });
+  },
   // factory world
   press(k) {     // a stamping press coming down
     tone(k, { type: 'sine', f0: 120, f1: 38, dur: 0.22, vol: 0.4, atk: 0.003 });
@@ -305,8 +339,36 @@ const FROST_CHORDS = [
   { root: 36, notes: [55, 60, 64] },      // C
 ];
 const FROST_BELLS = [74, 77, 81, 84, 86, 89];
-export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost'];
-export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4 };
+const KEEP_CHORDS = [
+  { root: 33, notes: [57, 60, 64] },      // Am
+  { root: 41, notes: [57, 60, 65] },      // F
+  { root: 43, notes: [55, 59, 62] },      // G
+  { root: 40, notes: [56, 59, 64] },      // E
+];
+const KEEP_FANFARE = [69, 72, 76, 74, 71, 76];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost', 'keep'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4, keep: 0.55 * 4 };
+
+/** Keep: a martial march: war drums on every beat with a roll, low strings, a brass-like fanfare line. */
+function keepBar(k, t, chordIdx, rnd) {
+  const B = 0.55;
+  const c = KEEP_CHORDS[chordIdx % 4];
+  for (const n of c.notes) tone(k, { type: 'sawtooth', f0: midi(n - 12), dur: B * 4 + 0.2, vol: 0.006, atk: 0.3, filter: 900 });
+  for (let b = 0; b < 4; b++) {
+    tone(k, { type: 'sine', f0: 85, f1: 45, t: b * B, dur: 0.2, vol: b % 2 ? 0.035 : 0.055, atk: 0.004 });                // drum
+    tone(k, { type: 'triangle', f0: midi(c.root), t: b * B, dur: 0.3, vol: 0.026, atk: 0.008, filter: 500 });
+    noise(k, { type: 'bandpass', f0: 1800, t: b * B + B * 0.5, dur: 0.04, vol: 0.012, q: 1.2, atk: 0.002 });             // snare tick
+  }
+  for (let r = 0; r < 3; r++) noise(k, { type: 'bandpass', f0: 1500, t: B * 3 + B * 0.5 + r * B / 6, dur: 0.03, vol: 0.01, q: 1.2, atk: 0.002 });
+  let idx = (rnd() * KEEP_FANFARE.length) | 0;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > (step % 2 === 0 ? 0.5 : 0.22)) continue;
+    idx = (idx + 1 + ((rnd() * 2) | 0)) % KEEP_FANFARE.length;
+    const tt = step * B * 0.5;
+    tone(k, { type: 'sawtooth', f0: midi(KEEP_FANFARE[idx]), t: tt, dur: 0.24, vol: 0.011, atk: 0.02, filter: 1500 });
+    tone(k, { type: 'triangle', f0: midi(KEEP_FANFARE[idx]), t: tt, dur: 0.3, vol: 0.012, atk: 0.01 });
+  }
+}
 
 /** Factory: a steady 120 bpm machine groove: soft kick, off-beat tick, pumping bass, a bright arpeggio. */
 function factoryBar(k, t, chordIdx, rnd) {
@@ -405,6 +467,7 @@ export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world
   if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'factory') { factoryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'frost') { frostBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'keep') { keepBar(k, t, chordIdx, rnd); return k.end; }
   const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {
     tone(k, { type: 'sine', f0: midi(n), dur: MUSIC_BAR + 0.7, vol: 0.022, atk: 0.9 });
