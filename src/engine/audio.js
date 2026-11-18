@@ -13,7 +13,8 @@ const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
   egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
   press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
-  thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2 };
+  thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2,
+  whistle: 1.5, chuff: 0.12, creak: 0.6, moo: 1.2 };
 const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk', 'fever', 'orderDone', 'jackpot', 'thrillDrop']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
@@ -303,6 +304,27 @@ const SOUNDS = {
     tone(k, { type: 'sawtooth', f0: 260, f1: 180, dur: 0.11, vol: 0.07, atk: 0.01, filter: 1100 });
     tone(k, { type: 'sawtooth', f0: 300, f1: 190, t: 0.13, dur: 0.14, vol: 0.07, atk: 0.01, filter: 1100 });
   },
+  // ---- the farm town (worlds/town)
+  whistle(k) {         // a steam whistle: two reedy notes a fifth apart, a short toot then a long one
+    for (const [t, dur] of [[0, 0.22], [0.3, 0.75]]) {
+      tone(k, { type: 'triangle', f0: 880, f1: 870, t, dur, vol: 0.1, atk: 0.03, filter: 2600 });
+      tone(k, { type: 'triangle', f0: 1318, f1: 1300, t, dur, vol: 0.07, atk: 0.03, filter: 3200 });
+      noise(k, { type: 'bandpass', f0: 2400, t, dur, vol: 0.035, q: 1.2, atk: 0.03 });
+    }
+  },
+  chuff(k) {           // one beat of the engine: a soft puff of steam
+    noise(k, { type: 'lowpass', f0: 900, f1: 300, dur: 0.14, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'sine', f0: 90, f1: 60, dur: 0.1, vol: 0.08, atk: 0.005 });
+  },
+  creak(k) {           // the windmill's wooden gear turning over
+    tone(k, { type: 'sawtooth', f0: 150, f1: 210, dur: 0.16, vol: 0.035, atk: 0.03, filter: 700 });
+    tone(k, { type: 'sawtooth', f0: 220, f1: 160, t: 0.17, dur: 0.2, vol: 0.03, atk: 0.03, filter: 650 });
+    noise(k, { type: 'bandpass', f0: 500, t: 0.02, dur: 0.3, vol: 0.02, q: 2, atk: 0.05 });
+  },
+  moo(k) {             // a contented cow
+    tone(k, { type: 'sawtooth', f0: 150, f1: 118, dur: 0.6, vol: 0.07, atk: 0.08, filter: 520, q: 2 });
+    tone(k, { type: 'triangle', f0: 300, f1: 236, dur: 0.55, vol: 0.03, atk: 0.1, filter: 900 });
+  },
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);
@@ -356,8 +378,40 @@ const FROST_CHORDS = [
   { root: 36, notes: [55, 60, 64] },      // C
 ];
 const FROST_BELLS = [74, 77, 81, 84, 86, 89];
-export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost'];
-export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4 };
+const TOWN_CHORDS = [
+  { root: 43, notes: [55, 59, 62] },      // G
+  { root: 40, notes: [55, 59, 64] },      // Em
+  { root: 48, notes: [55, 60, 64] },      // C
+  { root: 50, notes: [57, 62, 66] },      // D
+];
+const TOWN_MELODY = [67, 69, 71, 74, 76, 79, 81];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost', 'town'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4, town: 0.52 * 4 };
+
+/** Town: a warm, bouncy folk tune: boom-chick guitar, a walking bass on the fifth, a plucked banjo-like melody that skips. */
+function townBar(k, t, chordIdx, rnd) {
+  const B = 0.52;
+  const c = TOWN_CHORDS[chordIdx % 4];
+  for (const n of c.notes) tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.2, vol: 0.009, atk: 0.4 });
+  for (let b = 0; b < 4; b++) {
+    // boom (bass on one and three, the fifth on three) ... chick (a short strum on the off beats)
+    if (b % 2 === 0) tone(k, { type: 'triangle', f0: midi(b === 0 ? c.root : c.root + 7), t: b * B, dur: 0.26, vol: 0.036, atk: 0.006, filter: 620 });
+    else {
+      c.notes.forEach((n, i) => tone(k, { type: 'triangle', f0: midi(n + 12), t: b * B + i * 0.012, dur: 0.11, vol: 0.008, atk: 0.003, filter: 2200 }));
+      noise(k, { type: 'highpass', f0: 6000, t: b * B, dur: 0.03, vol: 0.007, q: 0.6, atk: 0.002 });
+    }
+  }
+  // the tune: plucked notes with a swing, stepping up and down the scale more often than leaping
+  let idx = (rnd() * TOWN_MELODY.length) | 0;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > (step % 2 === 0 ? 0.72 : 0.45)) continue;
+    const move = rnd() < 0.7 ? (rnd() < 0.5 ? 1 : -1) : (rnd() < 0.5 ? 2 : -2);
+    idx = Math.max(0, Math.min(TOWN_MELODY.length - 1, idx + move));
+    const tt = step * B * 0.5 + (step % 2 ? B * 0.08 : 0);
+    tone(k, { type: 'triangle', f0: midi(TOWN_MELODY[idx]), t: tt, dur: 0.24, vol: 0.021, atk: 0.003, filter: 3000 });
+    tone(k, { type: 'sawtooth', f0: midi(TOWN_MELODY[idx]), t: tt, dur: 0.07, vol: 0.004, atk: 0.002, filter: 4200 });
+  }
+}
 
 /** Factory: a steady 120 bpm machine groove: soft kick, off-beat tick, pumping bass, a bright arpeggio. */
 function factoryBar(k, t, chordIdx, rnd) {
@@ -456,6 +510,7 @@ export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world
   if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'factory') { factoryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'frost') { frostBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'town') { townBar(k, t, chordIdx, rnd); return k.end; }
   const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {
     tone(k, { type: 'sine', f0: midi(n), dur: MUSIC_BAR + 0.7, vol: 0.022, atk: 0.9 });

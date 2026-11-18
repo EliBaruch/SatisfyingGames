@@ -367,7 +367,14 @@ export function createScene(G) {
     chimney.set(bakery.pos.x + ud.chimney[0], ud.chimney[1], bakery.pos.z + ud.chimney[2]);
   }
   ST.onOpen('bakery', (live) => { bakeG.visible = true; bakeDecals.forEach((d) => { d.visible = true; }); if (live) popIn(bakeG); });
-  G.events.on('convert', (e) => { if (e.stationId === 'bakery') pop(bakeG); else if (e.stationId === 'creamery') pop(creamG); });
+  const snd = { pos: { x: 0, z: 0 }, volume: 1 };
+  const playAt = (name, x, z, volume) => { if (G.audio && G.audio.play) { snd.pos.x = x; snd.pos.z = z; snd.volume = volume; G.audio.play(name, snd); } };
+  G.events.on('convert', (e) => {
+    if (e.stationId === 'bakery') pop(bakeG);
+    else if (e.stationId === 'creamery') pop(creamG);
+    else if (e.stationId === 'mill') playAt('creak', mill.pos.x, mill.pos.z, 0.5);
+  });
+  G.events.on('trough', (e) => { if (e.boosting) playAt('moo', trough.pos.x, trough.pos.z - 3, 0.8); });
 
   // the bakery truck's cash
   {
@@ -759,7 +766,7 @@ export function createScene(G) {
   if (G.state && G.state.won) gate.visible = true;
 
   // -------------------------------------------------------------- animation ---
-  let T = 0, smokeT = 0, boardT = 0, boardText = '', cowT = 0, splashT = 0;
+  let T = 0, smokeT = 0, boardT = 0, boardText = '', cowT = 0, splashT = 0, mooT = 6;
   let train = null;
   const cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), ce = new THREE.Euler(), cs = new THREE.Vector3(), cp = new THREE.Vector3();
   const SMOKE = { colors: [0xffffff, 0xf4efe6, 0xe2dcd0], count: 2, speed: 0.5, size: 0.42, life: 1.4, gravity: -2.6, up: 1.6 };
@@ -808,6 +815,8 @@ export function createScene(G) {
         feed.visible = trough.level > 0.01;
         cowT -= dt;
         if (cowT <= 0) { cowT = 0.05; writeCows(); }
+        mooT -= dt;
+        if (mooT <= 0) { mooT = 9 + (T * 7.3) % 8; const c = COWS[((T * 3.1) | 0) % COWS.length]; playAt('moo', c.x, c.z, 0.6); }
       }
       // the junction: signal, crossing barriers and the train board follow the train
       if (!train && G.workers) { const l = G.workers.list; for (let i = 0; i < l.length; i++) if (l[i].role === 'train') { train = l[i]; break; } }
