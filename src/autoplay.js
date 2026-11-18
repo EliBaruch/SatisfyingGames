@@ -586,13 +586,42 @@ export function startAutoplay(G) {
     return false;
   }
 
+  // ------------------------------------------------------------ raid (engine/raid)
+  // The same for the raid levels: G.raid.botSteer() is the stick, CONTINUE on the result card, each level
+  // started once when it unlocks (ap.noRuns stops that too). A raid waits until every open Gate Run level
+  // has had its turn, and for a while after any mode has ended, so the two never start back to back.
+  const raidTried = {};
+  let modeEndStep = -1e9;
+  G.events.on('mode:exit', () => { modeEndStep = steps; });
+  G.events.on('raid:done', (e) => push({ t: T1(), event: 'raid', level: e.level, stars: e.stars, left: e.left, cash: e.cash }));
+  function raidBot() {
+    const R = G.raid;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      G.input.override = R.botSteer();
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 45 && !ap.noRuns && steps - modeEndStep > 1200 && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      if (G.run) for (const l of G.run.levels()) if (l.unlocked && !runTried[l.n]) return false;
+      for (const l of R.levels()) {
+        if (!l.unlocked || raidTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) raidTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
   // ------------------------------------------------------------ hook
   function tick() {
     if (!G.player || !G.player.stack || !G.stations) return;
     simT += STEP;
     steps++;
     if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
-    if (runBot()) return;
+    if (runBot() || raidBot()) return;
     if (steps % DECIDE_EVERY === 1) decide();
     stuckCheck();
     G.input.override = drive();
