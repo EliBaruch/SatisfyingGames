@@ -27,6 +27,7 @@ src/engine/
   workers/index.js            G.workers (built-ins: hauler.js (+ hauler-multi.js), harvester.js, cashier.js, vendor.js)
   hints.js, level.js, lights.js, view.js, hud.js, input.js, fx.js, audio.js, events.js
   thrills/                    events, fever, stars and perks on top of the core loop (section 13)
+  modes/, run/                mini-mode host (bonus levels away from the world) and the Gate Run (section 14)
   geom.js                     re-exports Parts / mergeParts / meshOf / getSharedMaterial from the art kit; geo, rng
   decals.js                   scene helpers: SELL / cash zone decals (art kit zones), signs, canvas textures
   chars.js                    characters and vehicles for the engine and worlds: art-kit characters, looks,
@@ -82,6 +83,7 @@ src/worlds/<id>/models.js     the world's model factories
 | `workers` | `list` | after player |
 | `hints` | `current {kind, text, x, z, target}`, `compute()` | after workers |
 | `thrills` | events, fever, perks (section 13); `null` with `?nothrills` or `world.thrills.off` | before player |
+| `modes`, `run` | mini-mode host and the Gate Run (section 14); `null` with `?nomodes` / `?norun` | before player |
 | `refresh(live)`, `saveNow()`, `travel(id)`, `replay(id)`, `step(dt)` | see sections 7, 9, 11 | ready |
 
 `window.__game === G`.
@@ -417,7 +419,8 @@ Key `bloomrush.save.v2`:
                       player: {x, z}, carried: ['rose', ...], stations: { 'shop-roses': { stock, value, cash } },
                       workers: { cutter0a: { items: ['rose', ...], x, z, face } },
                       thrills: { stars, perks: { sprint: 2 }, pending, next, fever, feverLeft, turbo, crew,
-                                 seed, count, won, tips } } } }
+                                 seed, count, won, tips },
+                      runs: { '1': { stars: 3, best: 234 } } } } }      // Gate Run records (section 14); meta.runStars = total
 ```
 
 Only the current world's level is sanitised (unknown pads, stations and item kinds dropped,
@@ -597,3 +600,71 @@ and the wait for the next one starts when an event starts, so a reload cannot sk
 Testing: `G.thrills.trigger('drop' | 'order' | 'coins' | 'pig' | 'deal' | 'perk' | 'fever')` starts one now;
 `G.thrills.state` (stars, perks, counts), `G.thrills.target()` (where the current event wants the player; the test
 bot walks there), `G.thrills.tune` (live values). The bot takes gates, coins and pigs like a player would.
+
+## 14. Mini-modes and the Gate Run
+
+A mini-mode is a short bonus level played inside the page but away from the world. `src/engine/modes/` is the
+host every such mode shares; `src/engine/run/` (the Gate Run) is its first client. Both are optional modules
+created in `main.js` before the player (`?nomodes` turns the host and every mode off, `?norun` only the run).
+While `G.modes.active` is set, the main loop steps only `input`, `modes`, `fx` and `hud`: the player, stations,
+workers, pads, thrills and scenery stand still and `playTime` does not advance.
+
+### The host: `G.modes`
+
+| call | what |
+|---|---|
+| `enter(mode) -> bool` | `mode = { id, update(dt), onEnter?(), onExit?(), frame?(realDt) }`. The curtain closes (0.22 s of sim time), the world freezes, `body.in-mode` hides the world HUD, `onEnter()` runs behind the curtain, the camera cuts. Refused while another mode or a reveal is running. |
+| `exit()` / `abort()` | curtain, `onExit()`, camera back on the player, HUD back, `G.saveNow()`; `abort()` does it at once. A mode whose `update` throws is aborted. |
+| `blink(fn)` | close the curtain, run `fn` behind it, open it again (a restart). |
+| `active`, `phase` | the running mode or `null`; `'idle' | 'in' | 'on' | 'blink' | 'out'`. |
+| `follow(x, z, zoom)`, `snap()`, `zoomFor(viewSize)` | camera target for this step (`zoom` = factor on the world's zoom, as `G.view.setCine`); cut to it now (`G.view.snapTo`); the factor that shows `viewSize` world units vertically, whatever the world's camera. |
+| `arena(index) -> { x, z }` | origin of a region 700+ units from the world, one per mode (the run uses 0), so modes never overlap. |
+| `registerLevels({ type, title, sub, icon, levels: () => [{ n, unlocked, stars, best, isNew, need }], start: (n) => bool })` | lists a level type on the bonus-level sheet. The round HUD button (bottom right) opens the sheet and pauses the sim with `G.timeScale` like the world picker; it shows a badge while a level is new and a bubble when one unlocks. `openSheet()`, `closeSheet()`, `refresh()`. |
+| `showResult({ kicker, title, stars, lines: [{ label, value or text, roll, accent }], cash, note, newBest, onRetry, onContinue })` | the result card: stars come in one by one, `roll` numbers count up (sim clock). `result` is true while it is up; `pressContinue()` / `pressRetry()` press its buttons (the test bot does). |
+
+Events: `'mode:enter' { id }`, `'mode:exit' { id }`. DOM and CSS: `modes/ui.js`, `styles/run.css` (classes `mode-*`).
+To add a mode: build its scene at `G.modes.arena(n)` (hidden until `onEnter`), drive the camera with `follow` in
+`update`, call `registerLevels`, finish with `showResult` and `exit()`.
+
+### The Gate Run: `G.run`
+
+The world's own character runs up a floating runway with a tower of the world's item, steers (`G.input.x`) through
+pairs of gates that add to or multiply the tower (blue) or take from it (red), dodges soft hazards (barriers, puddles,
+spinning bars: they knock some items off, never end the run) and unloads everything on a scale whose bonus meter
+(x1 to x5) depends on the count. Three levels per world, generated from a seed (world id + level number) so a level
+is always the same.
+
+| call | what |
+|---|---|
+| `levels()` | `[{ n, unlocked, stars, best, isNew, need }]`. Level 1 opens after 3 bought pads, level 2 after half of the world's paid pads, level 3 after the win (`G.stats.won`). |
+| `start(n) -> bool` | start level `n` (false: locked, a mode or reveal is running, or it could not be built). |
+| `next()` | the lowest unlocked level with fewer than three stars, or `null`. |
+| `active`, `phase` | true from `start()` until the camera is back; `'ready' | 'run' | 'brake' | 'unload' | 'cheer' | 'result'`. |
+| `leave()`, `retry(n?)` | the result card's buttons; `leave()` also quits a run in progress (no reward). |
+| `botSteer()` | the stick x a competent player would use now. `src/autoplay.js` steers with it, presses CONTINUE and starts each level once when it unlocks (`__autoplay.noRuns = true` stops that). |
+| `debugUnlock(on = true)`, `state`, `tune`, `theme` | tests: every level counts as unlocked; the live run; tuning; the theme in use. |
+
+Events: `'run:start' { level }`, `'run:done' { level, stars, count, cash, newStars, mult }` (payloads are reused).
+State: `levels.<world>.runs = { '<n>': { stars, best } }` (validated on load), `meta.runStars` = stars over all worlds.
+Stars: 1 for finishing, 2 from 42% and 3 from 80% of the best possible count (every pickup, the better gate every
+time). Reward: `G.thrills.unit()` (else 20% of the cheapest visible pad, at least 15) times `0.9 + 0.6 x bonus +
+0.25 x stars`, halved when a level already beaten is run again without earning a new star; every new star also
+feeds the perk gates (`G.thrills.addStar`).
+
+Theming needs nothing from a world: the runner is `LOOKS.player`, the item and colours come from `run/theme.js`
+(defaults for the built-in worlds, else the first item worth something). A world may override any of it:
+
+```js
+run: { item: 'rose', name: 'PETAL DASH', colors: { accent: 0xff5c93, accent2: 0x46c46a, lane: 0xfff3e2, edge: 0xffffff, puff: 0xffffff } },
+```
+
+Files: `level.js` (seeded layout, gate pairs sized from the count a good player has by then, star thresholds),
+`track.js` (runway, scenery, finish, instanced pickups / hazards / pile; built once, re-laid per level, so restarts
+allocate nothing on the GPU), `gates.js` (pooled gate pairs with canvas labels), `label.js` (digit atlas numbers),
+`hud.js` (progress bar, count, banner, speed streaks), `index.js` (the run itself). The lane width and gate size are
+derived from the view size and aspect ratio at the start of a run; the tower shows every item while small and then
+grows ever more slowly (the number above it is the truth).
+
+Testing: `node tools/runtest.js --url=http://localhost:8100/` plays levels 1 to 3 in all five worlds and checks the
+results, the frozen and resumed world, the render budget, leaks over 20 restarts and console errors (non-zero exit on
+failure). By hand: `G.run.debugUnlock(); G.run.start(2)`, then step with `G.input.override = { x: G.run.botSteer(), y: 0 }`.

@@ -21,6 +21,8 @@ On top of that loop the game keeps throwing things at you: a fever meter that do
 when you keep busy, lucky drops with a choice of prizes, rush orders against the clock, coin trails,
 a golden piggy bank to chase, flash sales, and perk gates where you pick one of two permanent perks
 (three stars buy a choice). Finished worlds can be played again to beat your best time.
+Every world also has three Gate Run bonus levels (the flag button, bottom right): run up a floating runway,
+steer through the better gate, stack your goods absurdly high and cash the tower in on the scale.
 
 ## How to play
 
@@ -55,9 +57,11 @@ Debug flags (add to the URL):
 - `?speed=N` runs the simulation N times faster.
 - `?noreveal` turns off the cinematics that play on big purchases.
 - `?nothrills` turns off the events, fever and perks (the plain loop).
+- `?norun` turns off the Gate Run bonus levels, `?nomodes` the whole mini-mode host.
 
 `node tools/playtest.js --world=<id>` plays a world to the end headlessly with
-Playwright and prints the unlock timeline.
+Playwright and prints the unlock timeline. `node tools/runtest.js` plays the Gate Run
+levels in every world and checks them.
 
 ## Layout
 
@@ -75,6 +79,8 @@ src/engine/              the shared engine (docs/ENGINE.md)
   workers/                 worker roles: hauler, harvester, cashier, vendor; opt-in: operator, turret
   thrills/                 fever, lucky drops, rush orders, coin trails, the piggy bank, flash sales,
                            stars and perk gates (docs/ENGINE.md section 13)
+  modes/, run/             mini-mode host (bonus levels away from the world) and the Gate Run
+                           (docs/ENGINE.md section 14); their styles are in styles/run.css
   hud.js, hints.js         HUD, title and win cards; the goal arrow and line
   fx.js, audio.js          particles, flying items, popups; synthesized sound
   art/                     model loading and caching, shared materials, characters
