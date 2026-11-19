@@ -17,7 +17,8 @@ does not happen again.
 3. **Before deploying, run `node tools/release.js check`** (with `python3 -m http.server 8100` running). It refuses
    when the tree is dirty, when HEAD is not the release branch's tip, when anything live is missing from HEAD, or
    when any world or bonus-level test fails, and it lists every branch with commits HEAD does not contain.
-   Never deploy past a failed gate, never with `--quick`.
+   Never deploy past a failed gate, never with `--quick`. On success it writes `release.json` (git-ignored, never
+   committed: it names the commit being uploaded, and the live site serves it so the next check knows what is live).
 4. **After deploying, run `node tools/release.js verify --deploy=<id>`**, then commit and push the line it adds
    to `RELEASES.md`. If the live check fails, fix forward and redeploy.
 5. **A merge that touches another line of work must keep it working**: resolve conflicts by keeping both sides,

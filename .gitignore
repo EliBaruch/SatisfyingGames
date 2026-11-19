@@ -4,3 +4,4 @@ node_modules/
 .netlify/
 playtest-log.json
 .claude/worktrees/
+release.json
