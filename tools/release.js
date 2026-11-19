@@ -65,7 +65,7 @@ async function check() {
     gate('everything live is in HEAD', inside, known ? `live ${liveCommit.slice(0, 7)}${live ? ' (from release.json)' : ' (given)'}` : `live commit ${liveCommit} is not in this clone: fetch the branch it came from`);
   }
   // 3. other branches with work not in HEAD (a warning: not every branch is meant to ship)
-  const branches = sh('git branch -r --format=%(refname:short)').split('\n').filter((b) => b && !b.endsWith('/HEAD'));
+  const branches = sh('git branch -r --format="%(refname:short)"').split('\n').filter((b) => b && !b.endsWith('/HEAD'));
   for (const b of branches) {
     const n = +sh(`git rev-list --count HEAD..${b}`);
     if (n > 0) console.log(`WARN  ${b} has ${n} commit(s) not in HEAD (last: ${sh(`git log -1 --format="%h %ad %s" --date=short ${b}`)})`);
