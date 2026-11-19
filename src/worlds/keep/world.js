@@ -185,8 +185,8 @@ const CHAIN = [
   ['citadel', 'THE CITADEL', 15000, S.citadel, { type: 'win' }, { big: true, toast: 'THE CITADEL STANDS!' }],
 ];
 // prices are written relative to each other; PRICE sets the pace of the whole world (tuned with the test
-// bot to about 18 minutes, which is 20-25 for a person)
-const PRICE = 0.56;
+// bot to about 18-19 minutes with the thrills on, which is 20-25 for a person)
+const PRICE = 0.95;
 const nice = (v) => (v < 100 ? Math.round(v / 5) * 5 : v < 1000 ? Math.round(v / 10) * 10 : Math.round(v / 50) * 50);
 const pads = CHAIN.map(([id, label, cost, at, effect, extra], i) => ({
   id, label, cost: i < 2 ? cost : nice(cost * PRICE), at, requires: i ? [CHAIN[i - 1][0]] : [], effect, ...(extra || {}),

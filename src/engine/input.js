@@ -139,7 +139,10 @@ export function createInput(G) {
 
   // Keep the page from scrolling, zooming or opening menus on gestures.
   const block = (e) => e.preventDefault();
-  window.addEventListener('touchmove', block, { passive: false });
+  // ... except inside overlays and sheets, which scroll natively (the world carousel, the trophy list)
+  const SCROLLERS = '.overlay, .trophy-sheet, .mode-sheet, .mode-result, [data-scroll]';
+  const blockMove = (e) => { const t = e.target; if (t && t.closest && t.closest(SCROLLERS)) return; e.preventDefault(); };
+  window.addEventListener('touchmove', blockMove, { passive: false });
   window.addEventListener('contextmenu', block);
   window.addEventListener('gesturestart', block, { passive: false });
 

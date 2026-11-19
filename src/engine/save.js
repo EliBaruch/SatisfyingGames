@@ -4,13 +4,14 @@
 //   v: 2,
 //   level: 'flower',                       // world to open on the next plain boot
 //   meta: { perks: { <worldId>: { speedMul, capacityAdd } }, totalEarned, playTime,
-//           finished: { <worldId>: true }, ...unknown keys kept },
+//           finished: { <worldId>: true }, best: { <worldId>: seconds }, ...unknown keys kept },
 //   levels: { <worldId>: LevelState },     // each world keeps its own progress
 //   ...unknown top-level keys are kept as they are
 // }
 // LevelState = { money, earned, playTime, won, done: {padId: true}, paid: {padId: n},
 //                player: {x, z}, carried: [itemId...], stations: {stationId: any},
-//                workers: {hirePadId: { items: [itemId...], ...role state }} }
+//                workers: {hirePadId: { items: [itemId...], ...role state }},
+//                thrills: { stars, perks, ... } }      (engine/thrills, validated there)
 //
 // Only the level of the world being played is sanitised (against its definition);
 // other worlds' levels are kept untouched until they are loaded.
@@ -26,7 +27,7 @@ const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const nonNeg = (v) => (isNum(v) && v > 0 ? v : 0);
 
 export function defaultMeta() {
-  return { perks: {}, totalEarned: 0, playTime: 0, finished: {} };
+  return { perks: {}, totalEarned: 0, playTime: 0, finished: {}, best: {} };
 }
 
 export function defaultSave() {
@@ -61,6 +62,10 @@ function sanitizeMeta(m) {
     }
   }
   out.perks = perks;
+  // best[worldId] = fastest win so far, in seconds of play
+  const best = {};
+  if (isObj(out.best)) for (const k of Object.keys(out.best)) if (isNum(out.best[k]) && out.best[k] > 0) best[k] = out.best[k];
+  out.best = best;
   return out;
 }
 

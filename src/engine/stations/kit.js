@@ -321,7 +321,7 @@ export function createCashPile(G, pileDef, opts = {}) {
   const pile = { x: pileDef.x, z: pileDef.z, r: pileDef.r ?? 1.5 };
   const cashIt = getItem('cash');
   const BILL = { step: cashIt ? cashIt.step : 0.12 };
-  const maxBills = Math.min(36, opts.maxBills || 36);   // like the shop's own pile (perf budget)
+  const maxBills = Math.min(84, opts.maxBills || 84);   // 7 layers of 12, like the shop's own pile
   const px = new Float32Array(maxBills), py = new Float32Array(maxBills), pz = new Float32Array(maxBills), pyaw = new Float32Array(maxBills);
   const per = PILE_COLS * PILE_ROWS;
   for (let i = 0; i < maxBills; i++) {

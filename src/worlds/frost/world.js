@@ -88,7 +88,7 @@ const CHAIN = [
   ['beacon', 'THE GREAT BEACON', 6500, S.beacon, { type: 'win' }, { big: true, toast: 'THE GREAT BEACON!' }],
 ];
 const pads = CHAIN.map(([id, label, cost, at, effect, extra], i) => ({ id, label, cost, at, requires: i ? [CHAIN[i - 1][0]] : [], effect, ...(extra || {}) }));
-pads.push({ id: 'travel', label: 'NEXT WORLD', cost: 0, at: S.gate, requires: ['beacon'], effect: { type: 'travel', world: 'keep' }, priceText: 'GO' });
+pads.push({ id: 'travel', label: 'NEXT WORLD', cost: 0, at: S.gate, requires: ['beacon'], effect: { type: 'travel', world: 'town' }, priceText: 'GO' });
 
 // the palisade: solid wall runs between the gate openings (boxes for the 'walls' station)
 function wallBlockers() {
@@ -201,12 +201,14 @@ export default {
     drop: 'Sell at the trading post!',
     cash: 'Grab your coin!',
     buy: 'Buy: {label}',
-    travel: 'Next: Ironwall Keep!',
+    travel: 'Next: Wheatwhistle Junction!',
   },
 
-  finale: { pad: 'beacon', focus: LAY.beacon, next: 'keep' },
+  finale: { pad: 'beacon', focus: LAY.beacon, next: 'town' },
 
   // the test bot delivers what it carries before gathering more, and finds its way round the walls
+  // the VIP escort event, re-dressed: a freezing traveller to bring to the cook fire (engine/thrills/escort.js)
+  thrills: { escort: { tag: 'HELP!', toast: 'A TRAVELLER IS FREEZING!', tip: 'Touch the traveller, then lead them to the fire', to: 'fire', done: 'WARM AND SAFE!' } },
   autoplay: { chain: true },
 
   hud: { stages: ['CLEARING', 'CAMP', 'COOK FIRE', 'WATCHTOWERS', 'HIGH SNOW'], stageStat: 'stage' },

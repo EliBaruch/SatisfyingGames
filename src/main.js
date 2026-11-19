@@ -93,6 +93,11 @@ const loaded = await resolveWorld();
 const def = normaliseWorld(loaded.def);
 for (const it of def.items) registerItem(it);
 if (!loaded.dev) save.level = def.id;
+// how many pads each visited world has, so the world select can show how far along it is
+if (!loaded.dev) {
+  const totals = save.meta.padTotals && typeof save.meta.padTotals === 'object' ? save.meta.padTotals : (save.meta.padTotals = {});
+  totals[def.id] = def.pads.filter((p) => p.cost > 0).length;
+}
 
 // ------------------------------------------------------------------ G
 const view = createView(document.getElementById('game'), def.camera);
@@ -113,7 +118,8 @@ const G = {
   addMoney(n) { if (!(n > 0)) return; G.state.money += n; G.state.earned += n; save.meta.totalEarned += n; },
   spend(n) { if (!(n > 0)) return; G.state.money = Math.max(0, G.state.money - n); },
   audio: null, fx: null, input: null, hud: null, lights: null, stations: null, pads: null,
-  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null,
+  scenery: null, player: null, workers: null, hints: null, level: null, reveal: null, thrills: null, progress: null,
+  modes: null, run: null, raid: null, rush: null,
 };
 save.levels[def.id] = G.state;
 G.stats = computeStats(def, G.state.done, save.meta);
@@ -126,6 +132,8 @@ if (params.has('speed')) {
 /** Recompute G.stats and bring stations, workers and the player in line (after a purchase or a perk). */
 G.refresh = (live) => {
   G.stats = computeStats(def, G.state.done, save.meta);
+  if (G.progress) G.progress.applyStats(G.stats);   // the player level's price bonus
+  if (G.thrills) G.thrills.applyStats();     // perks, boosts and fever lie over the pad stats
   if (G.stations) G.stations.sync(live);
   if (G.workers && G.workers.sync) G.workers.sync(live);
   if (G.player && G.player.sync) G.player.sync();
@@ -218,6 +226,52 @@ if (!G.scenery) {
   G.scene.add(ground);
   G.scenery = { update: noop };
 }
+// progress (engine/progress): the player level and the standing mission. Before thrills, so the
+// level's price bonus is part of the base that thrills lays its boosts over.
+if (!params.has('noprogress')) {
+  try {
+    const { createProgress } = await import('./engine/progress/index.js');
+    G.progress = createProgress(G);
+  } catch (err) { console.error('[boot] progress failed:', err); G.failed.push('progress'); G.progress = null; }
+}
+// thrills (engine/thrills): events, fever, perks. Built before the player so its perks count for the
+// saved stack; optional like the other extras (a failure leaves the plain game).
+if (!params.has('nothrills') && !(def.thrills && def.thrills.off)) {
+  try {
+    const { createThrills } = await import('./engine/thrills/index.js');
+    G.thrills = createThrills(G);
+  } catch (err) { console.error('[boot] thrills failed:', err); G.failed.push('thrills'); G.thrills = null; }
+}
+// mini-modes (engine/modes): the host for bonus levels played away from the world, and its first
+// client, the Gate Run (engine/run). Optional like the thrills: a failure leaves the plain game.
+// ?nomodes turns the host (and every mode) off, ?norun only the Gate Run.
+if (!params.has('nomodes')) {
+  try {
+    const { createModes } = await import('./engine/modes/index.js');
+    G.modes = createModes(G);
+  } catch (err) { console.error('[boot] modes failed:', err); G.failed.push('modes'); G.modes = null; }
+}
+if (G.modes && !params.has('norun')) {
+  try {
+    const { createRun } = await import('./engine/run/index.js');
+    G.run = createRun(G);
+  } catch (err) { console.error('[boot] run failed:', err); G.failed.push('run'); G.run = null; }
+}
+// the Raid (engine/raid): defend-the-stockpile bonus levels, the host's second client. ?noraid turns it off.
+if (G.modes && !params.has('noraid')) {
+  try {
+    const { createRaid } = await import('./engine/raid/index.js');
+    G.raid = createRaid(G);
+  } catch (err) { console.error('[boot] raid failed:', err); G.failed.push('raid'); G.raid = null; }
+}
+// Harvest Rush (engine/rush): the mass-harvest sweep, the host's second client. ?norush turns it off.
+if (G.modes && !params.has('norush')) {
+  try {
+    const { createRush } = await import('./engine/rush/index.js');
+    G.rush = createRush(G);
+  } catch (err) { console.error('[boot] rush failed:', err); G.failed.push('rush'); G.rush = null; }
+}
+if (G.hud && G.hud.refreshTitle) G.hud.refreshTitle();     // the title shows the level, trophies and this world's perks
 G.player = createPlayer(G);
 G.workers = createWorkers(G);
 G.workers.sync(false);
@@ -230,6 +284,7 @@ function saveNow() {
   const pl = G.player;
   if (pl && pl.pos) G.state.player = { x: +pl.pos.x.toFixed(3), z: +pl.pos.z.toFixed(3) };
   if (pl && pl.stack) G.state.carried = pl.stack.snapshot ? pl.stack.snapshot() : pl.stack.items.slice();
+  G.state.seenAt = Date.now();          // when this world was last played (the welcome-back bonus)
   G.state.stations = G.stations.serialize({});
   if (G.workers && G.workers.serialize) G.state.workers = G.workers.serialize({});
   save.levels[def.id] = G.state;
@@ -238,17 +293,37 @@ function saveNow() {
 G.saveNow = saveNow;
 
 /** Save, then reload into world `id` (each world keeps its own progress). */
+// Leaving for another world: a curtain closes, the page reloads into that world, and the next boot
+// skips the title and opens with the world's name instead (engine/hud.js, mode 'intro').
+function leaveTo(id) {
+  const url = new URL(location.href);
+  url.searchParams.set('world', id);
+  url.searchParams.delete('worldUrl');
+  try { sessionStorage.setItem('bloomrush.intro', '1'); } catch (e) { /* ignore */ }
+  document.body.classList.add('leaving');
+  setTimeout(() => { location.href = url.href; }, 320);       // presentation only: lets the curtain close
+}
+
 G.travel = (id) => {
   if (G.audio && G.audio.play) G.audio.play('travel');
   saveNow();
   if (worldInfo(id)) save.level = id;
   writeSave(save);
   noSave = true;
-  const url = new URL(location.href);
-  url.searchParams.set('world', id);
-  url.searchParams.delete('worldUrl');
-  location.href = url.href;
+  leaveTo(id);
 };
+/** Start world `id` again from nothing (its level state is dropped; perks from finished worlds and best times stay). */
+G.replay = (id) => {
+  if (!worldInfo(id)) return;
+  if (id !== def.id) saveNow();
+  noSave = true;
+  delete save.levels[id];
+  save.level = id;
+  writeSave(save);
+  leaveTo(id);
+};
+// a page brought back from the back-forward cache after leaving (curtain closed, saving off) starts over
+window.addEventListener('pageshow', (e) => { if (e.persisted && noSave) location.reload(); });
 setInterval(saveNow, 2000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 window.addEventListener('pagehide', saveNow);
@@ -265,20 +340,23 @@ if (params.has('noreveal')) G.noReveal = true;
 saveNow();   // persists a migrated / sanitised save right away
 
 // ------------------------------------------------------------------ loop
-const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
+const UPDATE_ORDER = ['input', 'player', 'stations', 'workers', 'pads', 'thrills', 'progress', 'scenery', 'fx', 'hud'];
 // during a reveal (engine/reveal.js): first everything stands still while the new thing builds in,
 // then the world runs again without the player until the camera is back
 const CINE_FROZEN = ['pads', 'scenery', 'fx', 'hud'];
 const CINE_RUN = ['stations', 'workers', 'pads', 'scenery', 'fx', 'hud'];
+// while a mini-mode runs (engine/modes: the Gate Run, ...) the world stands still and its clock stops
+const MODE_ORDER = ['input', 'modes', 'fx', 'hud'];
 const errCount = {};
 function step(dt) {
   G.time += dt;
   let order = UPDATE_ORDER;
-  if (G.reveal) {
+  if (G.modes && G.modes.active) order = MODE_ORDER;
+  else if (G.reveal) {
     try { G.reveal.update(dt); } catch (err) { console.error('[loop] reveal.update failed:', err); try { G.reveal.skip(); } catch (e) { /* ignore */ } }
     if (G.reveal.active) order = G.reveal.frozen ? CINE_FROZEN : CINE_RUN;
   }
-  if (order !== CINE_FROZEN) { G.state.playTime += dt; save.meta.playTime += dt; }
+  if (order !== CINE_FROZEN && order !== MODE_ORDER) { G.state.playTime += dt; save.meta.playTime += dt; }
   for (let i = 0; i < order.length; i++) {
     const name = order[i];
     const m = G[name];
@@ -309,6 +387,8 @@ function frame(now) {
     if (n >= MAX_STEPS) acc = 0;
   }
   G.hints.frame(realDt);
+  if (G.thrills) G.thrills.frame(realDt);
+  if (G.modes) G.modes.frame(realDt);
   view.frame(realDt);
   G.frames++;
 }

@@ -249,6 +249,7 @@ export function startAutoplay(G) {
   let pauseLeft = 0;
   let steps = 0;
   let simT = 0;
+  let thrillSince = -1, thrillId = '';
   let nextSample = SAMPLE_EVERY;
   let lastEarned = state.earned;
 
@@ -352,6 +353,15 @@ export function startAutoplay(G) {
       if (s.alert.nearest(p.x, p.z, tmp)) return { kind: 'cut', key: 'fight:' + s.id, x: tmp.x, z: tmp.z, arrive: 0.6, st: s };
     }
     return null;
+  }
+
+  // an event that wants the player somewhere (prize gates, the pig): engine/thrills
+  function thrillTarget() {
+    const t = G.thrills && G.thrills.target ? G.thrills.target() : null;
+    if (!t) { thrillSince = -1; return null; }
+    if (thrillSince < 0 || thrillId !== t.id) { thrillSince = simT; thrillId = t.id; }
+    if (simT - thrillSince > (t.id === 'escort' ? 40 : 14)) return null;            // out of reach: carry on with the job
+    return { kind: 'thrill', key: 'thrill:' + t.id, x: t.x, z: t.z, arrive: 0.2 };
   }
 
   function choose() {
@@ -480,6 +490,7 @@ export function startAutoplay(G) {
         const sv = act.st.serve;
         return !sv.staffed && sv.waiting > 0 && simT - act.since < 15;
       }
+      case 'thrill':
       case 'cut':
       case 'wait':
         return false; // always re-evaluated
@@ -497,7 +508,10 @@ export function startAutoplay(G) {
 
   function decide() {
     let cand;
-    if (stillValid()) {
+    const th = thrillTarget();
+    if (th) {
+      cand = th;   // a prize gate or the pig comes first, like for a player
+    } else if (stillValid()) {
       cand = null; // keep
     } else {
       cand = choose();
@@ -569,12 +583,94 @@ export function startAutoplay(G) {
     }
   }
 
+  // ------------------------------------------------------------ gate run (engine/run)
+  // The bot steers a run with G.run.botSteer(), presses CONTINUE on the result card, and starts each
+  // level once when it unlocks, so a full playthrough exercises the mode. ap.noRuns = true stops the starting.
+  const runTried = {};
+  G.events.on('run:done', (e) => push({ t: T1(), event: 'run', level: e.level, stars: e.stars, count: e.count, cash: e.cash }));
+  function runBot() {
+    const R = G.run;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      G.input.override = { x: R.botSteer(), y: 0 };
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 0 && !ap.noRuns && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      for (const l of R.levels()) {
+        if (!l.unlocked || runTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) runTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
+  // ------------------------------------------------------------ raid (engine/raid)
+  // The same for the raid levels: G.raid.botSteer() is the stick, CONTINUE on the result card, each level
+  // started once when it unlocks (ap.noRuns stops that too). A raid waits until every open Gate Run level
+  // has had its turn, and for a while after any mode has ended, so the two never start back to back.
+  const raidTried = {};
+  let modeEndStep = -1e9;
+  G.events.on('mode:exit', () => { modeEndStep = steps; });
+  G.events.on('raid:done', (e) => push({ t: T1(), event: 'raid', level: e.level, stars: e.stars, left: e.left, cash: e.cash }));
+  function raidBot() {
+    const R = G.raid;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      G.input.override = R.botSteer();
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 45 && !ap.noRuns && steps - modeEndStep > 1200 && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      if (G.run) for (const l of G.run.levels()) if (l.unlocked && !runTried[l.n]) return false;
+      for (const l of R.levels()) {
+        if (!l.unlocked || raidTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) raidTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
+  // ------------------------------------------------------------ harvest rush (engine/rush)
+  // The same deal as the gate run: the bot holds the stick G.rush.botSteer() gives, presses CONTINUE on
+  // the result card and starts each level once when it unlocks (never in the step a gate run may start).
+  const rushTried = {};
+  G.events.on('rush:done', (e) => push({ t: T1(), event: 'rush', level: e.level, stars: e.stars, count: e.count, cash: e.cash }));
+  function rushBot() {
+    const R = G.rush;
+    if (!R) return false;
+    if (R.active) {
+      if (G.modes && G.modes.result) G.modes.pressContinue();
+      const s = R.botSteer();
+      G.input.override = { x: s.x, y: s.y };
+      wPos = null;                              // the world stood still meanwhile: that is not being stuck
+      return true;
+    }
+    if (steps % 90 === 45 && !ap.noRuns && !(G.reveal && G.reveal.active) && !(G.stats.won && !state.won)) {
+      for (const l of R.levels()) {
+        if (!l.unlocked || rushTried[l.n]) continue;
+        if (state.won && G.hud && G.hud.hideWin) G.hud.hideWin();
+        if (R.start(l.n)) rushTried[l.n] = true;
+        break;
+      }
+    }
+    return false;
+  }
+
   // ------------------------------------------------------------ hook
   function tick() {
     if (!G.player || !G.player.stack || !G.stations) return;
     simT += STEP;
     steps++;
     if (ap.hold) { G.input.override = { x: 0, y: 0 }; return; } // set by the playtest runner for screenshots
+    if (runBot() || raidBot()) return;
+    if (rushBot()) return;
     if (steps % DECIDE_EVERY === 1) decide();
     stuckCheck();
     G.input.override = drive();

@@ -13,8 +13,13 @@ const COMBO_NAMES = new Set(['cut', 'stack', 'cash', 'pay', 'egg', 'shelf']);
 const MIN_GAP = { cut: 0.04, stack: 0.04, cash: 0.04, pay: 0.04, drop: 0.06, sell: 0.12, unlock: 0.15, bigUnlock: 0.3, hire: 0.15, full: 0.15, win: 1.0, tractor: 0.25, step: 0.12,
   egg: 0.04, cluck: 0.35, pack: 0.2, machine: 0.25, crate: 0.08, shelf: 0.05, scan: 0.08, truck: 1.0, feed: 0.15, travel: 1.0, perk: 0.4,
   press: 0.3, weld: 0.2, servo: 0.3, car: 0.5, build: 0.05, whoosh: 0.4,
+  thrillDrop: 1.0, fever: 1.0, feverEnd: 1.0, order: 0.5, orderDone: 0.5, star: 0.15, tip: 0.07, jackpot: 0.5, oink: 0.4, gate: 0.2,
+  runPick: 0.03, runGate: 0.15, runBad: 0.15, runHit: 0.15, runTick: 0.035, runMult: 0.08, runWin: 1.0, runGo: 0.3,
+  raidBop: 0.05, raidCoin: 0.035, raidGrab: 0.12, raidBack: 0.06, raidLost: 0.25, raidWave: 0.6, raidBoss: 0.3, raidBuild: 0.3, raidToss: 0.08, raidWin: 1.0, raidFail: 1.0,
+  whistle: 1.5, chuff: 0.12, creak: 0.6, moo: 1.2,
+  rushPick: 0.045, rushPower: 0.2, rushCombo: 0.2, rushTick: 0.3, rushTock: 0.3, rushWhistle: 1.0, rushHonk: 0.25, rushLoad: 0.04, rushMud: 0.3,
   bow: 0.06, crossbow: 0.08, ballista: 0.15, catapult: 0.2, boom: 0.12, thud: 0.18, horn: 2.0 };
-const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk']);
+const IMPORTANT = new Set(['unlock', 'bigUnlock', 'win', 'hire', 'travel', 'perk', 'fever', 'orderDone', 'jackpot', 'thrillDrop']);
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 const fin = (x, d) => (Number.isFinite(x) ? x : d);
@@ -286,6 +291,229 @@ const SOUNDS = {
     tone(k, { type: 'triangle', f0: 392, t: 0.2, dur: 0.22, vol: 0.12, atk: 0.01, filter: 2000 });
     tone(k, { type: 'triangle', f0: 494, t: 0.2, dur: 0.22, vol: 0.1, atk: 0.01, filter: 2000 });
   },
+  // ---- thrills (engine/thrills): events, fever, stars
+  thrillDrop(k) {      // something falls from the sky: a long whistle down, then sparkle
+    tone(k, { type: 'sine', f0: 1800, f1: 420, dur: 1.5, vol: 0.09, atk: 0.05 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.0, dur: 0.12, vol: 0.1 });
+    tone(k, { type: 'triangle', f0: 2093, t: 0.1, dur: 0.12, vol: 0.1 });
+    tone(k, { type: 'triangle', f0: 2637, t: 0.2, dur: 0.2, vol: 0.1 });
+  },
+  fever(k) {           // rising run into a bright chord
+    const run = [523, 659, 784, 1047, 1319];
+    for (let i = 0; i < run.length; i++) tone(k, { type: 'triangle', f0: run[i], t: i * 0.06, dur: 0.14, vol: 0.14, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 1047, t: 0.32, dur: 0.5, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.32, dur: 0.5, vol: 0.11 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.32, dur: 0.5, vol: 0.11 });
+    noise(k, { type: 'highpass', f0: 5000, t: 0.32, dur: 0.4, vol: 0.03, q: 0.5, atk: 0.02 });
+  },
+  feverEnd(k) {
+    tone(k, { type: 'triangle', f0: 784, f1: 392, dur: 0.3, vol: 0.09, atk: 0.01, filter: 1800 });
+  },
+  order(k) {           // a desk bell: ding-ding
+    tone(k, { type: 'sine', f0: 1976, dur: 0.3, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 3951, dur: 0.12, vol: 0.03 });
+    tone(k, { type: 'sine', f0: 1976, t: 0.16, dur: 0.45, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 3951, t: 0.16, dur: 0.15, vol: 0.03 });
+  },
+  orderDone(k) {       // short fanfare
+    tone(k, { type: 'triangle', f0: 784, dur: 0.12, vol: 0.15 });
+    tone(k, { type: 'triangle', f0: 1047, t: 0.1, dur: 0.12, vol: 0.15 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.2, dur: 0.12, vol: 0.15 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.3, dur: 0.4, vol: 0.16 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.3, dur: 0.25, vol: 0.03 });
+  },
+  star(k) {
+    tone(k, { type: 'sine', f0: 1568, dur: 0.1, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 2349, t: 0.07, dur: 0.3, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 4699, t: 0.07, dur: 0.14, vol: 0.03 });
+  },
+  tip(k) {             // a coin
+    tone(k, { type: 'sine', f0: 1976, dur: 0.05, vol: 0.12, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 2637, t: 0.045, dur: 0.22, vol: 0.12, atk: 0.003 });
+  },
+  jackpot(k) {         // a cascade of coins over a chord
+    for (let i = 0; i < 9; i++) tone(k, { type: 'sine', f0: 1568 * Math.pow(2, ((i * 5) % 12) / 12), t: i * 0.055, dur: 0.16, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 523, t: 0.0, dur: 0.7, vol: 0.12 });
+    tone(k, { type: 'triangle', f0: 784, t: 0.0, dur: 0.7, vol: 0.1 });
+    tone(k, { type: 'sine', f0: 110, f1: 55, dur: 0.3, vol: 0.25 });
+  },
+  oink(k) {
+    tone(k, { type: 'sawtooth', f0: 260, f1: 180, dur: 0.11, vol: 0.07, atk: 0.01, filter: 1100 });
+    tone(k, { type: 'sawtooth', f0: 300, f1: 190, t: 0.13, dur: 0.14, vol: 0.07, atk: 0.01, filter: 1100 });
+  },
+  // ---- gate run (engine/run): the caller passes a rising pitch for pickups, counter ticks and bonus steps
+  runPick(k) {         // a pickup: a short bright chime
+    tone(k, { type: 'triangle', f0: 880, dur: 0.07, vol: 0.11, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 1760, t: 0.012, dur: 0.12, vol: 0.07, atk: 0.003 });
+  },
+  runGate(k) {         // through a good gate: a whoosh and three notes up
+    noise(k, { type: 'bandpass', f0: 500, f1: 3400, dur: 0.24, vol: 0.12, q: 0.8, atk: 0.03 });
+    tone(k, { type: 'triangle', f0: 659, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 880, t: 0.06, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.12, dur: 0.26, vol: 0.14 });
+    tone(k, { type: 'sine', f0: 2637, t: 0.12, dur: 0.16, vol: 0.03 });
+  },
+  runBad(k) {          // through a red gate: a whoosh and two notes down
+    noise(k, { type: 'bandpass', f0: 2600, f1: 380, dur: 0.26, vol: 0.12, q: 0.8, atk: 0.02 });
+    tone(k, { type: 'sawtooth', f0: 330, f1: 262, dur: 0.14, vol: 0.07, atk: 0.008, filter: 1300 });
+    tone(k, { type: 'sawtooth', f0: 233, f1: 165, t: 0.13, dur: 0.24, vol: 0.08, atk: 0.008, filter: 1100 });
+  },
+  runHit(k) {          // into a hazard: a soft thud, things scatter
+    tone(k, { type: 'sine', f0: 170, f1: 60, dur: 0.2, vol: 0.36, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 900, dur: 0.1, vol: 0.14, atk: 0.002 });
+    for (let i = 0; i < 3; i++) tone(k, { type: 'triangle', f0: 700 - i * 130, t: 0.05 + i * 0.05, dur: 0.07, vol: 0.05, atk: 0.003 });
+  },
+  runTick(k) {         // the counter at the scale: one tick of a roll
+    tone(k, { type: 'triangle', f0: 600, f1: 560, dur: 0.04, vol: 0.1, atk: 0.002 });
+    noise(k, { type: 'highpass', f0: 4200, dur: 0.02, vol: 0.03, q: 0.6, atk: 0.001 });
+  },
+  runMult(k) {         // the bonus meter reaches the next step
+    tone(k, { type: 'triangle', f0: 1047, dur: 0.09, vol: 0.14, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.07, dur: 0.3, vol: 0.14, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.07, dur: 0.16, vol: 0.03 });
+  },
+  runWin(k) {          // everything is on the scale: a short fanfare over a low thump
+    const notes = [72, 76, 79, 84, 88];
+    for (let i = 0; i < notes.length; i++) {
+      tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.07, dur: i === notes.length - 1 ? 0.6 : 0.16, vol: 0.14 });
+      tone(k, { type: 'sine', f0: midi(notes[i] + 12), t: i * 0.07, dur: 0.14, vol: 0.03 });
+    }
+    tone(k, { type: 'triangle', f0: midi(79), t: 0.28, dur: 0.6, vol: 0.1 });
+    tone(k, { type: 'sine', f0: 120, f1: 55, dur: 0.3, vol: 0.26 });
+  },
+  runGo(k) {           // the start
+    tone(k, { type: 'triangle', f0: 784, dur: 0.1, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1175, t: 0.09, dur: 0.3, vol: 0.14 });
+  },
+  // ---- the farm town (worlds/town)
+  whistle(k) {         // a steam whistle: two reedy notes a fifth apart, a short toot then a long one
+    for (const [t, dur] of [[0, 0.22], [0.3, 0.75]]) {
+      tone(k, { type: 'triangle', f0: 880, f1: 870, t, dur, vol: 0.1, atk: 0.03, filter: 2600 });
+      tone(k, { type: 'triangle', f0: 1318, f1: 1300, t, dur, vol: 0.07, atk: 0.03, filter: 3200 });
+      noise(k, { type: 'bandpass', f0: 2400, t, dur, vol: 0.035, q: 1.2, atk: 0.03 });
+    }
+  },
+  chuff(k) {           // one beat of the engine: a soft puff of steam
+    noise(k, { type: 'lowpass', f0: 900, f1: 300, dur: 0.14, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'sine', f0: 90, f1: 60, dur: 0.1, vol: 0.08, atk: 0.005 });
+  },
+  creak(k) {           // the windmill's wooden gear turning over
+    tone(k, { type: 'sawtooth', f0: 150, f1: 210, dur: 0.16, vol: 0.035, atk: 0.03, filter: 700 });
+    tone(k, { type: 'sawtooth', f0: 220, f1: 160, t: 0.17, dur: 0.2, vol: 0.03, atk: 0.03, filter: 650 });
+    noise(k, { type: 'bandpass', f0: 500, t: 0.02, dur: 0.3, vol: 0.02, q: 2, atk: 0.05 });
+  },
+  moo(k) {             // a contented cow
+    tone(k, { type: 'sawtooth', f0: 150, f1: 118, dur: 0.6, vol: 0.07, atk: 0.08, filter: 520, q: 2 });
+    tone(k, { type: 'triangle', f0: 300, f1: 236, dur: 0.55, vol: 0.03, atk: 0.1, filter: 900 });
+  },
+  // ---- raid (engine/raid): the caller passes a rising pitch for bops and coins
+  raidBop(k) {         // the sweep lands: a soft springy pop
+    tone(k, { type: 'sine', f0: 420, f1: 760, dur: 0.07, vol: 0.2, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 840, f1: 1180, t: 0.015, dur: 0.06, vol: 0.07, atk: 0.003 });
+    noise(k, { type: 'bandpass', f0: 1800, dur: 0.035, vol: 0.07, q: 1.2, atk: 0.002 });
+  },
+  raidCoin(k) {        // a coin reaches the hero: a bright double chime
+    tone(k, { type: 'triangle', f0: 1175, dur: 0.06, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.045, dur: 0.14, vol: 0.1, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.045, dur: 0.1, vol: 0.025 });
+  },
+  raidGrab(k) {        // a pest takes an item: a cheeky two-note "uh-oh"
+    tone(k, { type: 'triangle', f0: 392, dur: 0.08, vol: 0.12, atk: 0.005 });
+    tone(k, { type: 'triangle', f0: 311, t: 0.09, dur: 0.14, vol: 0.12, atk: 0.005 });
+  },
+  raidBack(k) {        // an item lands back on the pile
+    tone(k, { type: 'triangle', f0: 587, f1: 880, dur: 0.09, vol: 0.1, atk: 0.004 });
+    noise(k, { type: 'lowpass', f0: 700, dur: 0.04, vol: 0.05, atk: 0.002 });
+  },
+  raidLost(k) {        // an item is gone down a burrow: three notes down
+    for (let i = 0; i < 3; i++) tone(k, { type: 'sawtooth', f0: 330 - i * 52, f1: 300 - i * 52, t: i * 0.09, dur: 0.13, vol: 0.06, atk: 0.008, filter: 1200 });
+    tone(k, { type: 'sine', f0: 130, f1: 70, dur: 0.22, vol: 0.2 });
+  },
+  raidWave(k) {        // a wave is called: a little horn, a fourth up
+    for (const [f, t, dur] of [[392, 0, 0.14], [523, 0.15, 0.34]]) {
+      tone(k, { type: 'sawtooth', f0: f, t, dur, vol: 0.07, atk: 0.02, filter: 1500 });
+      tone(k, { type: 'triangle', f0: f * 2, t, dur, vol: 0.06, atk: 0.02 });
+    }
+  },
+  raidBoss(k) {        // the big one lands (or pops, an octave up): a deep thump and a rumble
+    tone(k, { type: 'sine', f0: 140, f1: 38, dur: 0.42, vol: 0.5, atk: 0.003 });
+    noise(k, { type: 'lowpass', f0: 500, f1: 120, dur: 0.4, vol: 0.22, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 220, f1: 110, t: 0.03, dur: 0.2, vol: 0.1 });
+  },
+  raidBuild(k) {       // a helper comes up: four quick notes and a sparkle
+    const notes = [67, 72, 76, 79];
+    for (let i = 0; i < notes.length; i++) tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.055, dur: i === 3 ? 0.3 : 0.1, vol: 0.13 });
+    tone(k, { type: 'sine', f0: midi(91), t: 0.17, dur: 0.2, vol: 0.03 });
+  },
+  raidToss(k) {        // a helper tosses something: a short soft whoosh
+    noise(k, { type: 'bandpass', f0: 700, f1: 2200, dur: 0.11, vol: 0.07, q: 1, atk: 0.02 });
+    tone(k, { type: 'sine', f0: 300, f1: 520, dur: 0.08, vol: 0.05, atk: 0.01 });
+  },
+  raidWin(k) {         // the last wave is cleared: a short fanfare
+    const notes = [67, 72, 76, 79, 84];
+    for (let i = 0; i < notes.length; i++) {
+      tone(k, { type: 'triangle', f0: midi(notes[i]), t: i * 0.08, dur: i === notes.length - 1 ? 0.7 : 0.16, vol: 0.14 });
+      tone(k, { type: 'sine', f0: midi(notes[i] + 12), t: i * 0.08, dur: 0.14, vol: 0.03 });
+    }
+    tone(k, { type: 'triangle', f0: midi(76), t: 0.32, dur: 0.7, vol: 0.09 });
+    tone(k, { type: 'sine', f0: 120, f1: 55, dur: 0.3, vol: 0.24 });
+  },
+  raidFail(k) {        // the pile is empty: a soft slide down
+    tone(k, { type: 'triangle', f0: 392, f1: 370, dur: 0.2, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'triangle', f0: 311, f1: 294, t: 0.2, dur: 0.22, vol: 0.12, atk: 0.01 });
+    tone(k, { type: 'triangle', f0: 233, f1: 175, t: 0.42, dur: 0.5, vol: 0.12, atk: 0.01 });
+  },
+  // ---- harvest rush (engine/rush): the caller passes a rising pitch for the sweep chime and the tally
+  rushPick(k) {        // items swept up: a soft pluck (it repeats fast, so it is short and quiet)
+    tone(k, { type: 'triangle', f0: 660, dur: 0.06, vol: 0.085, atk: 0.003 });
+    tone(k, { type: 'sine', f0: 1320, t: 0.01, dur: 0.09, vol: 0.045, atk: 0.003 });
+  },
+  rushPower(k) {       // a pick-up: a sweep up and a bright chord
+    noise(k, { type: 'bandpass', f0: 600, f1: 4200, dur: 0.22, vol: 0.1, q: 0.8, atk: 0.02 });
+    tone(k, { type: 'triangle', f0: 523, f1: 1047, dur: 0.14, vol: 0.12, atk: 0.004 });
+    tone(k, { type: 'triangle', f0: 1319, t: 0.1, dur: 0.3, vol: 0.13 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.1, dur: 0.3, vol: 0.1 });
+    tone(k, { type: 'sine', f0: 3136, t: 0.1, dur: 0.18, vol: 0.03 });
+  },
+  rushCombo(k) {       // the combo climbs a step
+    tone(k, { type: 'triangle', f0: 784, dur: 0.08, vol: 0.13, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1175, t: 0.06, dur: 0.08, vol: 0.13, atk: 0.003 });
+    tone(k, { type: 'triangle', f0: 1568, t: 0.12, dur: 0.24, vol: 0.14, atk: 0.003 });
+  },
+  rushTick(k) {        // the last seconds: tick ...
+    tone(k, { type: 'square', f0: 1400, dur: 0.035, vol: 0.07, atk: 0.001, filter: 3200 });
+    noise(k, { type: 'highpass', f0: 3600, dur: 0.02, vol: 0.05, q: 0.6, atk: 0.001 });
+    tone(k, { type: 'sine', f0: 220, f1: 180, dur: 0.09, vol: 0.12, atk: 0.002 });
+  },
+  rushTock(k) {        // ... tock
+    tone(k, { type: 'square', f0: 990, dur: 0.04, vol: 0.07, atk: 0.001, filter: 2600 });
+    noise(k, { type: 'highpass', f0: 2800, dur: 0.02, vol: 0.05, q: 0.6, atk: 0.001 });
+    tone(k, { type: 'sine', f0: 180, f1: 150, dur: 0.1, vol: 0.12, atk: 0.002 });
+  },
+  rushWhistle(k) {     // time up: a referee's whistle, two short blasts and a long one, with the pea's trill
+    for (const [t, dur] of [[0, 0.11], [0.16, 0.11], [0.32, 0.5]]) {
+      tone(k, { type: 'square', f0: 2350, f1: 2300, t, dur, vol: 0.05, atk: 0.008, filter: 4200 });
+      tone(k, { type: 'sine', f0: 2520, f1: 2460, t, dur, vol: 0.07, atk: 0.008 });
+      noise(k, { type: 'bandpass', f0: 2900, t, dur, vol: 0.05, q: 2.5, atk: 0.008 });
+      for (let i = 0; i < dur / 0.035; i++) tone(k, { type: 'sine', f0: 2700, t: t + i * 0.035, dur: 0.02, vol: 0.03, atk: 0.004 });
+    }
+  },
+  rushHonk(k) {        // a full truck leaves: two notes of a horn and the engine pulling away
+    for (const [t, dur] of [[0, 0.13], [0.17, 0.3]]) {
+      tone(k, { type: 'sawtooth', f0: 311, t, dur, vol: 0.07, atk: 0.01, filter: 1500 });
+      tone(k, { type: 'sawtooth', f0: 392, t, dur, vol: 0.06, atk: 0.01, filter: 1500 });
+    }
+    tone(k, { type: 'sawtooth', f0: 70, f1: 150, t: 0.2, dur: 0.6, vol: 0.06, atk: 0.05, filter: 420 });
+    noise(k, { type: 'lowpass', f0: 500, f1: 1100, t: 0.2, dur: 0.6, vol: 0.05, atk: 0.08 });
+  },
+  rushLoad(k) {        // the tally: one item lands in a truck
+    tone(k, { type: 'triangle', f0: 520, f1: 470, dur: 0.04, vol: 0.09, atk: 0.002 });
+    noise(k, { type: 'lowpass', f0: 1400, dur: 0.03, vol: 0.05, atk: 0.001 });
+  },
+  rushMud(k) {         // into a slow patch: a wet squelch
+    noise(k, { type: 'lowpass', f0: 900, f1: 260, dur: 0.2, vol: 0.16, atk: 0.01 });
+    tone(k, { type: 'sine', f0: 190, f1: 80, dur: 0.18, vol: 0.14, atk: 0.006 });
+  },
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);
@@ -346,8 +574,6 @@ const KEEP_CHORDS = [
   { root: 40, notes: [56, 59, 64] },      // E
 ];
 const KEEP_FANFARE = [69, 72, 76, 74, 71, 76];
-export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost', 'keep'];
-export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4, keep: 0.55 * 4 };
 
 /** Keep: a martial march: war drums on every beat with a roll, low strings, a brass-like fanfare line. */
 function keepBar(k, t, chordIdx, rnd) {
@@ -367,6 +593,41 @@ function keepBar(k, t, chordIdx, rnd) {
     const tt = step * B * 0.5;
     tone(k, { type: 'sawtooth', f0: midi(KEEP_FANFARE[idx]), t: tt, dur: 0.24, vol: 0.011, atk: 0.02, filter: 1500 });
     tone(k, { type: 'triangle', f0: midi(KEEP_FANFARE[idx]), t: tt, dur: 0.3, vol: 0.012, atk: 0.01 });
+  }
+}
+
+const TOWN_CHORDS = [
+  { root: 43, notes: [55, 59, 62] },      // G
+  { root: 40, notes: [55, 59, 64] },      // Em
+  { root: 48, notes: [55, 60, 64] },      // C
+  { root: 50, notes: [57, 62, 66] },      // D
+];
+const TOWN_MELODY = [67, 69, 71, 74, 76, 79, 81];
+export const WORLD_IDS = ['flower', 'chicken', 'grocery', 'factory', 'frost', 'town', 'keep'];
+export const MUSIC_BARS = { flower: MUSIC_BAR, chicken: 0.6 * 4, grocery: 0.8 * 4, factory: 0.5 * 4, frost: 0.7 * 4, town: 0.52 * 4, keep: 0.55 * 4 };
+
+/** Town: a warm, bouncy folk tune: boom-chick guitar, a walking bass on the fifth, a plucked banjo-like melody that skips. */
+function townBar(k, t, chordIdx, rnd) {
+  const B = 0.52;
+  const c = TOWN_CHORDS[chordIdx % 4];
+  for (const n of c.notes) tone(k, { type: 'sine', f0: midi(n), dur: B * 4 + 0.2, vol: 0.009, atk: 0.4 });
+  for (let b = 0; b < 4; b++) {
+    // boom (bass on one and three, the fifth on three) ... chick (a short strum on the off beats)
+    if (b % 2 === 0) tone(k, { type: 'triangle', f0: midi(b === 0 ? c.root : c.root + 7), t: b * B, dur: 0.26, vol: 0.036, atk: 0.006, filter: 620 });
+    else {
+      c.notes.forEach((n, i) => tone(k, { type: 'triangle', f0: midi(n + 12), t: b * B + i * 0.012, dur: 0.11, vol: 0.008, atk: 0.003, filter: 2200 }));
+      noise(k, { type: 'highpass', f0: 6000, t: b * B, dur: 0.03, vol: 0.007, q: 0.6, atk: 0.002 });
+    }
+  }
+  // the tune: plucked notes with a swing, stepping up and down the scale more often than leaping
+  let idx = (rnd() * TOWN_MELODY.length) | 0;
+  for (let step = 0; step < 8; step++) {
+    if (rnd() > (step % 2 === 0 ? 0.72 : 0.45)) continue;
+    const move = rnd() < 0.7 ? (rnd() < 0.5 ? 1 : -1) : (rnd() < 0.5 ? 2 : -2);
+    idx = Math.max(0, Math.min(TOWN_MELODY.length - 1, idx + move));
+    const tt = step * B * 0.5 + (step % 2 ? B * 0.08 : 0);
+    tone(k, { type: 'triangle', f0: midi(TOWN_MELODY[idx]), t: tt, dur: 0.24, vol: 0.021, atk: 0.003, filter: 3000 });
+    tone(k, { type: 'sawtooth', f0: midi(TOWN_MELODY[idx]), t: tt, dur: 0.07, vol: 0.004, atk: 0.002, filter: 4200 });
   }
 }
 
@@ -467,6 +728,7 @@ export function scheduleMusicBar(ctx, out, t, chordIdx, rnd = Math.random, world
   if (world === 'grocery') { groceryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'factory') { factoryBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'frost') { frostBar(k, t, chordIdx, rnd); return k.end; }
+  if (world === 'town') { townBar(k, t, chordIdx, rnd); return k.end; }
   if (world === 'keep') { keepBar(k, t, chordIdx, rnd); return k.end; }
   const c = CHORDS[chordIdx % CHORDS.length];
   for (const n of c.notes) {

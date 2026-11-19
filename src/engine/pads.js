@@ -225,7 +225,7 @@ export function createPads(G) {
     G.scene.add(group);
     const v = {
       pad, group, fill, line, fillMat, decal, mat, tex, canvas, ctx,
-      shown: '', rem: -1, redrawT: 0, removing: -1, stand: 0, acc: 0, billT: 0, pulse: 0,
+      shown: '', rem: -1, redrawT: 0, removing: -1, stand: 0, acc: 0, billT: 0, pulse: 0, brokeT: 0,
       // a pad that appears under the player (or a free pad) only triggers after the
       // player has stepped off it once: nothing is ever bought by accident
       armed: !(live || pad.cost <= 0),
@@ -289,6 +289,8 @@ export function createPads(G) {
   }
 
   const billFrom = new THREE.Vector3();
+  const brokePos = new THREE.Vector3();
+  const brokeOpts = { color: '#ff6b6b', size: 0.62, life: 0.9, maxW: 0.6 };
   const billOpts = { kind: 'cash', from: billFrom, to: null, dur: 0.3, arc: 1.3 };
   const padTargets = new Map();
   function padTarget(p) {
@@ -350,8 +352,18 @@ export function createPads(G) {
         if (inside && v.armed && pl.speed01 < SLOW) v.stand += dt; else if (!inside) v.stand = 0;
         if (inside && v.armed && v.stand >= STAND_DELAY) {
           if (rem <= 0) { complete(v); if (v.removing >= 0) continue; }    // free pad
-          if (money > 0) paying = true;
-        }
+          if (money >= 1) paying = true;
+          else if (rem > 0) {
+            // standing on a pad with an empty wallet: say so (once in a while)
+            v.brokeT -= dt;
+            if (v.brokeT <= 0) {
+              v.brokeT = 1.6;
+              brokePos.set(pad.pos.x, 1.4, pad.pos.z);
+              if (G.fx && G.fx.popText) G.fx.popText(brokePos, 'NOT ENOUGH CASH', brokeOpts);
+              if (G.audio && G.audio.play) G.audio.play('full');
+            }
+          }
+        } else if (!inside) v.brokeT = 0;
       }
       if (paying) {
         const rate = Math.max(pad.cost / PAD.payTime, 40);
