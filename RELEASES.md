@@ -13,3 +13,4 @@ went live. The rows marked *reconstructed* were matched from Netlify's deploy ti
 | 2026-11-18 05:26 | `babcb23` | `6afd370a1db40dee26ed6e87` | *reconstructed*: town thumbnail, trimmed bonus payouts |
 | 2026-11-18 09:03 | `d753d91` | `6afd69c6a5fd53ef7c663f2a` | *reconstructed*: Gate Run, Raid and Harvest Rush bonus levels |
 | 2026-11-18 22:52 | `162ce91` | `6afe2c1c4af518ae85ec9ab9` | **Regression**: Ironwall Keep, deployed from the release branch, which lacked everything on the thrills line, so the live site lost the thrills, trophies, missions, the town world and the bonus levels |
+| 2026-11-19 09:19 | `0a45c25` | `6afebecdfa9f48295341e8b8` | Release guard: quote the branch-list format |
